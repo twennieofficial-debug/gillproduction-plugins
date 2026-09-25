@@ -353,6 +353,22 @@ class NativeQualityGateTests(unittest.TestCase):
             self.assertEqual(copied, [fresh.name])
             self.assertEqual([path.name for path in (root / "collected").iterdir()], [fresh.name])
 
+    def test_lldb_uses_crash_hooks_without_changing_the_original_gate(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / "logs").mkdir()
+            with patch.object(p.sys, "platform", "darwin"), \
+                    patch.object(p, "collect_quality_crashes", return_value=[]), \
+                    patch.object(p.subprocess, "run") as run:
+                run.return_value.returncode = 1
+                result = p.diagnose_quality_failure(root / "host", root / "paths.json", 48000, root, 0, True)
+            command = run.call_args.args[0]
+            hooks = [command[index + 1] for index, value in enumerate(command[:-1]) if value == "-k"]
+            self.assertEqual(hooks, ["thread backtrace all", "image list -o -f"])
+            self.assertTrue(result["diagnostic_only"])
+            self.assertEqual(result["lldb_exit_code"], 1)
+            self.assertNotIn("passed", result)
+
 
 class InstallerEnvironmentTests(unittest.TestCase):
     def test_local_mac_is_not_allowed(self):

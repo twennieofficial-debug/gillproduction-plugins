@@ -378,8 +378,10 @@ def diagnose_quality_failure(executable, paths, rate, dest, since_ns, debugger):
         detail["crash_collection_error"] = str(error)
     if debugger:
         log = dest / "logs/QualityHost-lldb.txt"
+        # Batch LLDB stops processing ordinary -o commands when the inferior
+        # crashes. Crash hooks retain the stack and loaded images in that case.
         command = ["xcrun", "lldb", "--batch", "-o", "settings set target.disable-aslr false",
-                   "-o", "run", "-o", "thread backtrace all", "-o", "image list -o -f", "--",
+                   "-k", "thread backtrace all", "-k", "image list -o -f", "-o", "run", "--",
                    str(executable), "--list", str(paths), "--sample-rate", str(rate),
                    "--report", str(evidence / "lldb-diagnostic-only.json")]
         try:
