@@ -1,0 +1,33 @@
+GILLPRODUCTION – 29 PLUGINS FÜR MAC
+
+1. Dein Projekt speichern und FL Studio schließen.
+2. Die DMG-Datei öffnen und „GILL-PLUGINS…pkg“ doppelt anklicken.
+3. Im normalen Mac-Installationsfenster auf „Fortfahren“ und „Installieren“ klicken.
+   Das Mac-Administratorpasswort wird ausschließlich von macOS abgefragt.
+4. FL Studio öffnen: Options → Manage plugins → Find installed plugins.
+5. In „More plugins“ nach GILL suchen. Fertig.
+
+Installationsort:
+/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION
+
+Alle 29 VST3-Plugins sind gemeinsam enthalten. Es wird keine zusätzliche
+Downloader-App installiert. Nach dem Download funktioniert die Installation
+offline. Deine Projekte, Audioeinstellungen und Aufnahmen werden nicht verändert.
+Die gleiche Installer-Datei unterstützt Apple Silicon und Intel.
+
+Die Fenster starten in den kompakten Größen des Windows-Bundles. macOS-Retina
+ändert die Pixeldichte, nicht die beabsichtigte Größe der Bedienoberfläche.
+FL Studios eigener äußerer Fensterrahmen bleibt vom Host vorgegeben.
+
+GILLFORM benötigt bei 48 kHz ca. 129 ms, GILLTUNE LIVE ca. 16 ms. Für die
+Gesamtlatenz kommen deine Audiointerface- und FL-Studio-Einstellungen hinzu.
+
+Die vollständigen Quellen und Lizenztexte liegen in der DMG bei.
+Zusätzliche Lizenztexte liegen nach Installation unter
+/Library/Application Support/GILLPRODUCTION/Lizenzen.
+
+Falls der Dateiname „UNSIGNIERT-TESTVERSION“ enthält:
+Dies ist eine echte kompilierte Mac-Testversion, aber noch keine mit Apple
+Developer ID signierte und notarisierte Endkundenversion. Gatekeeper kann sie
+blockieren. Die Mac-Sicherheitseinstellungen werden durch den Installer nicht
+verändert; bitte stattdessen eine signierte Veröffentlichung verwenden.

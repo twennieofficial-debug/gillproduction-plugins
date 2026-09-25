@@ -1,0 +1,234 @@
+name: GILL Mac Universal Installer
+
+# Local workflow template. Copy to .github/workflows/build-macos.yml in the
+# explicitly authorized repository. No automatic push or scheduled runs.
+on:
+  workflow_dispatch:
+    inputs:
+      notarize:
+        description: 'Developer-ID-signierte und Apple-notarisierte Endkundenversion'
+        type: boolean
+        default: false
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gill-macos-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+  PIPELINE: work/packaging/macos/pipeline.py
+  CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_MAXSIZE: 600M
+
+jobs:
+  native-build:
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+          - runner: macos-15-intel
+            architecture: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache@v4
+        with:
+          path: .cache/ccache
+          key: macos15-${{ matrix.architecture }}-juce8012-${{ hashFiles('work/**/Source/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}
+          restore-keys: macos15-${{ matrix.architecture }}-juce8012-
+      - name: Build tools
+        run: |
+          brew install ninja ccache
+          xcodebuild -version
+          xcrun --sdk macosx --show-sdk-version
+          cmake --version
+          python3 "$PIPELINE" check-source --source work
+      - name: Native build, DSP, state and compact UI tests
+        run: >-
+          python3 "$PIPELINE" build --source work
+          --build-root "$RUNNER_TEMP/gill-build"
+          --destination "$RUNNER_TEMP/native"
+          --jobs 2
+      - name: Archive native results with executable permissions
+        run: tar -C "$RUNNER_TEMP/native" -czf "$RUNNER_TEMP/native-${{ matrix.architecture }}.tar.gz" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/native-${{ matrix.architecture }}.tar.gz
+          retention-days: 14
+          compression-level: 0
+      - name: Retain failing build evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-native-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/native/logs
+          retention-days: 14
+
+  merge:
+    needs: native-build
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      GILL_APPLICATION_IDENTITY: ${{ inputs.notarize && secrets.GILL_APPLICATION_IDENTITY || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: native-*
+          path: ${{ runner.temp }}/downloads
+          merge-multiple: true
+      - name: Restore native bundles
+        run: |
+          mkdir -p "$RUNNER_TEMP/arm64" "$RUNNER_TEMP/x86_64"
+          tar -xzf "$RUNNER_TEMP/downloads/native-arm64.tar.gz" -C "$RUNNER_TEMP/arm64"
+          tar -xzf "$RUNNER_TEMP/downloads/native-x86_64.tar.gz" -C "$RUNNER_TEMP/x86_64"
+      - name: Prepare optional release identity
+        if: inputs.notarize
+        env:
+          GILL_APP_CERT_P12_BASE64: ${{ secrets.GILL_APP_CERT_P12_BASE64 }}
+          GILL_APP_CERT_PASSWORD: ${{ secrets.GILL_APP_CERT_PASSWORD }}
+        run: python3 work/packaging/macos/ci_signing.py merge
+      - name: Assemble and sign Universal bundles
+        run: >-
+          python3 "$PIPELINE" merge --arm64 "$RUNNER_TEMP/arm64"
+          --x86_64 "$RUNNER_TEMP/x86_64" --destination "$RUNNER_TEMP/universal"
+      - run: tar -C "$RUNNER_TEMP/universal" -czf "$RUNNER_TEMP/universal.tar.gz" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: universal
+          path: ${{ runner.temp }}/universal.tar.gz
+          retention-days: 14
+          compression-level: 0
+      - name: Remove ephemeral signing keychain
+        if: always() && inputs.notarize
+        run: |
+          if [ -n "${GILL_TEMP_KEYCHAIN:-}" ]; then
+            security delete-keychain "$GILL_TEMP_KEYCHAIN"
+          fi
+
+  universal-validation:
+    needs: merge
+    strategy:
+      fail-fast: true
+      max-parallel: 2
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+          - runner: macos-15-intel
+            architecture: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: universal
+          path: ${{ runner.temp }}/downloads
+      - name: Restore Universal build and pinned official validator
+        run: |
+          mkdir -p "$RUNNER_TEMP/universal" "$RUNNER_TEMP/pluginval"
+          tar -xzf "$RUNNER_TEMP/downloads/universal.tar.gz" -C "$RUNNER_TEMP/universal"
+          curl --fail --location --retry 3 https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip --output "$RUNNER_TEMP/pluginval.zip"
+          echo "3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f  $RUNNER_TEMP/pluginval.zip" | shasum -a 256 -c -
+          ditto -x -k "$RUNNER_TEMP/pluginval.zip" "$RUNNER_TEMP/pluginval"
+      - name: Validate exact Universal bundles natively
+        run: >-
+          python3 "$PIPELINE" validate --universal "$RUNNER_TEMP/universal"
+          --pluginval "$RUNNER_TEMP/pluginval/pluginval.app/Contents/MacOS/pluginval"
+          --destination "$RUNNER_TEMP/validation"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: validation-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/validation
+          retention-days: 14
+
+  installer:
+    needs: universal-validation
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      GILL_APPLICATION_IDENTITY: ${{ inputs.notarize && secrets.GILL_APPLICATION_IDENTITY || '' }}
+      GILL_INSTALLER_IDENTITY: ${{ inputs.notarize && secrets.GILL_INSTALLER_IDENTITY || '' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: universal
+          path: ${{ runner.temp }}/downloads
+      - uses: actions/download-artifact@v4
+        with:
+          name: validation-arm64
+          path: ${{ runner.temp }}/validation/arm64
+      - uses: actions/download-artifact@v4
+        with:
+          name: validation-x86_64
+          path: ${{ runner.temp }}/validation/x86_64
+      - name: Restore Universal bundles and corresponding full source
+        run: |
+          mkdir -p "$RUNNER_TEMP/universal"
+          tar -xzf "$RUNNER_TEMP/downloads/universal.tar.gz" -C "$RUNNER_TEMP/universal"
+          python3 "$PIPELINE" source-archive --source work --destination "$RUNNER_TEMP/GILL-QUELLCODE.zip"
+      - name: Prepare optional Installer and notarization credentials
+        if: inputs.notarize
+        env:
+          GILL_APP_CERT_P12_BASE64: ${{ secrets.GILL_APP_CERT_P12_BASE64 }}
+          GILL_APP_CERT_PASSWORD: ${{ secrets.GILL_APP_CERT_PASSWORD }}
+          GILL_INSTALLER_CERT_P12_BASE64: ${{ secrets.GILL_INSTALLER_CERT_P12_BASE64 }}
+          GILL_INSTALLER_CERT_PASSWORD: ${{ secrets.GILL_INSTALLER_CERT_PASSWORD }}
+          GILL_NOTARY_KEY_P8_BASE64: ${{ secrets.GILL_NOTARY_KEY_P8_BASE64 }}
+          GILL_NOTARY_KEY_ID: ${{ secrets.GILL_NOTARY_KEY_ID }}
+          GILL_NOTARY_ISSUER: ${{ secrets.GILL_NOTARY_ISSUER }}
+        run: python3 work/packaging/macos/ci_signing.py package
+      - name: Produce PKG and verified DMG
+        env:
+          NOTARIZE: ${{ inputs.notarize }}
+        run: |
+          options=()
+          if [ "$NOTARIZE" = true ]; then options+=(--notarize); fi
+          python3 "$PIPELINE" package --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE.zip" --staging "$RUNNER_TEMP/package-staging" --destination "$RUNNER_TEMP/delivery" "${options[@]}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GILL-MAC-INSTALLER-${{ inputs.notarize && 'NOTARISIERT' || 'UNSIGNIERT-TESTVERSION' }}
+          path: ${{ runner.temp }}/delivery
+          retention-days: 14
+          compression-level: 0
+      - name: Remove ephemeral signing keychain
+        if: always() && inputs.notarize
+        run: |
+          if [ -n "${GILL_TEMP_KEYCHAIN:-}" ]; then
+            security delete-keychain "$GILL_TEMP_KEYCHAIN"
+          fi

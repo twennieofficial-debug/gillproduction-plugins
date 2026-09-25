@@ -1,0 +1,9 @@
+**/build*/
+**/*_artefacts/
+**/__pycache__/
+**/*.obj
+**/*.pdb
+**/*.exe
+**/*.vst3/
+artifacts/
+outputs/

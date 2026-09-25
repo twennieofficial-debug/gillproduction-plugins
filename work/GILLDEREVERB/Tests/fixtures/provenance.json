@@ -1,0 +1,51 @@
+{
+  "dataset": "LibriSpeech dev-clean / OpenSLR SLR12",
+  "authors": [
+    "Vassil Panayotov",
+    "Guoguo Chen",
+    "Daniel Povey",
+    "Sanjeev Khudanpur"
+  ],
+  "source": "https://www.openslr.org/resources/12/dev-clean.tar.gz",
+  "dataset_page": "https://www.openslr.org/12/",
+  "license": "CC BY 4.0",
+  "license_url": "https://creativecommons.org/licenses/by/4.0/",
+  "archive_member": "LibriSpeech/dev-clean/2277/149896/2277-149896-0026.flac",
+  "original_flac": "2277-149896-0026.flac",
+  "original_sha256": "3909a6c5ae93112518681fcbf0a74df43615a4f88bd6d5cd788775255296e3f6",
+  "archive_bytes_streamed": 348160,
+  "original_duration_s": 4.92,
+  "speech_start_s": 0.5,
+  "speech_end_s": 5.42,
+  "known_added_gain_db": -4.690155478626831,
+  "derivative_changes": "First <=12 seconds, endpoint fade only if cropped, peak normalized to -12 dBFS, 0.5 s leading and 1.8 s trailing zero padding; 48 kHz sinc interpolation; synthetic RIR convolution.",
+  "dry_caveat": "Clean audiobook recording, not certified anechoic studio speech; its original room colour is part of the reference.",
+  "rir_caveat": "Seeded analytical hybrid impulses, not measured rooms and not a full geometrical room simulator; nominal RT60 describes the late-envelope decay, not a certified ISO room measurement.",
+  "audio_format": "Generated WAV files: mono IEEE float32; original FLAC retained unchanged.",
+  "rooms": [
+    {
+      "label": "small",
+      "nominal_rt60_s": 0.25,
+      "direct_to_all_reflections_db": 6.0,
+      "seed": 2103,
+      "early_target_boundary_s": 0.05,
+      "wet_peak": 0.3741131659673443
+    },
+    {
+      "label": "medium",
+      "nominal_rt60_s": 0.55,
+      "direct_to_all_reflections_db": 0.0,
+      "seed": 7241,
+      "early_target_boundary_s": 0.05,
+      "wet_peak": 0.466929121591106
+    },
+    {
+      "label": "large",
+      "nominal_rt60_s": 0.9,
+      "direct_to_all_reflections_db": -3.0,
+      "seed": 9173,
+      "early_target_boundary_s": 0.05,
+      "wet_peak": 0.6938420427861215
+    }
+  ]
+}
