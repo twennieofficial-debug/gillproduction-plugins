@@ -6,8 +6,8 @@
 #include <new>
 #include <cstdlib>
 #include <memory>
-namespace audit {thread_local bool enabled=false;thread_local unsigned allocations=0;}
-void*operator new(size_t n){if(audit::enabled)++audit::allocations;if(void*p=std::malloc(n?n:1))return p;throw std::bad_alloc();}
+namespace gillMixAllocationAudit {thread_local bool enabled=false;thread_local unsigned allocations=0;}
+void*operator new(size_t n){if(gillMixAllocationAudit::enabled)++gillMixAllocationAudit::allocations;if(void*p=std::malloc(n?n:1))return p;throw std::bad_alloc();}
 void*operator new[](size_t n){return::operator new(n);}void operator delete(void*p)noexcept{std::free(p);}void operator delete[](void*p)noexcept{std::free(p);}void operator delete(void*p,size_t)noexcept{std::free(p);}void operator delete[](void*p,size_t)noexcept{std::free(p);}
 using namespace gill::mix07;
 int checks=0,failures=0;void check(bool b,const char*m){++checks;if(!b){++failures;std::cerr<<"FAIL "<<m<<'\n';}}
@@ -18,9 +18,9 @@ int main(){
  const auto same=gain.snapshot();gain.set(-3);check(gain.snapshot()!=same&&!gain.compareSet(same,1,accepted),"same-value host edit still invalidates pending remote edit");
  gain.set(std::numeric_limits<float>::quiet_NaN());check(gain.db()==-3,"NaN parameter does not change value");
  for(double rate:{44100.,48000.,88200.,96000.,192000.})for(int block:{1,16,64,127,256,512,1024,2048}){
-  LinkAudio audio;audio.prepare(rate,-6);std::vector<double>l(static_cast<size_t>(block),.25),r(l);double*ptr[]{l.data(),r.data()};audit::allocations=0;audit::enabled=true;
-  audio.process(ptr,2,block,-6,false,{0,true,true});audit::enabled=false;
-  check(audit::allocations==0,"audio processing has no C++ allocation");
+  LinkAudio audio;audio.prepare(rate,-6);std::vector<double>l(static_cast<size_t>(block),.25),r(l);double*ptr[]{l.data(),r.data()};gillMixAllocationAudit::allocations=0;gillMixAllocationAudit::enabled=true;
+  audio.process(ptr,2,block,-6,false,{0,true,true});gillMixAllocationAudit::enabled=false;
+  check(gillMixAllocationAudit::allocations==0,"audio processing has no C++ allocation");
   check(std::abs(20*std::log10(l[0]/.25)+6)<.0001,"saved static gain acts at sample zero");
   check(l==r,"stereo gain/ramp is linked");
  }
@@ -68,7 +68,7 @@ int main(){
  }
  {
   LinkAudio live,pro;live.prepare(48000,-2);pro.prepare(48000,-2);std::array<float,960>x{},y{};bool same=true;int voiced=0;
-  for(int block=0;block<30;++block){for(int i=0;i<960;++i)x[static_cast<size_t>(i)]=y[static_cast<size_t>(i)]=.1f*static_cast<float>(std::sin((block*960+i)*2*3.141592653589793*220/48000));float*a[]{x.data()},*b[]{y.data()};audit::allocations=0;audit::enabled=true;live.process(a,1,960,-2,false,{block*960,true,true},true,false);pro.process(b,1,960,-2,false,{block*960,true,true},true,true);audit::enabled=false;same&=x==y&&audit::allocations==0;TelemetryFrame frame{};while(pro.pop(frame))voiced+=frame.voiced>.5f;while(live.pop(frame)){};}
+  for(int block=0;block<30;++block){for(int i=0;i<960;++i)x[static_cast<size_t>(i)]=y[static_cast<size_t>(i)]=.1f*static_cast<float>(std::sin((block*960+i)*2*3.141592653589793*220/48000));float*a[]{x.data()},*b[]{y.data()};gillMixAllocationAudit::allocations=0;gillMixAllocationAudit::enabled=true;live.process(a,1,960,-2,false,{block*960,true,true},true,false);pro.process(b,1,960,-2,false,{block*960,true,true},true,true);gillMixAllocationAudit::enabled=false;same&=x==y&&gillMixAllocationAudit::allocations==0;TelemetryFrame frame{};while(pro.pop(frame))voiced+=frame.voiced>.5f;while(live.pop(frame)){};}
   check(same,"LIVE and PRO have identical causal gain output without allocations");check(voiced>=25,"PRO periodicity analysis recognizes a real voiced tone");
  }
  {

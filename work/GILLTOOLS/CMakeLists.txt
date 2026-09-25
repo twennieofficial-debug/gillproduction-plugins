@@ -124,7 +124,9 @@ foreach(engine Harmony Rescue)
 endforeach()
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Tests/ReferenceTests.cpp")
   add_executable(GillReferenceDspTests Tests/ReferenceTests.cpp Source/ReferenceEngine.cpp)
-  target_include_directories(GillReferenceDspTests PRIVATE Source)
+  # The neutral runtime links JUCE privately on native builds; explicitly expose
+  # module headers to this standalone engine test as for GillToolsShared above.
+  target_include_directories(GillReferenceDspTests PRIVATE Source "${JUCE_MODULES_DIR}")
   target_link_libraries(GillReferenceDspTests PRIVATE GillToolsRuntime)
   add_test(NAME REFERENCE_DSP COMMAND GillReferenceDspTests)
   set_tests_properties(REFERENCE_DSP PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Tests")

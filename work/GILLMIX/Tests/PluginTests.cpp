@@ -7,8 +7,8 @@
 #if defined(__APPLE__)
 extern "C" void gillInitialiseMacTestApplication();
 #endif
-namespace audit{thread_local bool enabled=false;thread_local unsigned allocations=0;}
-void*operator new(size_t n){if(audit::enabled)++audit::allocations;if(void*p=std::malloc(n?n:1))return p;throw std::bad_alloc();}void*operator new[](size_t n){return::operator new(n);}void operator delete(void*p)noexcept{std::free(p);}void operator delete[](void*p)noexcept{std::free(p);}void operator delete(void*p,size_t)noexcept{std::free(p);}void operator delete[](void*p,size_t)noexcept{std::free(p);}
+namespace gillMixAllocationAudit{thread_local bool enabled=false;thread_local unsigned allocations=0;}
+void*operator new(size_t n){if(gillMixAllocationAudit::enabled)++gillMixAllocationAudit::allocations;if(void*p=std::malloc(n?n:1))return p;throw std::bad_alloc();}void*operator new[](size_t n){return::operator new(n);}void operator delete(void*p)noexcept{std::free(p);}void operator delete[](void*p)noexcept{std::free(p);}void operator delete(void*p,size_t)noexcept{std::free(p);}void operator delete[](void*p,size_t)noexcept{std::free(p);}
 int checks=0,failures=0;void check(bool b,const char*m){++checks;if(!b){++failures;std::cerr<<"FAIL "<<m<<'\n';}}
 struct PlayHead:juce::AudioPlayHead{int64_t at=0;juce::Optional<PositionInfo>getPosition()const override{PositionInfo p;p.setTimeInSamples(at);p.setTimeInSeconds(at/48000.);p.setIsPlaying(true);return p;}};
 int main(){
@@ -31,7 +31,7 @@ int main(){
  for(int block=0;block<500;++block){play.at=int64_t(block)*256;buffer.clear();for(auto&p:links)p->processBlock(buffer,midi);if(block%4==0)service();}
  master->startLearn();service();
  unsigned allocations=0;
- for(int block=0;block<1900;++block){play.at=int64_t(block)*256;for(int voice=0;voice<3;++voice){for(int c=0;c<2;++c)for(int n=0;n<256;++n)buffer.setSample(c,n,(voice==1?.1f:.05f)*static_cast<float>(std::sin((play.at+n)*2*3.141592653589793*(voice==1?110:220)/48000)));audit::allocations=0;audit::enabled=true;links[static_cast<size_t>(voice)]->processBlock(buffer,midi);audit::enabled=false;allocations+=audit::allocations;}if(block%4==0)service();}
+ for(int block=0;block<1900;++block){play.at=int64_t(block)*256;for(int voice=0;voice<3;++voice){for(int c=0;c<2;++c)for(int n=0;n<256;++n)buffer.setSample(c,n,(voice==1?.1f:.05f)*static_cast<float>(std::sin((play.at+n)*2*3.141592653589793*(voice==1?110:220)/48000)));gillMixAllocationAudit::allocations=0;gillMixAllocationAudit::enabled=true;links[static_cast<size_t>(voice)]->processBlock(buffer,midi);gillMixAllocationAudit::enabled=false;allocations+=gillMixAllocationAudit::allocations;}if(block%4==0)service();}
  service();master->stopLearn();check(allocations==0,"gain plus learning callbacks have no C++ allocation");check(master->canApply(),"aligned active ten-second section produces bounded proposal");
  master->apply();for(int i=0;i<12;++i)service();check(master->canUndo(),"successful committed set creates undo");
  check(std::abs(links[0]->gainParameter->value.db())<.001,"main anchor preserved");check(std::abs(links[1]->gainParameter->value.db()+3)<.001,"beat correction respects default three-dB limit");check(std::abs(links[2]->gainParameter->value.db()+3)<.001,"double correction respects default three-dB limit");
