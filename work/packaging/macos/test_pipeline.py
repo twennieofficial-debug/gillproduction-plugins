@@ -18,9 +18,14 @@ def quality_result_fixture(rate):
     for index, product in enumerate(p.PRODUCTS):
         name = product["name"]
         live = p.math.ceil(rate * .016) if name in ("GILLTUNE", "GILLTUNE LIVE") else int(rate * .02) if name == "GILLFORM" else 0
+        pro = live
+        if name == "GILLHARMONY":
+            live, pro = p.math.ceil(rate * .025) + 80, p.math.ceil(rate * .068) + 112
+        if name == "GILLRESCUE":
+            live, pro = p.math.ceil(rate * .004), p.math.ceil(rate * .012)
         products.append({"name": name, "factory_version": product["version"], "factory_version_verified": True,
                          "factory_uid": format(index + 1, "x"), "manufacturer": "GILLPRODUCTION",
-                         "live_latency_samples": live, "pro_latency_samples": live})
+                         "live_latency_samples": live, "pro_latency_samples": pro})
     return {"passed": True, "failures": 0, "checks": 1, "sample_rate": rate,
             "actual_vst3_bundles": p.PRODUCT_COUNT, "products": products}
 
@@ -30,7 +35,20 @@ def native_quality_fixture(records, arch):
     return {"passed": True, "architecture": arch, "source": {"source_sha256": "fixture"}, "plugins": records,
             "quality_host": {"passed": True, "architecture": arch, "source_sha256": "fixture",
                              "executable_architectures": [arch], "executable_sha256": "0" * 64,
-                             "runs": runs, "bundle_sha256": {r["name"]: r["bundle_sha256"] for r in records}}}
+                             "runs": runs, "bundle_sha256": {r["name"]: r["bundle_sha256"] for r in records}},
+            "mix_host": native_mix_fixture(records, arch)}
+
+
+def native_mix_fixture(records, arch):
+    """Synthetic schema fixture only; no native execution is claimed by these unit tests."""
+    products = [{"name": name, "version": "0.7.0", "factory_uid": "abc" if name == "GILLMIX" else "def",
+                 "bundle": "/fixture/" + name + ".vst3"} for name in ("GILLMIX", "GILLLINK", "GILLLINK", "GILLLINK")]
+    return {"passed": True, "architecture": arch, "source_sha256": "fixture",
+            "executable_architectures": [arch], "executable_sha256": "1" * 64,
+            "bundle_sha256": {r["name"]: r["bundle_sha256"] for r in records if r["name"] in ("GILLMIX", "GILLLINK")},
+            "exit_code": 0, "result": {"passed": True, "checks": 1, "failures": 0, "sample_rate": 48000,
+                                        "native_instances": 4, "products": products},
+            "report": "test-evidence/MIX_HOST/mix-host-48000.json", "report_sha256": "2" * 64}
 
 
 class ReleaseGateTests(unittest.TestCase):
@@ -113,8 +131,34 @@ class ReleaseGateTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "real macOS"):
             p.native_arch()
 
+    def test_quality_and_ctest_pass_cannot_replace_missing_mix_host(self):
+        report = p.read(self.universal / "universal-build.json")
+        report["native_builds"]["arm64"].pop("mix_host")
+        p.write(self.universal / "universal-build.json", report)
+        with self.assertRaisesRegex(RuntimeError, "Missing native MIX real-host"):
+            p.verify_release_gate(self.universal, self.validation)
+
 
 class SourceArchiveTests(unittest.TestCase):
+    def test_mix_host_build_recipe_is_required_and_fingerprinted(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            required = ("GILLCommon/QualityBus.h", "GILLCommon/QualityUi.h", "GILLCommon/MaterialUi.h",
+                        "GILLCommon/Tests/QualityHost.cpp", "GILLCommon/Tests/MacQualityHost.mm",
+                        "GILLCommon/Tests/QualityHostCMake/CMakeLists.txt", "dependencies/JUCE/CMakeLists.txt",
+                        "GILLMIX/CMakeLists.txt", "GILLMIX/Tests/RealHost.cpp", "GILLMIX/Tests/MacRealHost.mm",
+                        "GILLMIX/Tests/HostCMake/CMakeLists.txt")
+            for relative in required:
+                path = root / relative; path.parent.mkdir(parents=True, exist_ok=True); path.write_text("fixture source")
+            with patch.object(p, "GROUPS", ["GILLMIX"]), patch.object(p, "CTEST_MATRIX", {"GILLMIX": []}):
+                before = p.source_check(root)
+                recipe = "GILLMIX/Tests/HostCMake/CMakeLists.txt"
+                self.assertIn(recipe, before["files"])
+                (root / recipe).write_text("changed host build recipe")
+                self.assertNotEqual(before["source_sha256"], p.source_check(root)["source_sha256"])
+                (root / recipe).unlink()
+                with self.assertRaisesRegex(RuntimeError, "Missing native MIX host source"):
+                    p.source_check(root)
     def test_generated_audio_does_not_change_source_hash_but_licensed_input_does(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -169,8 +213,13 @@ class SourceArchiveTests(unittest.TestCase):
                 p.verify_source_archive(path, manifest)
 
     def test_catalog_preserves_products_and_compact_sizes(self):
-        self.assertEqual(len(p.PRODUCTS), 34)
-        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 34)
+        self.assertEqual(len(p.PRODUCTS), 39)
+        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 39)
+        self.assertEqual(sum(x["version"] == "0.6.0" for x in p.PRODUCTS), 34)
+        self.assertEqual({x["name"] for x in p.PRODUCTS if x["version"] == "0.7.0"},
+                         {"GILLMIX", "GILLLINK", "GILLHARMONY", "GILLREFERENCE", "GILLRESCUE"})
+        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 54)
+        self.assertIn("LIVE_QUALITY_DSP", p.CTEST_MATRIX["GILLNEXT"])
         for product in p.PRODUCTS:
             self.assertLessEqual(product["default_size"][0], 900)
             self.assertLessEqual(product["default_size"][1], 580)
@@ -217,7 +266,7 @@ class NativeEvidenceTests(unittest.TestCase):
             self.assertEqual(len(failure["failed_groups"]), 1)
 
     def test_all_expected_ctest_entries_match(self):
-        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 46)
+        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 54)
         for group, expected in p.CTEST_MATRIX.items():
             p.verify_ctest_listing(group, {"tests": [{"name": name} for name in expected]})
 
@@ -230,8 +279,13 @@ class NativeEvidenceTests(unittest.TestCase):
         p.verify_ctest_listing("GILLNEXT", {"tests": tests})
 
     def test_original_39_suites_remain_required(self):
-        old = {k: v for k, v in p.CTEST_MATRIX.items() if k not in {"GILLCONTROL", "GILLCREATIVE", "GILLSMARTDEESSER"}}
+        old = {k: [name for name in v if name != "LIVE_QUALITY_DSP"] for k, v in p.CTEST_MATRIX.items()
+               if k not in {"GILLCONTROL", "GILLCREATIVE", "GILLSMARTDEESSER", "GILLMIX", "GILLTOOLS"}}
         self.assertEqual(sum(map(len, old.values())), 39)
+
+    def test_all47_release06_native_suites_are_now_explicitly_required(self):
+        old = {k: v for k, v in p.CTEST_MATRIX.items() if k not in {"GILLMIX", "GILLTOOLS"}}
+        self.assertEqual(sum(map(len, old.values())), 47)
 
     def test_a_duplicate_test_cannot_replace_missing_test(self):
         tests = [{"name": name} for name in p.CTEST_MATRIX["GILLNEXT"]]
@@ -322,6 +376,49 @@ class NativeQualityGateTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(RuntimeError):
                 p.verify_quality_result(result, 48000)
 
+    def test_release07_keeps_exact_old_and_new_product_versions(self):
+        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("07", "0.7.0"))
+        for rate in p.QUALITY_SAMPLE_RATES:
+            p.verify_quality_result(quality_result_fixture(rate), rate)
+        for name, wrong in (("GILLEQ", "0.7.0"), ("GILLHARMONY", "0.6.0"),
+                            ("GILLREFERENCE", "0.8.0"), ("GILLLINK", "")):
+            result = quality_result_fixture(48000)
+            next(x for x in result["products"] if x["name"] == name)["factory_version"] = wrong
+            with self.subTest(name=name, version=wrong), self.assertRaisesRegex(RuntimeError, "factory version"):
+                p.verify_quality_result(result, 48000)
+
+    def test_harmony_and_rescue_exact_reported_delay_at_each_native_rate(self):
+        measured_harmony = {44100: (1183, 3111), 48000: (1280, 3377),
+                            96000: (2480, 6641), 192000: (4880, 13169)}
+        measured_rescue = {44100: (177, 530), 48000: (192, 576),
+                           96000: (384, 1152), 192000: (768, 2304)}
+        for rate in p.QUALITY_SAMPLE_RATES:
+            result = quality_result_fixture(rate)
+            for name, measured in (("GILLHARMONY", measured_harmony), ("GILLRESCUE", measured_rescue)):
+                product = next(x for x in result["products"] if x["name"] == name)
+                self.assertEqual((product["live_latency_samples"], product["pro_latency_samples"]), measured[rate])
+                for field in ("live_latency_samples", "pro_latency_samples"):
+                    for delta in (-1, 1):
+                        bad = copy.deepcopy(result)
+                        next(x for x in bad["products"] if x["name"] == name)[field] += delta
+                        with self.subTest(rate=rate, name=name, field=field, delta=delta), self.assertRaisesRegex(RuntimeError, "latency differs"):
+                            p.verify_quality_result(bad, rate)
+            p.verify_quality_result(result, rate)
+
+    def test_new_gain_and_monitor_paths_require_zero_in_both_modes(self):
+        for name in ("GILLMIX", "GILLLINK", "GILLREFERENCE"):
+            for live, pro in ((0, 1), (1, 1)):
+                result = quality_result_fixture(48000)
+                next(x for x in result["products"] if x["name"] == name).update(
+                    live_latency_samples=live, pro_latency_samples=pro)
+                with self.subTest(name=name, live=live, pro=pro), self.assertRaisesRegex(RuntimeError, "zero latency in both modes"):
+                    p.verify_quality_result(result, 48000)
+
+    def test_live_quality_suite_cannot_be_silently_removed(self):
+        names = [name for name in p.CTEST_MATRIX["GILLNEXT"] if name != "LIVE_QUALITY_DSP"]
+        with self.assertRaisesRegex(RuntimeError, "LIVE_QUALITY_DSP"):
+            p.verify_ctest_listing("GILLNEXT", {"tests": [{"name": name} for name in names]})
+
     def test_duplicate_factory_identity_rejected(self):
         result = quality_result_fixture(48000)
         result["products"][1]["factory_uid"] = result["products"][0]["factory_uid"]
@@ -368,6 +465,56 @@ class NativeQualityGateTests(unittest.TestCase):
             self.assertTrue(result["diagnostic_only"])
             self.assertEqual(result["lldb_exit_code"], 1)
             self.assertNotIn("passed", result)
+
+
+class NativeMixGateTests(unittest.TestCase):
+    def setUp(self):
+        records = [{"name": name, "bundle_sha256": "3" * 64} for name in ("GILLMIX", "GILLLINK")]
+        self.report = {"architecture": "arm64", "source": {"source_sha256": "fixture"}, "plugins": records,
+                       "mix_host": native_mix_fixture(records, "arm64")}
+
+    def test_complete_native_mix_gate_passes(self):
+        p.verify_native_mix_gate(self.report)
+
+    def test_wrong_architecture_source_exit_and_hash_cannot_pass(self):
+        for field, value in (("architecture", "x86_64"), ("source_sha256", "other"), ("exit_code", 1),
+                             ("executable_architectures", ["x86_64"]), ("bundle_sha256", {})):
+            report = copy.deepcopy(self.report); report["mix_host"][field] = value
+            with self.subTest(field=field), self.assertRaises(RuntimeError):
+                p.verify_native_mix_gate(report)
+
+    def test_missing_failed_or_wrong_instance_results_rejected(self):
+        for field, value in (("passed", False), ("checks", 0), ("failures", 1), ("sample_rate", 44100), ("native_instances", 2)):
+            report = copy.deepcopy(self.report); report["mix_host"]["result"][field] = value
+            with self.subTest(field=field), self.assertRaises(RuntimeError):
+                p.verify_native_mix_gate(report)
+
+    def test_wrong_factory_version_or_instance_list_rejected(self):
+        for change in ("version", "name", "count", "uid"):
+            report = copy.deepcopy(self.report); products = report["mix_host"]["result"]["products"]
+            if change == "version": products[1]["version"] = "0.6.0"
+            if change == "name": products[1]["name"] = "GILLMIX"
+            if change == "count": products.pop()
+            if change == "uid": products[1]["factory_uid"] = "abc"
+            with self.subTest(change=change), self.assertRaises(RuntimeError):
+                p.verify_native_mix_gate(report)
+
+    def test_a_different_loaded_bundle_is_rejected(self):
+        result = self.report["mix_host"]["result"]
+        paths = {name: Path("/fixture") / (name + ".vst3") for name in ("GILLMIX", "GILLLINK")}
+        p.verify_mix_result(result, paths)
+        result["products"][2]["bundle"] = "/other/GILLLINK.vst3"
+        with self.assertRaisesRegex(RuntimeError, "different bundle"):
+            p.verify_mix_result(result, paths)
+
+    def test_report_bytes_are_bound_at_merge(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); gate = self.report["mix_host"]
+            path = root / gate["report"]; p.write(path, gate["result"]); gate["report_sha256"] = p.sha(path)
+            p.verify_native_mix_gate(self.report, root)
+            path.write_text("{}")
+            with self.assertRaisesRegex(RuntimeError, "report bytes changed"):
+                p.verify_native_mix_gate(self.report, root)
 
 
 class InstallerEnvironmentTests(unittest.TestCase):

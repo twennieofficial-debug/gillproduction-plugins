@@ -44,7 +44,8 @@
     "NEXT_FormAlign_DSP",
     "NEXT_FormAlignEdge_DSP",
     "NEXT_Finish_DSP",
-    "NEXT_OutputPeakMeter_DSP"
+    "NEXT_OutputPeakMeter_DSP",
+    "LIVE_QUALITY_DSP"
   ],
   "GILLRESTORATION": [
     "RESTORATION_DSP",
@@ -68,5 +69,16 @@
     "DSP",
     "LEARNING",
     "PLUGIN_INTEGRATION"
+  ],
+  "GILLMIX": [
+    "MIX_CORE",
+    "MIX_INTEGRATION",
+    "MIX_CROSS_DLL"
+  ],
+  "GILLTOOLS": [
+    "TOOLS_INTEGRATION",
+    "Harmony_DSP",
+    "Rescue_DSP",
+    "REFERENCE_DSP"
   ]
 }

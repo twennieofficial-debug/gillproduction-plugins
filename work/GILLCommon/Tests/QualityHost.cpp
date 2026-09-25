@@ -19,6 +19,52 @@ extern "C" void gillInitialiseMacQualityHost();
 extern "C" bool gillPressMacQualityHost(void*, const char*);
 #endif
 namespace {
+juce::String expectedVersion(const juce::String& name) {
+    struct Version { const char* name; const char* version; };
+    static constexpr Version versions[] {
+    {"GILLEQ", "0.6.0"},
+    {"GILL-DE-ESSER", "0.6.0"},
+    {"GILLDEREVERB", "0.6.0"},
+    {"GILLDECLICK", "0.6.0"},
+    {"GILLDECRACKLE", "0.6.0"},
+    {"GILLTUNE", "0.6.0"},
+    {"GILLTUNE LIVE", "0.6.0"},
+    {"GILLHEAT", "0.6.0"},
+    {"GILLFLOW", "0.6.0"},
+    {"GILLAIR", "0.6.0"},
+    {"GILLSPACE", "0.6.0"},
+    {"GILLECHO", "0.6.0"},
+    {"GILLBALANCE", "0.6.0"},
+    {"GILLSILK", "0.6.0"},
+    {"GILLSPARK", "0.6.0"},
+    {"GILLSTRIP", "0.6.0"},
+    {"GILLGOLD", "0.6.0"},
+    {"GILLDIVE", "0.6.0"},
+    {"GILLVOX", "0.6.0"},
+    {"GILLOPTA", "0.6.0"},
+    {"GILLBUSS", "0.6.0"},
+    {"GILLQUAD", "0.6.0"},
+    {"GILLSTAGE", "0.6.0"},
+    {"GILLRIDE", "0.6.0"},
+    {"GILLCLEAN", "0.6.0"},
+    {"GILLPOCKET", "0.6.0"},
+    {"GILLALIGN", "0.6.0"},
+    {"GILLFORM", "0.6.0"},
+    {"GILLFINISH", "0.6.0"},
+    {"GILLCONTROL", "0.6.0"},
+    {"GILLPHRASE", "0.6.0"},
+    {"GILLDIRECTOR", "0.6.0"},
+    {"GILLREPLY", "0.6.0"},
+    {"GILLSMARTDEESSER", "0.6.0"},
+    {"GILLMIX", "0.7.0"},
+    {"GILLLINK", "0.7.0"},
+    {"GILLHARMONY", "0.7.0"},
+    {"GILLREFERENCE", "0.7.0"},
+    {"GILLRESCUE", "0.7.0"},
+    };
+    for (const auto& item : versions) if (name == item.name) return item.version;
+    return {};
+}
 void phase(const juce::String& text) { std::cout << "PHASE " << juce::Time::getMillisecondCounterHiRes() << " " << text << '\n'; }
 struct Item {
     juce::String path, name;
@@ -57,7 +103,7 @@ public:
             juce::OwnedArray<juce::PluginDescription> descriptions; format.findAllTypesForFile(descriptions, path);
             check(descriptions.size() == 1, path + " exactly one VST3 factory"); if (descriptions.size() != 1) return false;
             item->description = *descriptions[0]; item->name = item->description.name;
-            check(item->description.version == "0.6.0", item->name + " native factory version 0.6.0 (got " + item->description.version + ")");
+            check(expectedVersion(item->name).isNotEmpty() && item->description.version == expectedVersion(item->name), item->name + " expected native factory version " + expectedVersion(item->name) + " (got " + item->description.version + ")");
             if (!create(*item)) return false;
             if (item->name == "GILLCONTROL") { check(master < 0, "one controller in input list"); master = static_cast<int>(items.size()); }
             items.push_back(std::move(item));
@@ -105,9 +151,18 @@ public:
                         check(latency == static_cast<int>(std::ceil(sampleRate * .016)), item.name + " LIVE PDC is its 16 ms analysis window");
                     else if (item.name == "GILLFORM")
                         check(latency > 0 && latency < sampleRate * .025, item.name + " LIVE PDC is a positive window below 25 ms");
+                    else if (item.name == "GILLHARMONY")
+                        check(latency == static_cast<int>(std::ceil(sampleRate * .025)) + 80, item.name + " LIVE PDC matches causal harmony window");
+                    else if (item.name == "GILLRESCUE")
+                        check(latency == static_cast<int>(std::ceil(sampleRate * .004)), item.name + " LIVE PDC matches 4 ms repair context");
                     else check(latency == 0, item.name + " LIVE PDC is zero");
                 }
                 if (mode == 1 && item.liveLatency >= 0) check(latency >= item.liveLatency, item.name + " PRO PDC is not below LIVE");
+                if (mode == 1) {
+                    if (item.name == "GILLHARMONY") check(latency == static_cast<int>(std::ceil(sampleRate * .068)) + 112, item.name + " PRO PDC matches harmony window");
+                    if (item.name == "GILLRESCUE") check(latency == static_cast<int>(std::ceil(sampleRate * .012)), item.name + " PRO PDC matches 12 ms repair context");
+                    if (item.name == "GILLMIX" || item.name == "GILLLINK" || item.name == "GILLREFERENCE") check(latency == 0, item.name + " PRO PDC is zero");
+                }
             }
         }
     }
@@ -201,7 +256,7 @@ public:
         for (const auto& item : items) {
             auto* p = new juce::DynamicObject; p->setProperty("name", item->name); p->setProperty("bundle", item->path);
             p->setProperty("factory_version", item->description.version);
-            p->setProperty("factory_version_verified", item->description.version == "0.6.0");
+            p->setProperty("factory_version_verified", expectedVersion(item->name).isNotEmpty() && item->description.version == expectedVersion(item->name));
             p->setProperty("factory_uid", juce::String::toHexString(item->description.uniqueId));
             p->setProperty("factory_deprecated_uid", juce::String::toHexString(item->description.deprecatedUid));
             p->setProperty("manufacturer", item->description.manufacturerName);

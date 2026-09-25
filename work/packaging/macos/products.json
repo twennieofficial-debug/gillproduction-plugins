@@ -406,5 +406,65 @@
       480,
       360
     ]
+  },
+  {
+    "target": "GILLMIX",
+    "bundle_id": "com.gillproduction.gillmix",
+    "group": "GILLMIX",
+    "name": "GILLMIX",
+    "version": "0.7.0",
+    "code": "Gmx1",
+    "default_size": [
+      760,
+      480
+    ]
+  },
+  {
+    "target": "GILLLINK",
+    "bundle_id": "com.gillproduction.gilllink",
+    "group": "GILLMIX",
+    "name": "GILLLINK",
+    "version": "0.7.0",
+    "code": "Gln1",
+    "default_size": [
+      360,
+      210
+    ]
+  },
+  {
+    "target": "GILLHARMONY",
+    "bundle_id": "com.gillproduction.gillharmony",
+    "group": "GILLTOOLS",
+    "name": "GILLHARMONY",
+    "version": "0.7.0",
+    "code": "Gha1",
+    "default_size": [
+      540,
+      440
+    ]
+  },
+  {
+    "target": "GILLREFERENCE",
+    "bundle_id": "com.gillproduction.gillreference",
+    "group": "GILLTOOLS",
+    "name": "GILLREFERENCE",
+    "version": "0.7.0",
+    "code": "Gre1",
+    "default_size": [
+      660,
+      410
+    ]
+  },
+  {
+    "target": "GILLRESCUE",
+    "bundle_id": "com.gillproduction.gillrescue",
+    "group": "GILLTOOLS",
+    "name": "GILLRESCUE",
+    "version": "0.7.0",
+    "code": "Grc1",
+    "default_size": [
+      540,
+      390
+    ]
   }
 ]

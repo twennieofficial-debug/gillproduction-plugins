@@ -1,4 +1,4 @@
-GILLPRODUCTION – 34 PLUGINS FÜR MAC
+GILLPRODUCTION – UPDATE 07 / 39 PLUGINS FÜR MAC
 
 1. Dein Projekt speichern und FL Studio schließen.
 2. Die DMG-Datei öffnen und „GILL-PLUGINS…pkg“ doppelt anklicken.
@@ -10,7 +10,8 @@ GILLPRODUCTION – 34 PLUGINS FÜR MAC
 Installationsort:
 /Library/Audio/Plug-Ins/VST3/GILLPRODUCTION
 
-Alle 34 VST3-Plugins sind gemeinsam enthalten. Es wird keine zusätzliche
+Alle 39 VST3-Plugins sind gemeinsam enthalten. Die 34 vorhandenen behalten ihre
+Version 0.6.0; fünf neue Plugins verwenden 0.7.0. Es wird keine zusätzliche
 Downloader-App installiert. Nach dem Download funktioniert die Installation
 offline. Deine Projekte, Audioeinstellungen und Aufnahmen werden nicht verändert.
 Die gleiche Installer-Datei unterstützt Apple Silicon und Intel.
@@ -19,8 +20,17 @@ Die Fenster starten in den kompakten Größen des Windows-Bundles. macOS-Retina
 ändert die Pixeldichte, nicht die beabsichtigte Größe der Bedienoberfläche.
 FL Studios eigener äußerer Fensterrahmen bleibt vom Host vorgegeben.
 
-GILLFORM benötigt bei 48 kHz ca. 134 ms, GILLTUNE LIVE ca. 16 ms. Für die
-Gesamtlatenz kommen deine Audiointerface- und FL-Studio-Einstellungen hinzu.
+Zusätzliche Plugin-Latenz bei 48 kHz (LIVE / PRO):
+GILLTUNE und GILLTUNE LIVE: 16 / 42,67 ms.
+GILLFORM: 17,33 / 129,33 ms. GILLHARMONY: 26,67 / 70,35 ms.
+GILLRESCUE: 4 / 12 ms. GILLMIX, GILLLINK und GILLREFERENCE: 0 / 0 Samples.
+Für die Gesamtlatenz kommen Audiointerface- und FL-Studio-Puffer hinzu.
+
+Für GILLMIX: GILLLINK als letzten Insert auf jede gewünschte Quellspur setzen,
+FL-Spurfader zunächst auf 0 dB. Gewünschte Links auswählen, CONNECT SELECTED,
+Rollen kontrollieren, LEARN abspielen, Vorschlag mit APPLY übernehmen.
+Weitere Bedienung und Presets stehen in GILL-UPDATE-07-ANLEITUNG.md;
+GILL-PLUGINS-UEBERSICHT.txt erklärt alle 39 Plugins in Stichpunkten.
 
 Die vollständigen Quellen und Lizenztexte liegen in der DMG bei.
 Zusätzliche Lizenztexte liegen nach Installation unter

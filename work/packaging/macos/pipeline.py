@@ -32,8 +32,8 @@ GROUPS = sorted({p["group"] for p in PRODUCTS})
 PRODUCT_COUNT = len(PRODUCTS)
 JUCE_COMMIT = "29396c22c93392d6738e021b83196283d6e4d850"
 MIN_MACOS = "11.0"
-RELEASE = "06"
-SUITE_VERSION = "0.6.0"
+RELEASE = "07"
+SUITE_VERSION = "0.7.0"
 QUALITY_SAMPLE_RATES = (44100, 48000, 96000, 192000)
 PLUGINVAL_URL = "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip"
 PLUGINVAL_SHA256 = "3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f"
@@ -145,6 +145,9 @@ def source_check(source):
     for group in GROUPS:
         root = source / group
         require((root / "CMakeLists.txt").is_file(), f"Missing source group: {group}")
+        if group == "GILLMIX":
+            for relative in ("Tests/RealHost.cpp", "Tests/MacRealHost.mm", "Tests/HostCMake/CMakeLists.txt"):
+                require((root / relative).is_file(), f"Missing native MIX host source: {relative}")
         for folder in (root / "Source", root / "Assets", root / "ThirdParty"):
             if folder.exists():
                 for path in sorted(folder.rglob("*")):
@@ -163,7 +166,8 @@ def source_check(source):
                        (path.suffix.lower() in (".wav", ".flac") or path.name in ("ORIGIN-AND-LICENSE.md", "provenance.json", "prepare_fixtures.py")) and
                        not path.name.startswith(("processed_", "DECLICK-clean", "DECLICK-mouth-restored", "DECLICK-restored",
                                                  "DECRACKLE-clean", "DECRACKLE-mouth-restored", "DECRACKLE-restored")))
-            if path.is_file() and (code or fixture):
+            mix_host_cmake = group == "GILLMIX" and path == root / "Tests/HostCMake/CMakeLists.txt"
+            if path.is_file() and (code or fixture or mix_host_cmake):
                 selected[path.relative_to(source).as_posix()] = sha(path)
     juce = source / "dependencies" / "JUCE"
     require((juce / "CMakeLists.txt").is_file(), "Pinned JUCE source is missing")
@@ -315,10 +319,18 @@ def verify_quality_result(result, rate, bundle_paths=None):
                 f"QualityHost latency evidence invalid: {name}")
         if name == "GILLCONTROL":
             require(pro == 0, "QualityHost controller must have zero latency in both modes")
+        if name in ("GILLMIX", "GILLLINK", "GILLREFERENCE"):
+            require(live == pro == 0, f"QualityHost monitor/gain path must have zero latency in both modes: {name}")
         if name in ("GILLTUNE", "GILLTUNE LIVE"):
             require(live == math.ceil(rate * .016), f"QualityHost Tune LIVE latency differs: {name}")
         elif name == "GILLFORM":
             require(0 < live < rate * .025, "QualityHost Form LIVE window exceeds 25 ms")
+        elif name == "GILLHARMONY":
+            require(live == math.ceil(rate * .025) + 80 and pro == math.ceil(rate * .068) + 112,
+                    "QualityHost Harmony causal/grain-window latency differs")
+        elif name == "GILLRESCUE":
+            require(live == math.ceil(rate * .004) and pro == math.ceil(rate * .012),
+                    "QualityHost Rescue repair-context latency differs")
         else:
             require(live == 0, f"QualityHost LIVE is not zero latency: {name}")
 
@@ -363,6 +375,52 @@ def collect_quality_crashes(directories, destination, since_ns):
                 shutil.copy2(path, target)
                 copied.append(target.name)
     return sorted(set(copied))
+
+
+def verify_mix_result(result, bundle_paths=None):
+    require(result.get("passed") is True and result.get("failures") == 0 and result.get("checks", 0) > 0,
+            "MIX real-host tests failed")
+    require(result.get("sample_rate") == 48000 and result.get("native_instances") == 4,
+            "MIX real-host requires one controller and three LINK instances at 48 kHz")
+    products = result.get("products", [])
+    require(len(products) == 4 and sorted(p.get("name", "") for p in products) == ["GILLLINK"] * 3 + ["GILLMIX"],
+            "MIX real-host instance identity list differs")
+    catalog = {p["name"]: p for p in PRODUCTS}
+    identities = {}
+    for product in products:
+        name = product["name"]
+        require(product.get("version") == catalog[name]["version"], f"MIX real-host factory version differs: {name}")
+        identity = product.get("factory_uid", "")
+        require(isinstance(identity, str) and re.fullmatch(r"[0-9a-fA-F]{1,8}", identity),
+                f"MIX real-host factory UID missing: {name}")
+        require(name not in identities or identities[name] == identity, "MIX real-host LINK identities differ")
+        identities[name] = identity
+        if bundle_paths is not None:
+            require(Path(product.get("bundle", "")).resolve() == bundle_paths[name].resolve(),
+                    f"MIX real-host loaded a different bundle: {name}")
+    require(len(set(identities.values())) == 2, "MIX and LINK factory identities collide")
+
+
+def verify_native_mix_gate(report, evidence_root=None):
+    gate = report.get("mix_host", {})
+    require(gate.get("passed") is True and gate.get("architecture") == report.get("architecture")
+            and gate.get("source_sha256") == report.get("source", {}).get("source_sha256"),
+            "Missing native MIX real-host gate for this architecture/source")
+    require(gate.get("executable_architectures") == [report["architecture"]]
+            and re.fullmatch(r"[0-9a-f]{64}", gate.get("executable_sha256", "")),
+            "MIX real-host native executable identity missing")
+    expected = {p["name"]: p["bundle_sha256"] for p in report.get("plugins", []) if p["name"] in ("GILLMIX", "GILLLINK")}
+    require(len(expected) == 2 and gate.get("bundle_sha256") == expected,
+            "MIX real-host evidence refers to different native bundles")
+    require(gate.get("exit_code") == 0, "MIX real-host execution did not succeed")
+    verify_mix_result(gate.get("result", {}))
+    require(re.fullmatch(r"[0-9a-f]{64}", gate.get("report_sha256", "")), "MIX real-host report identity missing")
+    if evidence_root is not None:
+        root = Path(evidence_root).resolve()
+        path = (root / gate.get("report", "")).resolve()
+        require(path.is_relative_to(root) and path.is_file(), "MIX real-host report file is missing")
+        require(sha(path) == gate["report_sha256"] and read(path) == gate["result"],
+                "MIX real-host report bytes changed")
 
 
 def diagnose_quality_failure(executable, paths, rate, dest, since_ns, debugger):
@@ -458,6 +516,54 @@ def build_quality_host(source, root, dest, arch, jobs, records, source_sha256):
     return gate
 
 
+def build_mix_host(source, root, dest, arch, jobs, records, source_sha256):
+    """Run existing CONNECT/LEARN/APPLY/UNDO native AX tests on exact MIX/LINK bundles."""
+    started = time.monotonic()
+    build_dir = root / "MixRealHost"
+    evidence = dest / "test-evidence/MIX_HOST"
+    evidence.mkdir(parents=True, exist_ok=True)
+    run(["cmake", "-S", source / "GILLMIX/Tests/HostCMake", "-B", build_dir, "-G", "Ninja",
+         "-DCMAKE_BUILD_TYPE=Release", f"-DCMAKE_OSX_ARCHITECTURES={arch}",
+         f"-DCMAKE_OSX_DEPLOYMENT_TARGET={MIN_MACOS}", "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
+         f"-DGILL_JUCE_SOURCE_DIR={source / 'dependencies/JUCE'}", "-DGILL_PREBUILT_RUNTIME=", "-DGILL_JUCE_EXPORT="],
+        log=dest / "logs/MixRealHost-configure.txt")
+    run(["cmake", "--build", build_dir, "--config", "Release", "--parallel", jobs],
+        log=dest / "logs/MixRealHost-build.txt", timeout=3600)
+    executable = build_dir / "GillMixRealHost"
+    require(executable.is_file() and macho(executable), "MIX real-host must be a real native Mach-O executable")
+    architectures = run(["lipo", "-archs", executable]).split()
+    require(architectures == [arch], "MIX real-host executable is not the native runner architecture")
+    executable_sha = sha(executable)
+    bundles = {name: dest / "plugins" / (name + ".vst3") for name in ("GILLMIX", "GILLLINK")}
+    before = {p["name"]: p["bundle_sha256"] for p in records if p["name"] in bundles}
+    require(len(before) == 2 and all(bundle_digest(path) == before[name] for name, path in bundles.items()),
+            "Native bundles changed before MIX real-host")
+    report = evidence / "mix-host-48000.json"
+    require(not report.exists(), "MIX real-host requires a fresh report path")
+    try:
+        run([executable, bundles["GILLMIX"], bundles["GILLLINK"], "48000", report],
+            log=dest / "logs/MixRealHost-48000.txt", timeout=600)
+        result = read(report)
+        verify_mix_result(result, bundles)
+        require(sha(executable) == executable_sha, "MIX real-host executable changed during tests")
+        require(all(bundle_digest(path) == before[name] for name, path in bundles.items()),
+                "Native bundles changed during MIX real-host")
+    except (RuntimeError, subprocess.SubprocessError, OSError, ValueError) as error:
+        write(evidence / "mix-host-gate.json", {"passed": False, "architecture": arch,
+              "source_sha256": source_sha256, "error": str(error)})
+        log = dest / "logs/MixRealHost-48000.txt"
+        if log.is_file():
+            print(ctest_failure_excerpt(log.read_text(encoding="utf-8", errors="replace")), file=sys.stderr, flush=True)
+        raise
+    gate = {"passed": True, "architecture": arch, "source_sha256": source_sha256,
+            "executable_architectures": architectures, "executable_sha256": executable_sha,
+            "bundle_sha256": before, "exit_code": 0, "result": result,
+            "report": report.relative_to(dest).as_posix(), "report_sha256": sha(report),
+            "elapsed_seconds": round(time.monotonic() - started, 3)}
+    write(evidence / "mix-host-gate.json", gate)
+    return gate
+
+
 def build(args):
     arch = native_arch()
     source = Path(args.source).resolve()
@@ -497,9 +603,15 @@ def build(args):
         write(dest / "native-failure.json", {"passed": False, "architecture": arch, "source": snapshot,
               "completed_groups": suites, "failed_groups": [], "failed_gates": [{"gate": "QualityHost", "error": str(error)}]})
         raise
+    try:
+        mix_host = build_mix_host(source, root, dest, arch, args.jobs, records, snapshot["source_sha256"])
+    except (RuntimeError, subprocess.SubprocessError, OSError, ValueError) as error:
+        write(dest / "native-failure.json", {"passed": False, "architecture": arch, "source": snapshot,
+              "completed_groups": suites, "failed_groups": [], "failed_gates": [{"gate": "MixRealHost", "error": str(error)}]})
+        raise
     require(source_check(source)["source_sha256"] == snapshot["source_sha256"], "Source changed during QualityHost")
     write(dest / "native-build.json", {"passed": True, "architecture": arch, "source": snapshot,
-          "native_ctest": suites, "compact_ui_dimensions": ui, "plugins": records, "quality_host": quality,
+          "native_ctest": suites, "compact_ui_dimensions": ui, "plugins": records, "quality_host": quality, "mix_host": mix_host,
           "fl_studio_tested": False, "visual_review_required": True})
 
 
@@ -510,6 +622,7 @@ def merge(args):
     for arch, report in reports.items():
         require(report["passed"] and report["architecture"] == arch, f"Missing native {arch} build")
         verify_native_quality_gate(report, roots[arch])
+        verify_native_mix_gate(report, roots[arch])
     require(reports["arm64"]["source"]["source_sha256"] == reports["x86_64"]["source"]["source_sha256"], "Architecture source mismatch")
     dest = new_destination(args.destination)
     identity = os.environ.get("GILL_APPLICATION_IDENTITY", "").strip()
@@ -592,6 +705,7 @@ def verify_release_gate(universal, validations):
         require(native.get("source", {}).get("source_sha256") == report.get("source_sha256"),
                 "QualityHost native evidence belongs to another Universal source build")
         verify_native_quality_gate(native)
+        verify_native_mix_gate(native)
         result = read(Path(validations) / arch / f"validation-{arch}.json")
         require(result["passed"] and result["native_architecture"] == arch, f"Native {arch} validation is missing")
         require(result["universal_report_sha256"] == sha(Path(universal) / "universal-build.json"), "Validation report is for another build")
@@ -711,7 +825,7 @@ def package(args):
     shutil.copytree(universal / "plugins", plugin_dir, symlinks=True)
     docs = payload / "Library/Application Support/GILLPRODUCTION"
     docs.mkdir(parents=True)
-    for name in ("MAC-INSTALLATION.txt", "products.json"):
+    for name in ("MAC-INSTALLATION.txt", "products.json", "GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-07-ANLEITUNG.md"):
         shutil.copy2(HERE / name, docs / name)
     source = Path(args.source).resolve()
     for group in GROUPS:
@@ -782,6 +896,8 @@ def package(args):
     disk.mkdir()
     shutil.copy2(pkg, disk / pkg.name)
     shutil.copy2(HERE / "MAC-INSTALLATION.txt", disk / "ZUERST-LESEN.txt")
+    for name in ("GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-07-ANLEITUNG.md"):
+        shutil.copy2(HERE / name, disk / name)
     shutil.copy2(source_archive, disk / "GILL-QUELLCODE.zip")
     if not args.notarize:
         (disk / "UNSIGNIERT-TESTVERSION.txt").write_text("Diese echte Mac-Testversion ist nicht mit Apple Developer ID signiert oder notarisiert.\nGatekeeper kann die Installation blockieren. Diese Datei ist keine freigegebene Endkundenversion.\nKeine Systemeinstellungen oder Sicherheitsprüfungen deaktivieren.\n", encoding="utf-8")

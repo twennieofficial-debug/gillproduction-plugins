@@ -1,0 +1,190 @@
+GILLPRODUCTION - PLUGIN-ÜBERSICHT
+UPDATE 07 / 39 VST3-PLUGINS / 34 BESTEHENDE 0.6.0 + 5 NEUE 0.7.0
+
+GILLTUNE
+- Korrigiert die Tonhöhe einer einzelnen Stimme auf Tonart und Skala.
+- Retune, Humanize und Presets von natürlich bis hörbar hart; LIVE und PRO im selben Plugin.
+
+GILLTUNE LIVE
+- Bestehende Plugin-ID für ältere Projekte; enthält ebenfalls die LIVE/PRO-Auswahl.
+- Für neue Instanzen genügt GILLTUNE. Der alte Name bedeutet keinen zusätzlichen dritten Qualitätsmodus.
+
+GILLEQ
+- Parametrischer Equalizer mit direkt veränderbarer Frequenzkurve.
+- Einzelne Bänder arbeiten statisch oder dynamisch.
+
+GILLBALANCE
+- Analysiert eine Vocal und schlägt eine EQ-Korrektur vor.
+- Wählbare Klangziele, unter anderem für modernen Rap und Trap.
+
+GILLFLOW
+- Lernender Vocal-Kompressor für gleichmäßigere Stimmen.
+- Leichte, mittlere und kräftige Kompression.
+
+GILLHEAT
+- Mehrband-Sättigung für Obertöne, Wärme und Verzerrung.
+- Drei Bereiche mit stetig dosierbarer Stärke bis zu deutlichen Effekten.
+
+GILLAIR
+- Hebt Glanz und Präsenz im oberen Frequenzbereich hervor.
+- Für offene Lead-Vocals, Hooks und Instrumente.
+
+GILLSPACE
+- Reverb für Räume, längere Hallfahnen und kreative Effekte.
+- Presets und unabhängiger Dry-Anteil; Dry auf null für reine Hall-Sends.
+
+GILLECHO
+- Delay für Wiederholungen, Slapback und räumliche Effekte.
+- Presets und unabhängiger Dry-Anteil; Dry auf null für reine Echo-Sends.
+
+GILLDEREVERB
+- Verringert hörbaren Raumhall in Sprach- und Vocal-Aufnahmen.
+- Ein Hauptregler; starke Reduktion kann auch die Stimme verändern.
+
+GILLDECLICK
+- Verringert kurze digitale oder aufnahmebedingte Klicks.
+- Kompakter Regler für die Eingriffsstärke.
+
+GILLDECRACKLE
+- Verringert feines Knistern und kurze störende Mundgeräusche.
+- Für vorsichtige Bereinigung von Vocal-Aufnahmen.
+
+GILL-DE-ESSER
+- Manueller De-Esser gegen scharfe S-, Sch- und ähnliche Zischlaute.
+- Frequenzbereich und Stärke selbst einstellen.
+
+GILLSMARTDEESSER
+- Lernt aus aktiver Stimme und S-Lauten einen passenden Bereich, Threshold und Reduktionsvorschlag.
+- LEARN, APPLY und UNDO; AMOUNT dosiert die Stärke, LISTEN REMOVED spielt den entfernten Anteil.
+- Fünf Presets; bei Stille oder zu wenig geeignetem Material wird kein Lernprofil angeboten.
+
+GILLSILK
+- Dämpft hervorstechende Resonanzen dynamisch.
+- Für harte Mitten, scharfe Höhen und resonante Instrumente; Frequenzfokus einstellbar.
+
+GILLSPARK
+- Bearbeitet kurze Transienten innerhalb eines Frequenzbereichs.
+- CUT schwächt Spitzen ab, BOOST betont Anschläge; auch für kurze Mundklicks.
+
+GILLSTRIP
+- Kombiniert mehrere Schritte einer Vocal-Bearbeitung in einem Plugin.
+- Klangformung, Dynamik und räumliche Effekte mit Vocal-Presets.
+
+GILLGOLD
+- Musikalischer Vintage-EQ mit separatem Boost und Cut.
+- Das gesuchte Plugin mit der vom Pultec-/PuigTec-Prinzip angeregten Bedienung.
+
+GILLDIVE
+- Kreativer Filter für dumpfe Unterwasser-Sounds und bewegte Übergänge.
+- Für Vocals, Adlibs, Instrumente und Effekt-Automation.
+
+GILLVOX
+- Kompakter Vocal-Kompressor mit Gate und Ausgangspegel.
+- Für gleichmäßigere Lautstärke und präsente Rap-Stimmen.
+
+GILLOPTA
+- Kompressor mit optoartig weicher Reaktion.
+- Für sanftes Leveling oder stärkere Peak-Reduktion.
+
+GILLBUSS
+- Konsolenartige Sättigung mit drei eigenen Klangcharakteren.
+- VCA-Gruppen verbinden mehrere Instanzen.
+
+GILLQUAD
+- Dynamikbearbeitung in vier getrennt einstellbaren Frequenzbändern.
+- Für Basskontrolle, weniger Mumpf und gezielte Präsenz.
+
+GILLSTAGE
+- Positioniert ein Signal im Stereo-Panorama und in wahrgenommener Entfernung.
+- Integrierter Doubler; DIRECT OFF schaltet die ursprüngliche Stimme aus.
+
+GILLRIDE
+- Gleicht langsamere Lautstärkeunterschiede einer Vocal automatisch aus.
+- Zielpegel, maximale Anhebung/Absenkung, Geschwindigkeit und HOLD.
+
+GILLCLEAN
+- Reduziert Rauschen, tieffrequente Plosivstöße und auffällige Atemgeräusche.
+- Drei Regler und getrenntes Abhören der entfernten Signalanteile.
+
+GILLPOCKET
+- Schafft im Beat frequenzabhängig Platz für die Vocal.
+- Auf den Beat legen und die Vocal als externen Sidechain zuführen.
+
+GILLALIGN
+- Passt das Timing einer aufgenommenen Double-Spur an eine Guide-Vocal an.
+- Guide und Double aufnehmen, ALIGN drücken und PREVIEW vergleichen; Takes bis 20 Sekunden.
+
+GILLFORM
+- Verändert Tonhöhe und Formanten unabhängig über ein XY-Pad.
+- Für tiefe/helle Charakterstimmen, Adlibs und kreative Doubles; LIVE verkürzt die Verarbeitungslatenz.
+
+GILLFINISH
+- Master-Plugin für den kompletten Song aus Beat und Vocals.
+- Tone-EQ, Bus-Kompression, Stereobreite, Clipper, Limiter und Lautheitsanzeige.
+- LIVE schützt Sample-Spitzen ohne zusätzlichen Audiopuffer; PRO nutzt den Oversampling-/True-Peak-Pfad.
+- LEARN schlägt Einstellungen vor; APPLY, REVERT und GAIN MATCH erleichtern den Vergleich.
+
+GILLPHRASE
+- Lernt Vocal-Passagen und setzt verstärkten Hall an erkannte Phrasenenden.
+- FOCUS, BLOOM und WIDE; Markerzeit und Stärke sind editierbar, Dry und Wet unabhängig.
+- Die Analyse erkennt Signalverläufe, keine Wörter oder Bedeutungen.
+
+GILLDIRECTOR
+- Lernt Vocal-Passagen und steuert den eigenen Effekt-Rack-Verlauf aus Kompression, Klang, Stereo, Hall und Delay.
+- FRONT, LIFT und MOTION; optionaler BEAT GUIDE über Sidechain.
+- Steuert keine anderen Plugins und ersetzt keine bewussten Mixentscheidungen.
+
+GILLREPLY
+- Nimmt bis zu 60 Sekunden Vocal auf und spielt vorhandene Ausschnitte rhythmisch in Lücken.
+- SINGLE, DOUBLE und TRIPLE; DENSITY sowie SOURCE IN/OUT und CHOP zum Bearbeiten.
+- Verwendet die aufgenommene Stimme; erzeugt keine neuen Wörter. Der Take wird im Projekt gespeichert.
+
+GILLCONTROL
+- Schaltet registrierte GILL-Instanzen im selben DAW-Prozess gemeinsam auf LIVE oder PRO.
+- Reicht sein eigenes Audiosignal unverändert durch; lokale LIVE/PRO-Schalter bleiben bedienbar.
+- Getrennte Host-/Sandbox-Prozesse werden nicht gemeinsam erreicht. Mehrere Projekte im selben Prozess teilen den Bereich.
+
+GILLMIX
+- Gemeinsamer Pegelassistent auf dem Master: misst bewusst verbundene GILLLINK-Spuren.
+- Main, Doubles, Adlibs und Beat zuordnen, Abschnitt mit LEARN abspielen, Vorschlag mit APPLY übernehmen.
+- Einstellbare Rollenabstände, begrenzte Pegeländerung, Spur-Sperren und UNDO.
+- Fünf Startpunkte: KEEP MY BALANCE, RAP FRONT, HOOK STACK, ADLIB SPACE, GENTLE RESET.
+- Erzeugt einen statischen Ausgangsmix; ersetzt keine individuelle Lautstärkeautomation oder FL-Mixersteuerung.
+
+GILLLINK
+- Kleiner Spurhelfer für GILLMIX; verändert nur den eigenen TRACK LEVEL mit weichen Übergängen.
+- Als letzten Insert auf jede beteiligte Quellspur setzen; deren FL-Fader zunächst auf 0 dB.
+- Name und Rolle lassen sich korrigieren; LOCK schützt den Pegel, DISCONNECT löst die Verbindung.
+- Dieselbe Quelle nicht zusätzlich über einen weiteren LINK auf ihrem Bus doppelt erfassen.
+- GILLMIX und GILLLINK fügen in LIVE und PRO keine Audiosamples Verzögerung hinzu.
+
+GILLHARMONY
+- Erzeugt aus einer einzelnen Stimme oder einem einstimmigen Instrument bis zu drei Begleitstimmen.
+- Tonart, Skala, Intervall, Lautstärke und Panorama pro Stimme; DIRECT schaltet das Original aus.
+- Sechs Presets von Terz und tiefer Oktave bis zu breiten Hook-Harmonien.
+- NATURAL steuert die Erhaltung der Klanghülle; ungeeignet für fertige mehrstimmige Mixe.
+- Tatsächliche Verzögerung bei 48 kHz: LIVE 26,67 ms, PRO 70,35 ms; dem Host gemeldet.
+
+GILLREFERENCE
+- Vergleicht deinen Mix mit einer eigenen WAV-, AIFF- oder FLAC-Datei; drei Dateiplätze und Vergleichsloops.
+- MATCH lernt drei aktive Sekunden gewichteten RMS und senkt die lautere Seite ab; kein integrierter LUFS-Messer.
+- MONO, MID/SIDE sowie FULL, VOICE, LOW und AIR helfen beim gezielten Abhören.
+- Vor einem Echtzeit-Export MIX und BYPASS wählen; erkannter Offline-Export gibt automatisch den unveränderten Mix aus.
+- Keine Zusatzlatenz; Referenzdateien werden nicht im Projekt eingebettet und müssen verfügbar bleiben.
+
+GILLRESCUE
+- Schätzt kurze Spitzen, die durch hartes Übersteuern einer Aufnahme abgeschnitten wurden.
+- LEARN LEVEL findet belegte Clipgrenzen; REPAIR und MAX REPAIR begrenzen den Eingriff.
+- LISTEN REPAIRS spielt nur die Änderungen, OUTPUT schafft Headroom; sechs Startpresets.
+- Intakte Samples bleiben erhalten; lange oder uneindeutige Verzerrungen werden nicht blind ersetzt.
+- Keine sichere Wiederherstellung verlorener Originaldetails. LIVE 4 ms, PRO 12 ms tatsächliche Zusatzlatenz.
+
+
+LIVE / PRO
+- LIVE verringert zusätzliche Verarbeitungslatenz. PRO verwendet je nach Effekt aufwendigere Verarbeitung.
+- Nicht jedes Plugin benötigt zwei verschiedene Algorithmen; beim Smart-De-Esser sind beide identisch und ohne Zusatzlatenz.
+- GILLTUNE benötigt auch in LIVE rund 16 ms Analyse-/Verarbeitungszeit. GILLFORM hat ebenfalls eine reale Restlatenz.
+- Interface-Puffer, weitere Plugins und die DAW beeinflussen die gesamte Abhörverzögerung zusätzlich.
+
+Die Plugins sind eigenständige Entwicklungen. Vergleichsprodukte bezeichnen funktionale Anregungen, keinen identischen Klang und keinen übernommenen proprietären Programmcode.
+GILLALIGN speichert fertige Alignments in Jill Plugins/Align Takes. Diese Audiodateien zusammen mit dem FL-Projekt aufbewahren.
