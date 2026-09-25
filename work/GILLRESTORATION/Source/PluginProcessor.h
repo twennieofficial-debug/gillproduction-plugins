@@ -1,4 +1,6 @@
 #pragma once
+#include "../../GILLCommon/ModeTransition.h"
+#include "../../GILLCommon/QualityBus.h"
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "RestorationDSP.h"
 #include <array>
@@ -35,7 +37,9 @@ public:
     juce::AudioProcessorParameter* getBypassParameter() const override;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
 private:
+    gill::ModeTransition qualityTransition;
     template<class T> void process(juce::AudioBuffer<T>&, bool);
     const gillrestoration::Mode mode;
     std::atomic<float> *amountParam{}, *bypassParam{};

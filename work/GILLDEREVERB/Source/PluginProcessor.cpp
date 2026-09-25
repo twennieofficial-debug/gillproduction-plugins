@@ -34,7 +34,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GillDereverbAudioProcessor::
     add("output","OUTPUT",-12,12,0.01f,0);
     p.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"removed",1},"REMOVED",false));
     p.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));
-    return p;
+    p.add(gill::qualityParameter()); return p;
 }
 bool GillDereverbAudioProcessor::isBusesLayoutSupported(const BusesLayout& l) const {
     const auto out=l.getMainOutputChannelSet();
@@ -48,11 +48,11 @@ void GillDereverbAudioProcessor::prepareToPlay(double fs,int) {
     bypassSmooth.setCurrentAndTargetValue(read(bypassParam,0,1,0)>0.5?1.0:0.0);
     removedSmooth.setCurrentAndTargetValue(!automatic && read(removedParam,0,1,0)>0.5?1.0:0.0);
     mixSmooth.setCurrentAndTargetValue(automatic?1.0:read(mixParam,0,100,100)*0.01);
-    analyzerIndex=0; spectrumReady.store(false); inputAccumulator.fill(0); outputAccumulator.fill(0);
-    inputDb.store(-100); outputDb.store(-100); reductionDb.store(0); setLatencySamples(engine.getLatencySamples());
+qualityTransition.prepare(fs,qualityClient.mode());    analyzerIndex=0; spectrumReady.store(false); inputAccumulator.fill(0); outputAccumulator.fill(0);
+    inputDb.store(-100); outputDb.store(-100); reductionDb.store(0); engine.setLiveMode(!qualityClient.isPro());setLatencySamples(engine.getLatencySamples());
 }
 void GillDereverbAudioProcessor::releaseResources() { engine.reset(); inputDb.store(-100); outputDb.store(-100); reductionDb.store(0); }
-template<class T> void GillDereverbAudioProcessor::process(juce::AudioBuffer<T>& b,bool hostBypassed) {
+template<class T> void GillDereverbAudioProcessor::process(juce::AudioBuffer<T>& b,bool hostBypassed) {const int blockQuality=qualityClient.mode();
     juce::ScopedNoDenormals noDenormals;
     const int n=b.getNumSamples(),nc=std::min(2,b.getNumChannels());
     if(n<1 || nc<1) return;
@@ -65,6 +65,7 @@ template<class T> void GillDereverbAudioProcessor::process(juce::AudioBuffer<T>&
         p.amount=amount; p.roomMs=read(roomParam,80,1500,450);
         p.preserve=read(preserveParam,0,100,75)*0.01; p.lowHz=read(lowParam,20,1000,80); p.highHz=read(highParam,1000,20000,16000);
     }
+    engine.setLiveMode(blockQuality==0);qualityClient.requestLatencySamples(engine.getLatencySamples());
     engine.setParameters(p);
     gainSmooth.setTargetValue(automatic?1.0:std::pow(10.0,read(outputParam,-12,12,0)/20.0));
     bypassSmooth.setTargetValue(hostBypassed || read(bypassParam,0,1,0)>0.5 ? 1.0:0.0);
@@ -97,6 +98,8 @@ template<class T> void GillDereverbAudioProcessor::process(juce::AudioBuffer<T>&
             if(analyze)feedAnalyzer(static_cast<float>(dry[0][static_cast<size_t>(j)]),static_cast<float>(data[0][j]));
         }
     }
+
+    qualityTransition.process(b.getArrayOfWritePointers(),nc,n,blockQuality,true);
     const float decay=static_cast<float>(n/std::max(8000.0,getSampleRate())*30.0);
     inputDb.store(std::max(amplitudeDb(peakIn),inputDb.load()-decay),std::memory_order_relaxed);
     outputDb.store(std::max(amplitudeDb(peakOut),outputDb.load()-decay),std::memory_order_relaxed);
@@ -127,7 +130,9 @@ void GillDereverbAudioProcessor::setStateInformation(const void* data,int size) 
     if(auto xml=getXmlFromBinary(data,size))if(xml->hasTagName(apvts.state.getType())) {
         auto state=juce::ValueTree::fromXml(*xml);if(!state.isValid())return;
         // Only accept known parameters with finite, clamped values.
-        auto clean=apvts.copyState();bool restoredParameter=false;
+        auto clean=apvts.copyState();
+    if (!state.getChildWithProperty("id","gillQuality").isValid()) { auto oldQuality=clean.getChildWithProperty("id","gillQuality"); if(oldQuality.isValid()) oldQuality.setProperty("value",apvts.getParameter("gillQuality")->convertFrom0to1(apvts.getParameter("gillQuality")->getDefaultValue()),nullptr); }
+bool restoredParameter=false;
         for(auto child:state) {
             auto* param=apvts.getParameter(child.getProperty("id").toString());if(!param)continue;
             const double value=static_cast<double>(child.getProperty("value"));if(!std::isfinite(value))continue;

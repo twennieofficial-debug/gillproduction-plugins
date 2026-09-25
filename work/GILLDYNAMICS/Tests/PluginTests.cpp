@@ -1,3 +1,4 @@
+#include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <fstream>
 #include <iostream>
@@ -113,5 +114,12 @@ void groupsTest(){
     a->selectPreset(4,false);check(a->value("g3trim")==-3&&a->value("group")==3,"factory presets preserve group assignment and shared controls");
     for(int i=1;i<=8;++i)for(const char*field:{"drive","trim","bypass","noise"})a->setValue("g"+juce::String(i)+field,0,false);
 }
-int main(){std::cout<<std::unitbuf;juce::ScopedJuceInitialiser_GUI gui;groupsTest();for(auto k:{DynKind::Vox,DynKind::Opta,DynKind::Buss,DynKind::Quad,DynKind::Stage}){metadata(k);routes(k);automation(k);ui(k);}std::ofstream o("dynamics-integration-report.json");o<<"{\"passed\":"<<(failures?"false":"true")<<",\"checks\":"<<checks<<",\"failures\":"<<failures<<",\"ui_edits\":"<<edits<<",\"presets_tested\":"<<presetsTested<<",\"audio_configurations\":"<<configs<<",\"failed_cases\":[";for(size_t i=0;i<errors.size();++i)o<<(i?",":"")<<'"'<<errors[i]<<'"';o<<"]}";std::cout<<"RESULT "<<checks<<" checks, "<<failures<<" failures, "<<edits<<" UI edits, "<<presetsTested<<" presets\n";return failures?1:0;}
+int main(){std::cout<<std::unitbuf;juce::ScopedJuceInitialiser_GUI gui;
+    // Update06: exercise real LIVE/PRO host state, audio timing and UI.
+    gill::testing::qualityRoutes([]{return std::make_unique<GillDynamicsProcessor>(DynKind::Vox);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillDynamicsProcessor>(DynKind::Opta);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillDynamicsProcessor>(DynKind::Buss);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillDynamicsProcessor>(DynKind::Quad);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillDynamicsProcessor>(DynKind::Stage);},[](bool ok,const std::string& why){check(ok,why);});
+groupsTest();for(auto k:{DynKind::Vox,DynKind::Opta,DynKind::Buss,DynKind::Quad,DynKind::Stage}){metadata(k);routes(k);automation(k);ui(k);}std::ofstream o("dynamics-integration-report.json");o<<"{\"passed\":"<<(failures?"false":"true")<<",\"checks\":"<<checks<<",\"failures\":"<<failures<<",\"ui_edits\":"<<edits<<",\"presets_tested\":"<<presetsTested<<",\"audio_configurations\":"<<configs<<",\"failed_cases\":[";for(size_t i=0;i<errors.size();++i)o<<(i?",":"")<<'"'<<errors[i]<<'"';o<<"]}";std::cout<<"RESULT "<<checks<<" checks, "<<failures<<" failures, "<<edits<<" UI edits, "<<presetsTested<<" presets\n";return failures?1:0;}
 

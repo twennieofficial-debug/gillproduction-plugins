@@ -1,6 +1,8 @@
 #include "PluginEditor.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
+#include "../../GILLCommon/MaterialUi.h"
+#include "../../GILLCommon/QualityUi.h"
 #include <cmath>
 #include <limits>
 namespace {
@@ -19,7 +21,7 @@ public:OakLook(){setColour(juce::Slider::textBoxTextColourId,ink);setColour(juce
     juce::Label* createSliderTextBox(juce::Slider& slider)override{auto* label=juce::LookAndFeel_V4::createSliderTextBox(slider);label->setFont(font(13,true));label->setColour(juce::Label::textColourId,ink);label->setColour(juce::Label::backgroundColourId,cream.withAlpha(.9f));label->setColour(juce::Label::outlineColourId,juce::Colours::transparentBlack);label->setColour(juce::TextEditor::textColourId,ink);label->setColour(juce::TextEditor::backgroundColourId,cream);return label;}
     void drawButtonBackground(juce::Graphics& g,juce::Button& b,const juce::Colour&,bool over,bool down)override{auto r=b.getLocalBounds().toFloat().reduced(1);g.setColour(juce::Colours::black.withAlpha(.13f));g.fillRoundedRectangle(r.translated(0,2),6);
         if(b.getName()=="LEARN"){const auto grain=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);juce::Graphics::ScopedSaveState saved(g);juce::Path clip;clip.addRoundedRectangle(r,6);g.reduceClipRegion(clip);g.drawImage(grain,r.getX(),r.getY(),r.getWidth(),r.getHeight(),950,380,170,95);g.setColour(cream.withAlpha(over?.32f:.16f));g.fillRect(r);g.setColour(juce::Colour(0xff765934));g.drawRoundedRectangle(r.reduced(1),5,2);g.setColour(cream.withAlpha(.65f));g.drawRoundedRectangle(r.reduced(3),4,1);return;}
-        g.setColour(b.getToggleState()?sage:cream.withAlpha(over?.98f:.88f));g.fillRoundedRectangle(r,6);g.setColour(down?ink:sage.withAlpha(.35f));g.drawRoundedRectangle(r,6,1);}
+        gill::material::panel(g,r,b.getToggleState()?sage:(over?cream.brighter(.05f):cream),6,down);}
     void drawLinearSlider(juce::Graphics& g,int x,int y,int w,int h,float pos,float,float,const juce::Slider::SliderStyle style,juce::Slider&)override{
         const bool vertical=style==juce::Slider::LinearVertical;const float cx=x+w*.5f,cy=y+h*.5f;
         auto track=vertical?juce::Rectangle<float>(cx-5,static_cast<float>(y),10,static_cast<float>(h)):juce::Rectangle<float>(static_cast<float>(x),cy-4,static_cast<float>(w),8);
@@ -29,19 +31,17 @@ public:OakLook(){setColour(juce::Slider::textBoxTextColourId,ink);setColour(juce
         g.setColour(juce::Colours::black.withAlpha(.23f));g.fillRoundedRectangle(thumb.translated(2,4),5);g.setGradientFill(juce::ColourGradient(juce::Colours::white,thumb.getX(),thumb.getY(),juce::Colour(0xffd1d0c5),thumb.getRight(),thumb.getBottom(),false));g.fillRoundedRectangle(thumb,4);g.setColour(cream);g.drawRoundedRectangle(thumb.reduced(.5f),4,1);g.setColour(sage);if(vertical)g.fillRect(thumb.reduced(9,13));else g.fillRect(thumb.reduced(9,8));
     }
     void drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,float value,float start,float end,juce::Slider& slider)override{
-        const auto r=juce::Rectangle<float>(static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)).reduced(7);const float size=std::min(r.getWidth(),r.getHeight()),radius=size*.5f,cx=r.getCentreX(),cy=r.getCentreY();auto body=juce::Rectangle<float>(size-15,size-15).withCentre({cx,cy});
+        const auto r=juce::Rectangle<float>(static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)).reduced(7);const float size=std::min(r.getWidth(),r.getHeight()),radius=size*.5f,cx=r.getCentreX(),cy=r.getCentreY();
         if(auto* ring=dynamic_cast<GestureSlider*>(&slider);ring&&ring->commandWheel){
             const auto shell=juce::Rectangle<float>(size,size).withCentre({cx,cy});
-            g.setColour(juce::Colours::black.withAlpha(.2f));g.fillEllipse(shell.translated(2,5));
-            g.setGradientFill(juce::ColourGradient(juce::Colour(0xfffffff8),cx-radius,cy-radius,juce::Colour(0xffd0cbbd),cx+radius,cy+radius,false));g.fillEllipse(shell);
-            g.setColour(juce::Colour(0xff8a6d47));g.drawEllipse(shell,2);g.setColour(cream);g.drawEllipse(shell.reduced(3),2);
+            gill::material::disc(g,shell,cream);
+            gill::material::grooveArc(g,{cx,cy},radius*.865f,start,end,value,sage,std::max(3.f,size*.014f));
             const auto inner=shell.withSizeKeepingCentre(size*.77f,size*.77f);g.setColour(juce::Colour(0xff9c7951));g.fillEllipse(inner.expanded(3));g.setColour(cream);g.drawEllipse(inner.expanded(3),1);
             for(int i=0;i<=20;++i){const float angle=start+i*(end-start)/20.f;g.setColour(ink.withAlpha(i%5==0?.7f:.24f));g.drawLine(cx+std::sin(angle)*radius*.83f,cy-std::cos(angle)*radius*.83f,cx+std::sin(angle)*radius*.89f,cy-std::cos(angle)*radius*.89f,i%5==0?2.f:1.f);}
             for(int i=0;i<=4;++i){const float angle=start+i*(end-start)/4.f;g.setColour(ink);g.setFont(font(std::max(12.f,size*.033f),true));g.drawText(juce::String(i*50),juce::Rectangle<float>(size*.11f,size*.05f).withCentre({cx+std::sin(angle)*radius*.95f,cy-std::cos(angle)*radius*.95f}),juce::Justification::centred,false);}
             const float angle=start+value*(end-start);const auto handle=juce::Rectangle<float>(size*.043f,size*.043f).withCentre({cx+std::sin(angle)*radius*.865f,cy-std::cos(angle)*radius*.865f});g.setColour(juce::Colours::black.withAlpha(.16f));g.fillEllipse(handle.translated(1,2));g.setColour(sage);g.fillEllipse(handle);g.setColour(cream);g.drawEllipse(handle,1.4f);return;
         }
-        juce::Path a,b;a.addCentredArc(cx,cy,radius,radius,0,start,end,true);b.addCentredArc(cx,cy,radius,radius,0,start,start+value*(end-start),true);g.setColour(ink.withAlpha(.2f));g.strokePath(a,juce::PathStrokeType(4));g.setColour(sage);g.strokePath(b,juce::PathStrokeType(5));g.setColour(juce::Colours::black.withAlpha(.2f));g.fillEllipse(body.translated(2,4));g.setGradientFill(juce::ColourGradient(juce::Colours::white,body.getX(),body.getY(),juce::Colour(0xffcac8bb),body.getRight(),body.getBottom(),false));g.fillEllipse(body);g.setColour(cream);g.drawEllipse(body.reduced(1),1.2f);
-        const float angle=start+value*(end-start);g.setColour(sage);g.drawLine(cx+std::sin(angle)*radius*.36f,cy-std::cos(angle)*radius*.36f,cx+std::sin(angle)*radius*.64f,cy-std::cos(angle)*radius*.64f,4);
+        gill::material::rotary(g, {static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)}, value, start, end, sage);
     }
 };
 struct Binding {
@@ -101,8 +101,9 @@ struct GillVocalEditor::Impl:private juce::Timer {
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> autoAttachment,bypassAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> keyAttachment,scaleAttachment;
     int baseWidth=700,baseHeight=470;
+    gill::QualitySelector quality{p.apvts, p};
     Impl(GillVocalEditor& o,GillVocalProcessor& v):owner(o),p(v),display(v),tooltip(&o,600){
-        owner.setLookAndFeel(&look);wood=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);owner.addAndMakeVisible(display);
+        owner.setLookAndFeel(&look);owner.addAndMakeVisible(quality);wood=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);owner.addAndMakeVisible(display);
         auto add=[&](const char* id,const char* title,const char* suffix,bool vertical=false){auto b=std::make_unique<Binding>(p,id,title,suffix,vertical);owner.addAndMakeVisible(b->slider);owner.addAndMakeVisible(b->label);controls.push_back(std::move(b));};
         bypass.setName("BYPASS");bypass.setClickingTogglesState(true);owner.addAndMakeVisible(bypass);bypassAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"bypass",bypass);bypass.setTooltip("VERARBEITUNG UMGEHEN; GEMELDETE LATENZ BLEIBT GLEICH");
         if(p.kind==GillKind::Flow){baseWidth=340;baseHeight=480;add("amount","AMOUNT"," %",true);owner.addAndMakeVisible(learn);owner.addAndMakeVisible(autogain);owner.addAndMakeVisible(status);
@@ -126,7 +127,7 @@ struct GillVocalEditor::Impl:private juce::Timer {
     }
     void bounds(juce::Component& c,float x,float y,float w,float h){const float s=owner.getWidth()/static_cast<float>(baseWidth);c.setBounds(juce::Rectangle<float>(x*s,y*s,w*s,h*s).toNearestInt());}
     void control(int i,float x,float y,float w,float h){bounds(controls[i]->label,x,y,w,21);bounds(controls[i]->slider,x,y+24,w,h-24);}
-    void resized(){if(p.kind==GillKind::Flow){bounds(bypass,235,19,84,29);bounds(display,20,65,300,115);control(0,66,197,133,185);for(int i=0;i<3;++i)bounds(modes[i],20+i*101.f,391,97,29);bounds(learn,20,430,115,29);bounds(autogain,145,430,123,29);bounds(status,20,459,300,20);}
+    void resized(){bounds(quality,p.kind==GillKind::Flow?94.f:baseWidth-232.f,p.kind==GillKind::Flow?36.f:21.f,110,26);if(p.kind==GillKind::Flow){bounds(bypass,235,19,84,29);bounds(display,20,65,300,115);control(0,66,197,133,185);for(int i=0;i<3;++i)bounds(modes[i],20+i*101.f,391,97,29);bounds(learn,20,430,115,29);bounds(autogain,145,430,123,29);bounds(status,20,459,300,20);}
         else if(p.kind==GillKind::Heat){bounds(bypass,475,19,84,29);bounds(display,20,65,540,89);for(int i=0;i<3;++i)control(i,22+i*108.f,168,98,140);for(int i=0;i<3;++i)bounds(modes[i],20+i*108.f,335,102,29);control(3,356,197,88,114);control(4,466,197,91,114);}
         else{bounds(bypass,493,19,85,29);bounds(keyLabel,24,126,102,18);bounds(key,24,149,102,30);bounds(scaleLabel,24,288,102,18);bounds(scale,24,311,102,30);
             bounds(controls[0]->label,135,77,330,20);bounds(controls[0]->slider,135,98,330,365);
@@ -137,8 +138,8 @@ struct GillVocalEditor::Impl:private juce::Timer {
     void paint(juce::Graphics& g){const float s=owner.getWidth()/static_cast<float>(baseWidth),w=static_cast<float>(owner.getWidth()),h=static_cast<float>(owner.getHeight());g.fillAll(juce::Colour(0xffc9ac85));
         if(wood.isValid()){g.drawImage(wood,0,0,static_cast<int>(w),static_cast<int>(h),950,285,170,805);g.setColour(cream.withAlpha(.16f));g.fillAll();g.setOpacity(1.f);g.drawImage(wood,juce::roundToInt(21*s),juce::roundToInt(15*s),juce::roundToInt(46*s),juce::roundToInt(33*s),224,146,174,122);}
         g.setColour(juce::Colour(0xff65543c).withAlpha(.52f));g.drawRoundedRectangle({3*s,3*s,w-6*s,h-6*s},12*s,4*s);g.setColour(cream.withAlpha(.5f));g.drawRoundedRectangle({7*s,7*s,w-14*s,h-14*s},9*s,s);
-        g.setColour(ink.withAlpha(.4f));g.drawLine(80*s,17*s,80*s,49*s,s);g.setColour(ink);g.setFont(font(22*s));g.drawText(p.getName(),juce::Rectangle<float>(94*s,17*s,(baseWidth-208)*s,33*s),juce::Justification::centredLeft,false);
-        if(p.kind==GillKind::Tune){auto plate=juce::Rectangle<float>(14*s,65*s,w-28*s,h-80*s);g.setColour(juce::Colour(0xff816747));g.fillRoundedRectangle(plate.expanded(2*s),20*s);g.setGradientFill(juce::ColourGradient(cream,0,70*s,juce::Colour(0xffe7e2d5),w,h,false));g.fillRoundedRectangle(plate,18*s);g.setColour(juce::Colours::white.withAlpha(.85f));g.drawRoundedRectangle(plate.reduced(2*s),17*s,s);
+        g.setColour(ink.withAlpha(.4f));g.drawLine(80*s,17*s,80*s,49*s,s);g.setColour(ink);g.setFont(font((p.kind==GillKind::Flow?20:22)*s));g.drawText(p.getName(),juce::Rectangle<float>(94*s,(p.kind==GillKind::Flow?11:17)*s,(p.kind==GillKind::Flow?132:baseWidth-334)*s,(p.kind==GillKind::Flow?23:33)*s),juce::Justification::centredLeft,false);
+        if(p.kind==GillKind::Tune){auto plate=juce::Rectangle<float>(14*s,65*s,w-28*s,h-80*s);g.setColour(juce::Colour(0xff816747));g.fillRoundedRectangle(plate.expanded(2*s),20*s);gill::material::panel(g,plate,cream,18*s);
             for(int y:{119,281}){auto island=juce::Rectangle<float>(20*s,y*s,110*s,71*s);g.setColour(juce::Colour(0xff9c7e59));g.fillRoundedRectangle(island.expanded(s),9*s);juce::Graphics::ScopedSaveState save(g);juce::Path clip;clip.addRoundedRectangle(island,8*s);g.reduceClipRegion(clip);if(wood.isValid())g.drawImage(wood,island.getX(),island.getY(),island.getWidth(),island.getHeight(),950,285,170,240);g.setColour(cream.withAlpha(.15f));g.fillRect(island);}
             g.setColour(ink.withAlpha(.25f));g.drawLine(25*s,455*s,575*s,455*s,s);
         }

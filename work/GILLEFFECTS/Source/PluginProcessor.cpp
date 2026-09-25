@@ -31,7 +31,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GillEffectProcessor::layout(
     b("bypass","BYPASS",false);
     // Append new parameters: keep every pre-existing host parameter index.
     if(k==GillKind::Space||k==GillKind::Echo)f("dry","DRY",0,100,.1f,100);
-    return l;
+    l.add(gill::qualityParameter()); return l;
 }
 const juce::String GillEffectProcessor::getName()const{return names[static_cast<int>(kind)];}
 bool GillEffectProcessor::isBusesLayoutSupported(const BusesLayout& l)const{auto o=l.getMainOutputChannelSet();return(o==juce::AudioChannelSet::mono()||o==juce::AudioChannelSet::stereo())&&o==l.getMainInputChannelSet();}
@@ -55,15 +55,16 @@ void GillEffectProcessor::updateParameters(bool queryHost){
 void GillEffectProcessor::prepareToPlay(double fs,int block){
     const bool supported=std::isfinite(fs)&&fs>=8000&&fs<=384000;rateSupported=supported;
     const double actualFs=std::isfinite(fs)&&fs>0?fs:48000.;if(!supported)fs=48000;
+    air.setLiveMode(false);
     uiRate=actualFs;const int channels=juce::jlimit(1,2,getTotalNumOutputChannels());updateParameters();
     if(kind==GillKind::Air){air.prepare(fs,std::max(1,block),channels);latency=air.latencySamples();}
     else if(kind==GillKind::Space){space.prepare(fs,std::max(1,block),channels);latency=space.latencySamples();}
     else if(kind==GillKind::Echo){echo.prepare(fs,std::max(1,block),channels);latency=echo.latencySamples();}
     else{balance.prepare(fs,std::max(1,block),channels);exchangeProfile();latency=balance.latencySamples();}
-    updateParameters();for(auto& r:dryRing)r.assign(static_cast<size_t>(latency+1),0.f);dryPosition=0;
+    updateParameters();for(auto& r:dryRing)r.assign(static_cast<size_t>(latency+1),0.f);dryPosition=0;air.setLiveMode(!qualityClient.isPro());latency=kind==GillKind::Air?air.latencySamples():0;
     bypassFade.reset(actualFs,.005);bypassFade.setCurrentAndTargetValue(!supported||parameter(bypassIndex)>.5f?1.f:0.f);
     setLatencySamples(latency);tail=kind==GillKind::Space?space.tailSeconds():kind==GillKind::Echo?echo.tailSeconds():latency/actualFs+.15;
-    inputPeak=0;outputPeak=0;
+qualityTransition.prepare(actualFs,qualityClient.mode());    inputPeak=0;outputPeak=0;
     if(kind==GillKind::Balance)learnCommand=0;
 }
 void GillEffectProcessor::releaseResources(){air.reset();space.reset();echo.reset();balance.reset();inputPeak=0;outputPeak=0;learnCommand=0;if(kind==GillKind::Balance)exchangeProfile();}
@@ -74,17 +75,20 @@ void GillEffectProcessor::exchangeProfile(){const juce::SpinLock::ScopedTryLockT
 }
 gill::LearnBalanceProfile GillEffectProcessor::savedProfile()const{const juce::SpinLock::ScopedLockType lock(profileLock);return profile;}
 BalanceView GillEffectProcessor::balanceView()const{const juce::SpinLock::ScopedLockType lock(profileLock);return view;}
-void GillEffectProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypass){
+void GillEffectProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypass){const int blockQuality=qualityClient.mode();
     juce::ScopedNoDenormals denormals;const int channels=std::min(2,buffer.getNumChannels()),count=buffer.getNumSamples();if(channels<=0||count<=0)return;
     for(int c=getTotalNumInputChannels();c<buffer.getNumChannels();++c)buffer.clear(c,0,count);
+    air.setLiveMode(blockQuality==0);latency=kind==GillKind::Air?air.latencySamples():0;qualityClient.requestLatencySamples(latency);
     updateParameters(true);if(kind==GillKind::Balance){exchangeProfile();const int command=learnCommand.exchange(0);if(command==1)balance.startLearning();else if(command==2)balance.cancelLearning();}
     bypassFade.setTargetValue(hostBypass||!rateSupported.load()||parameter(bypassIndex)>.5f?1.f:0.f);
     constexpr int chunk=128;std::array<std::array<float,chunk>,2> dry{};float peakIn=0,peakOut=0;
     for(int start=0;start<count;start+=chunk){const int n=std::min(chunk,count-start);std::array<float*,2> ptr{};for(int c=0;c<channels;++c)ptr[c]=buffer.getWritePointer(c,start);
-        for(int i=0;i<n;++i){for(int c=0;c<channels;++c){const float raw=ptr[c][i],x=std::isfinite(raw)?juce::jlimit(-100.f,100.f,raw):0.f;ptr[c][i]=x;peakIn=std::max(peakIn,std::abs(x));if(dryRing[c].empty())dry[c][i]=x;else{dryRing[c][dryPosition]=x;dry[c][i]=dryRing[c][(dryPosition+1)%dryRing[c].size()];}}if(!dryRing[0].empty())dryPosition=(dryPosition+1)%dryRing[0].size();}
+        for(int i=0;i<n;++i){for(int c=0;c<channels;++c){const float raw=ptr[c][i],x=std::isfinite(raw)?juce::jlimit(-100.f,100.f,raw):0.f;ptr[c][i]=x;peakIn=std::max(peakIn,std::abs(x));if(dryRing[c].empty())dry[c][i]=x;else{dryRing[c][dryPosition]=x;dry[c][i]=dryRing[c][(dryPosition+dryRing[c].size()-static_cast<size_t>(latency))%dryRing[c].size()];}}if(!dryRing[0].empty())dryPosition=(dryPosition+1)%dryRing[0].size();}
         if(kind==GillKind::Air)air.process(ptr.data(),channels,n);else if(kind==GillKind::Space)space.process(ptr.data(),channels,n);else if(kind==GillKind::Echo)echo.process(ptr.data(),channels,n);else balance.process(ptr.data(),channels,n);
         for(int i=0;i<n;++i){const auto bypass=bypassFade.getNextValue();for(int c=0;c<channels;++c){const float wet=std::isfinite(ptr[c][i])?ptr[c][i]:0;ptr[c][i]=bypass>=1?dry[c][i]:wet+bypass*(dry[c][i]-wet);peakOut=std::max(peakOut,std::abs(ptr[c][i]));}}
     }
+
+    qualityTransition.process(buffer.getArrayOfWritePointers(),channels,count,blockQuality,kind==GillKind::Air);
     const float decay=static_cast<float>(std::exp(-count/(uiRate.load()*.12)));inputPeak=std::max(peakIn,inputPeak.load()*decay);outputPeak=std::max(peakOut,outputPeak.load()*decay);
     if(kind==GillKind::Balance)exchangeProfile();
     if(kind==GillKind::Space)tail=space.tailSeconds();else if(kind==GillKind::Echo)tail=echo.tailSeconds();
@@ -107,7 +111,9 @@ void GillEffectProcessor::getStateInformation(juce::MemoryBlock& out){auto s=apv
     if(auto xml=s.createXml())copyXmlToBinary(*xml,out);
 }
 void GillEffectProcessor::setStateInformation(const void* data,int bytes){if(!data||bytes<=0||bytes>1024*1024)return;
-    if(auto xml=getXmlFromBinary(data,bytes))if(xml->hasTagName(apvts.state.getType())){auto incoming=juce::ValueTree::fromXml(*xml);auto clean=apvts.copyState();bool changed=false;
+    if(auto xml=getXmlFromBinary(data,bytes))if(xml->hasTagName(apvts.state.getType())){auto incoming=juce::ValueTree::fromXml(*xml);auto clean=apvts.copyState();
+    if (!incoming.getChildWithProperty("id","gillQuality").isValid()) { auto oldQuality=clean.getChildWithProperty("id","gillQuality"); if(oldQuality.isValid()) oldQuality.setProperty("value",apvts.getParameter("gillQuality")->convertFrom0to1(apvts.getParameter("gillQuality")->getDefaultValue()),nullptr); }
+bool changed=false;
         if((kind==GillKind::Space||kind==GillKind::Echo)&&!incoming.getChildWithProperty("id","dry").isValid()){clean.getChildWithProperty("id","dry").setProperty("value",100.f,nullptr);changed=true;}
         for(auto child:incoming){auto id=child.getProperty("id").toString();auto* p=apvts.getParameter(id);double v=0;if(!p||!child.hasProperty("value")||!number(child.getProperty("value"),v))continue;auto target=clean.getChildWithProperty("id",id);if(target.isValid()){const auto& range=p->getNormalisableRange();target.setProperty("value",range.snapToLegalValue(static_cast<float>(juce::jlimit(static_cast<double>(range.start),static_cast<double>(range.end),v))),nullptr);changed=true;}}
         if(changed)apvts.replaceState(clean);double v=0;if(incoming.hasProperty("program")&&number(incoming.getProperty("program"),v))currentProgram=static_cast<int>(juce::jlimit(0.,static_cast<double>(getNumPrograms()-1),v));

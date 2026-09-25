@@ -1,3 +1,4 @@
+#include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <array>
 #include <chrono>
@@ -47,6 +48,9 @@ void renderPng(juce::AudioProcessorEditor& editor,int w,int h,const char* name) 
     juce::PNGImageFormat png;check(output.openedOk()&&png.writeImageToStream(image,output),"editor PNG snapshot");
 }
 void collect(juce::Component& c,std::vector<juce::Slider*>& sliders,std::vector<juce::Button*>& buttons) {
+    // LIVE/PRO has a separate full interaction test in QualityTests.h.
+    if(dynamic_cast<gill::QualitySelector*>(&c))return;
+
     if(auto* slider=dynamic_cast<juce::Slider*>(&c))sliders.push_back(slider);
     if(auto* button=dynamic_cast<juce::Button*>(&c))buttons.push_back(button);
     for(auto* child:c.getChildren())collect(*child,sliders,buttons);
@@ -153,9 +157,12 @@ template<typename T> void testAudioRoutes() {
 
 int main() {
     const auto started=std::chrono::steady_clock::now();juce::ScopedJuceInitialiser_GUI gui;
+    // Update06: exercise real LIVE/PRO host state, audio timing and UI.
+    gill::testing::qualityRoutes([]{return std::make_unique<GillDereverbAudioProcessor>();},[](bool ok,const std::string& why){check(ok,why.c_str());});
+
     parameterGridRegression();
     GillDereverbAudioProcessor p;
-    check(p.getParameters().size()==9,"nine parameter IDs retained for project compatibility");
+    check(p.getParameters().size()==10,"nine retained parameter IDs plus appended LIVE/PRO");
     check(p.getName()=="GILLDEREVERB","uppercase product name");check(p.supportsDoublePrecisionProcessing(),"double precision supported");
     check(p.getBypassParameter()==p.apvts.getParameter("bypass"),"host bypass parameter retained");
     check(p.isAutomaticMode(),"new instances start in automatic mode");
@@ -189,7 +196,7 @@ int main() {
     poisoned.getChildWithProperty("id","output").setProperty("value",-999999.0,nullptr);
     juce::ValueTree unknown("PARAM");unknown.setProperty("id","unknown_parameter",nullptr);unknown.setProperty("value",123,nullptr);poisoned.appendChild(unknown,nullptr);restoreTree(p,poisoned);
     check(std::isfinite(raw(p,"amount"))&&raw(p,"amount")>=0&&raw(p,"amount")<=100,"nonfinite state cannot poison amount");
-    check(raw(p,"room")==1500&&raw(p,"output")==-12,"legacy state clamps hidden values to valid ranges");check(p.getParameters().size()==9,"unknown state parameter is ignored");
+    check(raw(p,"room")==1500&&raw(p,"output")==-12,"legacy state clamps hidden values to valid ranges");check(p.getParameters().size()==10,"unknown state parameter is ignored");
     restoreTree(p,freshState);check(p.isAutomaticMode(),"automatic true restores from saved version 2 state");
     std::mt19937 random(0xD3E3B00);std::uniform_real_distribution<float> uniform(0,1);
     juce::AudioBuffer<float> audio(2,64);juce::MidiBuffer midi;
@@ -211,7 +218,7 @@ int main() {
     check(!p.isAutomaticMode(),"opening CORE editor does not migrate old projects");
     if(editor) {
         std::vector<juce::Slider*> sliders;std::vector<juce::Button*> buttons;collect(*editor,sliders,buttons);
-        check(sliders.size()==1,"CORE has exactly one continuous control");check(buttons.empty(),"CORE has no extra buttons");
+        check(sliders.size()==1,"CORE has exactly one continuous control");check(buttons.empty(),"CORE has no extra effect buttons beyond separately tested LIVE/PRO");
         check(editor->getWidth()==320&&editor->getHeight()==300,"CORE default dimensions are compact 320 by 300");
         auto* constrainer=editor->getConstrainer();check(constrainer!=nullptr,"CORE has a resize constrainer");
         if(constrainer){check(std::abs(constrainer->getFixedAspectRatio()-320./300.)<1.e-9,"CORE resize aspect ratio matches its compact panel");check(constrainer->getMinimumWidth()==320&&constrainer->getMinimumHeight()==300,"CORE minimum size is 320 by 300");check(constrainer->getMaximumWidth()==640&&constrainer->getMaximumHeight()==600,"CORE maximum size is twice the native panel");}

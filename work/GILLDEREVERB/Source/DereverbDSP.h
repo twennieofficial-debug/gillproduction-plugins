@@ -1,4 +1,5 @@
 #pragma once
+#include "../../GILLCommon/LiveCausal.h"
 
 // Original real-time late-reverberation suppressor. The delayed, exponentially
 // decayed PSD model follows the statistical principle in Lebart, Boucher and
@@ -134,7 +135,7 @@ struct Storage {
 };
 } // namespace detail
 
-class DereverbEngine {
+class DereverbProEngine {
 public:
     // The only allocation is here, before audio processing starts. Keeping the
     // spectral history on the heap also avoids large plug-in/audio-thread stacks.
@@ -343,5 +344,18 @@ private:
             if (++s.hopCounter == hopSize) { s.hopCounter = 0; processFrame(nc); }
         }
     }
+};
+class DereverbEngine {
+public:
+ void prepare(double fs){pro_.prepare(fs);live_.prepare(fs,2,gill::live::Kind::Room);}
+ void setLiveMode(bool v)noexcept{if(v!=liveMode_){liveMode_=v;reset();}}
+ void reset()noexcept{pro_.reset();live_.reset();}
+ void setParameters(const Params&p)noexcept{pro_.setParameters(p);gill::live::Settings s;s.amount=p.amount;s.low=p.lowHz;s.high=p.highHz;s.preserve=p.preserve;s.release=p.roomMs*.001;live_.set(s);}
+ int getLatencySamples()const noexcept{return liveMode_?0:pro_.getLatencySamples();}
+ double getReductionDb()const noexcept{return liveMode_?live_.reductionDb():pro_.getReductionDb();}
+ double getEstimatedRoomMs()const noexcept{return pro_.getEstimatedRoomMs();}
+ double getSampleRate()const noexcept{return pro_.getSampleRate();}
+ template<class T>void process(T**a,int c,int n,T**dry=nullptr)noexcept{if(liveMode_)live_.process(a,c,n,dry);else pro_.process(a,c,n,dry);}
+private:DereverbProEngine pro_;gill::live::CausalBands live_;bool liveMode_=false;
 };
 } // namespace gilldereverb

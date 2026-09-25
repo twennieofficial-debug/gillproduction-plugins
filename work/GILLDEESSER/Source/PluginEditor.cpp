@@ -1,6 +1,8 @@
 #include "PluginEditor.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
+#include "../../GILLCommon/MaterialUi.h"
+#include "../../GILLCommon/QualityUi.h"
 #include <cmath>
 #include <juce_dsp/juce_dsp.h>
 
@@ -96,68 +98,7 @@ public:
     void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
                            float proportion, float start, float end, juce::Slider&) override
     {
-        const float s = (float) juce::jmin (width, height) / 252.0f;
-        const float cx = (float) x + (float) width * 0.5f;
-        const float cy = (float) y + (float) height * 0.5f;
-        const float radius = 113.4f * s;
-        const float angle = start + proportion * (end - start);
-        juce::Path track, active;
-        track.addCentredArc (cx, cy, radius, radius, 0, start, end, true);
-        active.addCentredArc (cx, cy, radius, radius, 0, start, angle, true);
-        const auto roundedStroke = [] (float w) { return juce::PathStrokeType (w, juce::PathStrokeType::curved, juce::PathStrokeType::rounded); };
-        g.setColour (juce::Colour (0xff80694d).withAlpha (0.50f));
-        g.strokePath (track, roundedStroke (5.0f*s));
-        g.setColour (juce::Colour (0xffffedce).withAlpha (0.7f));
-        g.strokePath (track, roundedStroke (1.0f*s), juce::AffineTransform::translation (0.8f*s, 0.8f*s));
-        if (proportion > 0.00001f)
-        {
-            g.setColour (juce::Colour (0xff334b3a).withAlpha (0.35f));
-            g.strokePath (active, roundedStroke (11.6f*s), juce::AffineTransform::translation (0, 0.6f*s));
-            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3e5948), cx-radius, cy-radius,
-                                                    juce::Colour (0xff779079), cx+radius, cy+radius, false));
-            g.strokePath (active, roundedStroke (9.5f*s));
-            g.setColour (juce::Colours::white.withAlpha (0.12f));
-            g.strokePath (active, roundedStroke (0.8f*s), juce::AffineTransform::translation (-1.0f*s, -1.0f*s));
-        }
-        const float bodyRadius = 92.7f * s;
-        auto body = juce::Rectangle<float> (bodyRadius*2, bodyRadius*2).withCentre ({cx, cy});
-        juce::Path bodyPath; bodyPath.addEllipse (body);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.33f), juce::jmax (1, juce::roundToInt (9*s)),
-                          {juce::roundToInt (2*s), juce::roundToInt (6*s)}).drawForPath (g, bodyPath);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffffffff), body.getX(), body.getY(),
-                                                juce::Colour (0xffa5a18f), body.getRight(), body.getBottom(), false));
-        g.fillEllipse (body);
-        g.setColour (juce::Colour (0xfffefbf5)); g.drawEllipse (body.reduced (0.7f*s), 1.1f*s);
-        auto bevel = body.reduced (2.7f*s);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffefcf8), cx-bodyRadius*0.5f, cy-bodyRadius,
-                                                juce::Colour (0xffd2cec3), cx+bodyRadius*0.7f, cy+bodyRadius, false));
-        g.fillEllipse (bevel);
-        auto face = body.reduced (7.0f*s);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffffefb), cx-bodyRadius*0.45f, cy-bodyRadius*0.7f,
-                                                juce::Colour (0xffe7e4dc), cx+bodyRadius*0.7f, cy+bodyRadius, false));
-        g.fillEllipse (face);
-        {
-            juce::Graphics::ScopedSaveState save (g);
-            juce::Path clip; clip.addEllipse (face); g.reduceClipRegion (clip);
-            juce::Random grain (0x4750434f5245LL);
-            for (int i=0; i<1500; ++i)
-            {
-                const auto px = face.getX()+grain.nextFloat()*face.getWidth();
-                const auto py = face.getY()+grain.nextFloat()*face.getHeight();
-                g.setColour (i%2 ? juce::Colours::white.withAlpha (0.23f) : juce::Colour (0xff988f7c).withAlpha (0.065f));
-                g.fillEllipse (px, py, 0.75f*s, 0.75f*s);
-            }
-        }
-        g.setColour (juce::Colours::white.withAlpha (0.9f)); g.drawEllipse (face, 1.3f*s);
-        juce::Path mark;
-        mark.startNewSubPath (cx+std::sin(angle)*bodyRadius*0.44f, cy-std::cos(angle)*bodyRadius*0.44f);
-        mark.lineTo (cx+std::sin(angle)*bodyRadius*0.79f, cy-std::cos(angle)*bodyRadius*0.79f);
-        g.setColour (juce::Colour (0xff283b2f).withAlpha (0.65f)); g.strokePath (mark, roundedStroke (8.7f*s));
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff38523f), cx-bodyRadius, cy-bodyRadius,
-                                                juce::Colour (0xff6a846b), cx+bodyRadius, cy+bodyRadius, false));
-        g.strokePath (mark, roundedStroke (6.8f*s));
-        g.setColour (juce::Colours::white.withAlpha (0.23f));
-        g.strokePath (mark, roundedStroke (0.7f*s), juce::AffineTransform::translation (0.7f*s, 0.7f*s));
+        gill::material::rotary(g, {static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height)}, proportion, start, end, sage);
     }
 };
 }
@@ -262,8 +203,9 @@ struct GillDeEsserAudioProcessorEditor::Impl {
     GillDeEsserAudioProcessorEditor& owner;GillDeEsserAudioProcessor& p;CoreLookAndFeel look;juce::Image reference;
     SliderBinding amount,frequency;SibilanceDisplay graph;ReductionMeter meter;juce::TextButton listen{"LISTEN S"};
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> listenAttachment;juce::TooltipWindow tooltip;
+    gill::QualitySelector quality{p.apvts, p};
     Impl(GillDeEsserAudioProcessorEditor& editor,GillDeEsserAudioProcessor& processor):owner(editor),p(processor),amount(p,"amount","AMOUNT",55),frequency(p,"frequency","FREQUENCY",6500),graph(p),meter(p),tooltip(&editor,600){
-        owner.setLookAndFeel(&look);reference=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);
+        owner.setLookAndFeel(&look);owner.addAndMakeVisible(quality);reference=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);
         owner.addAndMakeVisible(amount.slider);owner.addAndMakeVisible(frequency.slider);owner.addAndMakeVisible(graph);owner.addAndMakeVisible(meter);owner.addAndMakeVisible(listen);
         amount.slider.textFromValueFunction=[](double v){return juce::String(v,0)+" %";};amount.slider.valueFromTextFunction=[](const juce::String& s){return s.replaceCharacter(',','.').getDoubleValue();};amount.slider.updateText();
         frequency.slider.textFromValueFunction=[](double v){return juce::String(v/1000.,2)+" KHZ";};frequency.slider.valueFromTextFunction=[](const juce::String& s){const auto v=s.replaceCharacter(',','.').getDoubleValue();return s.containsIgnoreCase("k")||v<100?v*1000:v;};frequency.slider.updateText();
@@ -275,6 +217,7 @@ struct GillDeEsserAudioProcessorEditor::Impl {
     }
     ~Impl(){listenAttachment.reset();owner.setLookAndFeel(nullptr);}
     void resized(){const float s=owner.getWidth()/480.f;look.scale=s;
+        quality.setBounds(juce::Rectangle<float>(348*s,22*s,110*s,26*s).toNearestInt());
         graph.setBounds(juce::Rectangle<float>(20*s,66*s,440*s,114*s).toNearestInt());
         amount.slider.setBounds(juce::Rectangle<float>(31*s,203*s,138*s,115*s).toNearestInt());
         frequency.slider.setBounds(juce::Rectangle<float>(185*s,203*s,135*s,87*s).toNearestInt());
@@ -289,7 +232,7 @@ struct GillDeEsserAudioProcessorEditor::Impl {
             g.drawImage(reference,0,0,corner,corner,90,82,60,60);g.drawImage(reference,static_cast<int>(w)-corner,0,corner,corner,1105,82,60,60);
             g.drawImage(reference,0,static_cast<int>(h)-corner,corner,corner,90,1097,60,60);g.drawImage(reference,static_cast<int>(w)-corner,static_cast<int>(h)-corner,corner,corner,1105,1097,60,60);
             g.drawImage(reference,juce::roundToInt(24*s),juce::roundToInt(16*s),juce::roundToInt(52*s),juce::roundToInt(36*s),224,146,174,122);}
-        g.setColour(juce::Colour(0xff62462e));g.drawLine(90*s,16*s,90*s,52*s,.8f*s);g.setFont(coreFont(23*s));g.setColour(juce::Colour(0xff362c1f));g.drawText("GILL-DE-ESSER",juce::Rectangle<float>(109*s,19*s,345*s,30*s),juce::Justification::centredLeft,false);
+        g.setColour(juce::Colour(0xff62462e));g.drawLine(90*s,16*s,90*s,52*s,.8f*s);g.setFont(coreFont(23*s));g.setColour(juce::Colour(0xff362c1f));g.drawText("GILL-DE-ESSER",juce::Rectangle<float>(109*s,19*s,230*s,30*s),juce::Justification::centredLeft,false);
         g.setFont(coreFont(12*s,true));g.setColour(ink);g.drawText("AMOUNT",juce::Rectangle<float>(31*s,185*s,138*s,17*s),juce::Justification::centred,false);g.drawText("FREQUENCY",juce::Rectangle<float>(185*s,185*s,135*s,17*s),juce::Justification::centred,false);
     }
 };

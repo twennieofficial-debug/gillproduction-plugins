@@ -110,10 +110,10 @@ public:
         channels_ = std::clamp(channels, 1, maximumChannels);
         smoothing_ = 1.0 - std::exp(-1.0 / (0.015 * sampleRate_));
         dcPole_ = std::exp(-2.0 * heat_detail::pi * 8.0 /
-                           (sampleRate_ * oversamplingFactor));
+                           (sampleRate_ * (liveMode_ ? 1 : oversamplingFactor)));
         makeFilter();
         for (auto& channel : state_)
-            channel.crossover.prepare(sampleRate_ * oversamplingFactor);
+            channel.crossover.prepare(sampleRate_ * (liveMode_ ? 1 : oversamplingFactor));
         prepared_ = true;
         reset();
     }
@@ -150,7 +150,18 @@ public:
             std::clamp(heat_detail::finiteOr(outputDb, 0.0), -24.0, 12.0) / 20.0);
     }
 
-    int latencySamples() const noexcept { return fixedLatencySamples; }
+    // LIVE is the same waveshaper/crossover at the base rate: zero buffering,
+    // with less alias rejection. Switching allocates nothing.
+    void setLiveMode(bool live) noexcept {
+        if (liveMode_ == live) return;
+        liveMode_ = live;
+        dcPole_ = std::exp(-2.0 * heat_detail::pi * 8.0 /
+                           (sampleRate_ * (liveMode_ ? 1 : oversamplingFactor)));
+        for (auto& channel : state_)
+            channel.crossover.prepare(sampleRate_ * (liveMode_ ? 1 : oversamplingFactor));
+        reset();
+    }
+    int latencySamples() const noexcept { return liveMode_ ? 0 : fixedLatencySamples; }
 
     void process(float* const* buffers, int channels, int samples) noexcept {
         if (!buffers || samples <= 0 || channels <= 0) return;
@@ -176,14 +187,14 @@ public:
                 const float input = static_cast<float>(std::clamp(
                     heat_detail::finiteOr(buffers[channel][sample], 0.0), -32.0, 32.0));
                 // This direct delay makes dry=0% mix and all-zero-drive exact.
-                const float dry = s.dry[s.dryPosition];
+                const float dry = liveMode_ ? input : s.dry[s.dryPosition];
                 s.dry[s.dryPosition] = input;
                 s.dryPosition = (s.dryPosition + 1) % fixedLatencySamples;
                 s.input[s.inputPosition] = s.input[s.inputPosition+inputHistory] = input;
 
                 double downsampledResidual = 0.0;
-                for (int phase = 0; phase < oversamplingFactor; ++phase) {
-                    const double upsampled=heat_detail::dot<inputHistory>(s.input.data()+s.inputPosition,interpolation_[phase].data());
+                for (int phase = 0; phase < (liveMode_ ? 1 : oversamplingFactor); ++phase) {
+                    const double upsampled=liveMode_ ? input : heat_detail::dot<inputHistory>(s.input.data()+s.inputPosition,interpolation_[phase].data());
                     const auto bands = s.crossover.split(upsampled);
                     double nonlinearResidual = 0.0;
                     for (std::size_t band = 0; band < bands.size(); ++band) {
@@ -207,7 +218,7 @@ public:
                     s.residual[s.residualPosition] = s.residual[s.residualPosition+filterTaps] = s.dcState;
 
                     if (phase == 0) {
-                        downsampledResidual=heat_detail::dot<filterTaps>(s.residual.data()+s.residualPosition,filter_.data());
+                        downsampledResidual=liveMode_ ? s.dcState : heat_detail::dot<filterTaps>(s.residual.data()+s.residualPosition,filter_.data());
                     }
                     if(--s.residualPosition<0)s.residualPosition=filterTaps-1;
                 }
@@ -222,6 +233,7 @@ public:
     }
 
 private:
+    bool liveMode_ = false;
     static constexpr int inputHistory = (filterTaps + oversamplingFactor - 1) /
                                          oversamplingFactor;
     struct ChannelState {

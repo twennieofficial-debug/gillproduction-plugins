@@ -1,3 +1,4 @@
+#include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <fstream>
 #include <iostream>
@@ -74,8 +75,11 @@ int main() {
     }
 #endif
     juce::ScopedJuceInitialiser_GUI gui;
+    // Update06: exercise real LIVE/PRO host state, audio timing and UI.
+    gill::testing::qualityRoutes([]{return std::make_unique<GilleqAudioProcessor>();},[](bool ok,const std::string& why){check(ok,why.c_str());});
+
     GilleqAudioProcessor p;
-    check(p.getParameters().size()==99,"59 existing and 40 appended dynamic parameters");
+    check(p.getParameters().size()==100,"99 existing parameters plus appended LIVE/PRO");
     int legacyIndex=0;
     for(int band=1;band<=8;++band)for(auto suffix:{"enabled","type","freq","gain","q","channel","slope"})
         check(p.getParameters()[legacyIndex++]==p.apvts.getParameter("band"+juce::String(band)+"_"+suffix),"legacy band automation index remains unchanged");

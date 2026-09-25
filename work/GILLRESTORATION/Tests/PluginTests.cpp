@@ -1,3 +1,4 @@
+#include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <chrono>
 #include <cmath>
@@ -20,6 +21,9 @@ struct HostListener final:juce::AudioProcessorListener {
     void audioProcessorParameterChangeGestureEnd(juce::AudioProcessor*,int) override {++ends;}
 };
 void collect(juce::Component& c,std::vector<juce::Slider*>& sliders,std::vector<juce::Button*>& buttons){
+    // LIVE/PRO has a separate full interaction test in QualityTests.h.
+    if(dynamic_cast<gill::QualitySelector*>(&c))return;
+
     if(auto* s=dynamic_cast<juce::Slider*>(&c))sliders.push_back(s);
     if(auto* b=dynamic_cast<juce::Button*>(&c))buttons.push_back(b);
     for(auto* child:c.getChildren())collect(*child,sliders,buttons);
@@ -76,7 +80,7 @@ template<class T>void bypassTransitions(gillrestoration::Mode mode,bool hostRout
     }
 }
 void run(gillrestoration::Mode mode){
-    GillRestorationAudioProcessor p(mode);check(p.getParameters().size()==2,"amount and host bypass only");
+    GillRestorationAudioProcessor p(mode);check(p.getParameters().size()==3,"amount, host bypass and appended LIVE/PRO");
     check(p.supportsDoublePrecisionProcessing(),"double precision supported");check(p.getBypassParameter()==p.apvts.getParameter("bypass"),"host bypass exposed");
     check(p.getName()==(mode==gillrestoration::Mode::Declick?"GILLDECLICK":"GILLDECRACKLE"),"mode has the correct uppercase product name");
     for(double fs:{44100.,48000.,96000.,192000.})for(int channels:{1,2}){dryRoutes<float>(mode,fs,channels);dryRoutes<double>(mode,fs,channels);}
@@ -104,7 +108,7 @@ void run(gillrestoration::Mode mode){
     set(p,"amount",55);set(p,"bypass",0);
     std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());check(editor!=nullptr,"editor exists");
     if(editor){std::vector<juce::Slider*> sliders;std::vector<juce::Button*> buttons;collect(*editor,sliders,buttons);
-        check(sliders.size()==1&&buttons.empty(),"exactly one control and no extra buttons");
+        check(sliders.size()==1&&buttons.empty(),"one effect control plus separately tested LIVE/PRO");
         check(editor->getWidth()==320&&editor->getHeight()==300,"compact 320 by 300 default");auto* limit=editor->getConstrainer();
         check(limit&&limit->getMinimumWidth()==320&&limit->getMinimumHeight()==300&&limit->getMaximumWidth()==640&&limit->getMaximumHeight()==600&&std::abs(limit->getFixedAspectRatio()-320./300.)<1e-12,"native to doubled compact aspect resizing");
         if(sliders.size()==1){auto* slider=sliders[0];check(slider->getName()=="AMOUNT","single named Amount knob");
@@ -145,7 +149,11 @@ void run(gillrestoration::Mode mode){
     p.releaseResources();
 }
 }
-int main(){auto start=std::chrono::steady_clock::now();juce::ScopedJuceInitialiser_GUI gui;run(gillrestoration::Mode::Declick);run(gillrestoration::Mode::Decrackle);
+int main(){auto start=std::chrono::steady_clock::now();juce::ScopedJuceInitialiser_GUI gui;
+    // Update06: exercise real LIVE/PRO host state, audio timing and UI.
+    gill::testing::qualityRoutes([]{return std::make_unique<GillRestorationAudioProcessor>(gillrestoration::Mode::Declick);},[](bool ok,const std::string& why){check(ok,why.c_str());});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillRestorationAudioProcessor>(gillrestoration::Mode::Decrackle);},[](bool ok,const std::string& why){check(ok,why.c_str());});
+run(gillrestoration::Mode::Declick);run(gillrestoration::Mode::Decrackle);
     const double elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
     std::ofstream report("plugin-integration-report.json");report<<"{\"passed\":"<<(failures==0?"true":"false")<<",\"checks\":"<<checks<<",\"failures\":"<<failures<<",\"audio_configurations\":"<<audioCases<<",\"ui_edits\":"<<edits<<",\"elapsed_seconds\":"<<elapsed<<"}\n";
     std::cout<<checks<<" integration checks, "<<failures<<" failures, "<<edits<<" UI edits, "<<elapsed<<" seconds\n";return failures?1:0;}

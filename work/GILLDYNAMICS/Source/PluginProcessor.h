@@ -1,4 +1,6 @@
 #pragma once
+#include "../../GILLCommon/ModeTransition.h"
+#include "../../GILLCommon/QualityBus.h"
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "Presets.h"
 #include "VocalDynamicsDSP.h"
@@ -29,6 +31,7 @@ public:
  static juce::AudioProcessorValueTreeState::ParameterLayout layout(DynKind);
  const DynKind kind;const std::vector<gilldyn::ParamSpec> definitions;const std::vector<gilldyn::Preset> programs;
  juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
  std::atomic<float>inputPeak{0},outputPeak{0},inputRms{0},outputRms{0},reduction{0};
  std::atomic<double>uiRate{48000};std::atomic<bool>rateSupported{true};
  std::array<std::atomic<float>,4>bandReduction{};
@@ -36,11 +39,12 @@ public:
  std::array<std::atomic<float>,2>channelOutputRms{};
  std::array<std::atomic<float>,2>channelOutputPeak{};
 private:
+    gill::ModeTransition qualityTransition;
  void process(juce::AudioBuffer<float>&,bool);void update();float at(const char*)const;
  void parameterChanged(const juce::String&,float)override;void updateGraph();
  gilldyn::VoxDSP vox;gilldyn::OptaDSP opta;
  gilldyn::BussDSP buss;gilldyn::QuadDSP quad;gill::StageDSP stage;
- std::array<std::atomic<float>*,128>values{};std::array<std::vector<float>,2>dry;size_t dryPosition=0;
+ std::array<std::atomic<float>*,128>values{};std::array<std::vector<float>,2>dry;size_t dryPosition=0;int latency=0;
  juce::SmoothedValue<float>bypassFade;double inPower=0,outPower=0;
  std::array<double,2>channelPower{};double meterAlpha=.0001;int graphCounter=0;
  std::array<float,128>display{};mutable juce::SpinLock graphLock;

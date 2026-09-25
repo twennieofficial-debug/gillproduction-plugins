@@ -50,9 +50,9 @@ jobs:
         id: compiler-cache
         with:
           path: .cache/ccache
-          key: macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/**/Source/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/GILLCommon/**', 'work/**/Source/**', 'work/**/Tests/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/**/Source/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-
+            macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/GILLCommon/**', 'work/**/Source/**', 'work/**/Tests/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-
             macos15-${{ matrix.architecture }}-xcode164-juce8012-
       - name: Build tools
         run: |
@@ -61,7 +61,7 @@ jobs:
           xcrun --sdk macosx --show-sdk-version
           cmake --version
           python3 "$PIPELINE" check-source --source work
-      - name: Native build, DSP, state and compact UI tests
+      - name: Native build, DSP, UI and cross-plugin LIVE/PRO tests
         run: >-
           python3 "$PIPELINE" build --source work
           --build-root "$RUNNER_TEMP/gill-build"

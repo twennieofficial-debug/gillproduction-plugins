@@ -1,11 +1,12 @@
 #pragma once
+#include "../../GILLCommon/LiveCausal.h"
 #include "NextDSPCommon.h"
 #include <vector>
 namespace gillnext {
 struct CleanParameters {float noise=30,plosives=30,breaths=20;int listen=0;};
 // Linked stereo spectral attenuation. Breath/plosive classification is a
 // conservative acoustic heuristic; it is not speech recognition or separation.
-class CleanDSP {
+class CleanProDSP {
 public:
  void prepare(double rate,int,int channels){fs=std::clamp(detail::finite(rate,48000),8000.,192000.);ch=std::clamp(channels,1,2);size=256;while(size<fs*.018&&size<4096)size*=2;hop=size/4;
   for(auto&a:input)a.assign(size,0);for(auto&stage:removed)for(auto&a:stage)a.assign(size*2,0);for(auto&a:spectrum)a.resize(size);scratch.resize(size);masks.resize(size/2+1);
@@ -53,5 +54,20 @@ private:
  std::array<std::vector<double>,2>input;std::array<std::array<std::vector<double>,2>,3>removed;std::array<double,4>weights{1,0,0,0};std::vector<std::complex<double>>scratch;std::vector<std::array<double,3>>masks;std::array<std::vector<std::complex<double>>,2>spectrum;
  std::vector<double>floor,power,win;std::vector<int>reverse;std::vector<std::complex<double>>twiddle;std::vector<std::array<double,3>>smooth;
  std::array<std::atomic<float>,3>reductions{};detail::Meter meter;
+};
+class CleanDSP {
+public:
+ void prepare(double fs,int block,int channels){pro_.prepare(fs,block,channels);live_.prepare(fs,channels,gill::live::Kind::Clean);}
+ void setLiveMode(bool v)noexcept{if(v!=liveMode_){liveMode_=v;reset();}}
+ void reset()noexcept{pro_.reset();live_.reset();}
+ void setParameters(const CleanParameters&p)noexcept{pro_.setParameters(p);gill::live::Settings s;s.noise=p.noise*.01;s.plosives=p.plosives*.01;s.breaths=p.breaths*.01;s.listen=p.listen;live_.set(s);}
+ void process(float*const*a,int c,int n,const float*const*sc=nullptr,int scn=0)noexcept{if(liveMode_)live_.process(a,c,n);else pro_.process(a,c,n,sc,scn);}
+ int latencySamples()const noexcept{return liveMode_?0:pro_.latencySamples();}
+ double tailSeconds()const noexcept{return liveMode_?0:pro_.tailSeconds();}
+ float inputRms()const noexcept{return pro_.inputRms();}
+ float outputRms()const noexcept{return pro_.outputRms();}
+ float gainReductionDb()const noexcept{return liveMode_?float(live_.reductionDb()):pro_.gainReductionDb();}
+ std::array<float,3>reductionsDb()const noexcept{return liveMode_?live_.reductionsDb():pro_.reductionsDb();}
+private:CleanProDSP pro_;gill::live::CausalBands live_;bool liveMode_=false;
 };
 }

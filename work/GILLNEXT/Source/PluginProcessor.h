@@ -1,4 +1,6 @@
 #pragma once
+#include "../../GILLCommon/ModeTransition.h"
+#include "../../GILLCommon/QualityBus.h"
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "Presets.h"
 #include <array>
@@ -29,6 +31,7 @@ public:
  void resetForm();juce::String statusText()const;
  const NextKind kind;const std::vector<gillnext::ParamSpec> definitions;const std::vector<gillnext::Preset> programs;
  juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
  std::atomic<float>inputPeak{0},outputPeak{0},inputRms{0},outputRms{0},reduction{0};
  std::atomic<double>uiRate{48000};std::atomic<bool>rateSupported{true};
  std::atomic<float>appliedGain{0},voiceActivity{0};std::atomic<bool>sidechainActive{false};
@@ -40,6 +43,7 @@ public:
  std::atomic<float>learnProgress{0},learnDrive{0},learnLow{0},learnMid{0},learnHigh{0},learnComp{0};
  std::atomic<float>momentaryLufs{-100},integratedLufs{-100},truePeakDb{-100},compressorReduction{0},limiterReduction{0};
 private:
+    gill::ModeTransition qualityTransition;
  static BusesProperties buses(NextKind);
  void process(juce::AudioBuffer<float>&,bool);
  struct Impl;std::unique_ptr<Impl> impl;

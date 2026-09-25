@@ -83,7 +83,8 @@ public:
         comp_=targetComp_;output_=targetOutput_;
         meter_.reset();gateMeter_.store(0,std::memory_order_relaxed);
     }
-    int latencySamples() const noexcept { return latency_; }
+    void setLiveMode(bool live) noexcept { if (liveMode_ != live) {liveMode_=live;reset();} }
+    int latencySamples() const noexcept { return liveMode_ ? 0 : latency_; }
     float reductionDb() const noexcept { return meter_.reduction.load(std::memory_order_relaxed); }
     float gateReductionDb() const noexcept { return gateMeter_.load(std::memory_order_relaxed); }
     float inputRms() const noexcept { return meter_.in.load(std::memory_order_relaxed); }
@@ -104,7 +105,7 @@ public:
                 raw[ch]=buffers[ch]?dynamics_detail::input(buffers[ch][i]):0;
                 const double power=raw[ch]*raw[ch];inputPower+=power;linkedPower=std::max(linkedPower,power);
                 auto& s=channelsState_[ch];
-                delayed[ch]=s.detectorDelay[detectorPosition_];
+                delayed[ch]=liveMode_?raw[ch]:s.detectorDelay[detectorPosition_];
                 s.detectorDelay[detectorPosition_]=raw[ch];
             }
             dynamics_detail::follow(detectorPower_,linkedPower,linkedPower>detectorPower_?rmsAttack_:rmsRelease_);
@@ -129,13 +130,13 @@ public:
             for(int ch=0;ch<count;++ch){
                 candidate[ch]=delayed[ch]*preLimiterGain;
                 auto& s=channelsState_[ch];
-                limitedInput[ch]=s.limiterDelay[limiterPosition_];
+                limitedInput[ch]=liveMode_?candidate[ch]:s.limiterDelay[limiterPosition_];
                 s.limiterDelay[limiterPosition_]=candidate[ch];
                 candidatePeak=std::max(candidatePeak,std::abs(candidate[ch]));
                 delayedPeak=std::max(delayedPeak,std::abs(limitedInput[ch]));
             }
             // O(1)-amortized maximum over the complete lookahead window.
-            while(queueCount_&&peakIndex_[queueHead_]+std::uint64_t(limiterDelay_)<sampleClock_){
+            while(queueCount_&&peakIndex_[queueHead_]+std::uint64_t(liveMode_?0:limiterDelay_)<sampleClock_){
                 queueHead_=(queueHead_+1)%maximumDelay;--queueCount_;
             }
             while(queueCount_){
@@ -166,6 +167,7 @@ public:
         gateMeter_.store(float(-dynamics_detail::db(1-gateActive_+gateActive_*dynamics_detail::gain(-gateReduction_))),std::memory_order_relaxed);
     }
 private:
+    bool liveMode_=false;
     struct ChannelState { std::array<double,maximumDelay> detectorDelay{},limiterDelay{}; };
     std::array<ChannelState,maximumChannels> channelsState_{};
     std::array<double,maximumDelay> peakValue_{};

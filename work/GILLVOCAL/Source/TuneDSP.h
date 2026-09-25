@@ -13,7 +13,7 @@ namespace gill {
 // Monophonic vocal correction. prepare/reset/setParameters/process belong to the
 // audio thread (prepare while stopped); meter getters may be read by the UI.
 // Supported layouts: mono/stereo. Dry, wet and unvoiced paths share fixed latency.
-class TuneDSP {
+class TuneEngine {
 public:
     // Fixed per instance. Call before prepare, never to switch latency mid-stream.
     void setQualityMode(int mode) noexcept { requestedQuality_=std::clamp(mode,0,1); }
@@ -306,4 +306,31 @@ private:
     bool prepared_ = false, voiced_ = false, hasProcessed_ = false;
 };
 
+// Both engines allocate only during prepare. Switching quality never changes
+// buffer capacity or calls the host from the audio callback.
+class TuneDSP {
+public:
+    void setQualityMode(int mode) noexcept { setLiveMode(mode != 0); }
+    void setLiveMode(bool live) noexcept { if (live_ != live) { live_=live; selected().reset(); } }
+    int qualityMode() const noexcept { return live_ ? 1 : 0; }
+    void prepare(double fs,int block,int channels) {
+        pro_.setQualityMode(0); low_.setQualityMode(1);
+        pro_.prepare(fs,block,channels); low_.prepare(fs,block,channels);
+    }
+    void reset() { pro_.reset(); low_.reset(); }
+    void setParameters(int key,int scale,float retune,float humanize,float mix) noexcept {
+        pro_.setParameters(key,scale,retune,humanize,mix);
+        low_.setParameters(key,scale,retune,humanize,mix);
+    }
+    void process(float* const* buffers,int channels,int samples) noexcept { selected().process(buffers,channels,samples); }
+    int latencySamples() const noexcept { return selected().latencySamples(); }
+    int maximumLatencySamples() const noexcept { return std::max(pro_.latencySamples(),low_.latencySamples()); }
+    float detectedHz() const noexcept { return selected().detectedHz(); }
+    float targetHz() const noexcept { return selected().targetHz(); }
+    float confidence() const noexcept { return selected().confidence(); }
+private:
+    TuneEngine& selected() noexcept { return live_ ? low_ : pro_; }
+    const TuneEngine& selected() const noexcept { return live_ ? low_ : pro_; }
+    TuneEngine pro_,low_; bool live_=false;
+};
 } // namespace gill

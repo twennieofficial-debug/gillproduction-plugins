@@ -51,7 +51,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GilleqAudioProcessor::create
         p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{bandId(i,"attack"),2},prefix+"ATTACK",attack,10.f));
         p.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{bandId(i,"release"),2},prefix+"RELEASE",release,150.f));
     }
-    return p;
+    p.add(gill::qualityParameter()); return p;
 }
 
 bool GilleqAudioProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
@@ -237,6 +237,8 @@ void GilleqAudioProcessor::setStateInformation(const void*data,int size) {
             const auto state=juce::ValueTree::fromXml(*xml);
             if(!state.isValid()) return;
             auto clean=apvts.copyState();
+    if (!state.getChildWithProperty("id","gillQuality").isValid()) { auto oldQuality=clean.getChildWithProperty("id","gillQuality"); if(oldQuality.isValid()) oldQuality.setProperty("value",apvts.getParameter("gillQuality")->convertFrom0to1(apvts.getParameter("gillQuality")->getDefaultValue()),nullptr); }
+
             const bool legacy=static_cast<int>(state.getProperty("version",1))<2;
             // Missing parameters always have their documented defaults.
             // In particular, a v1 state cannot inherit active dynamics from

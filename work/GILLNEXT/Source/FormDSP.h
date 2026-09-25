@@ -12,12 +12,13 @@ struct FormParameters {float pitchSemitones=0,formantSemitones=0,mix=100;bool li
 // formants without changing the excitation frequencies. This avoids changing
 // the pitch mapper's peak assignments when the spectral envelope is edited.
 // Mono/stereo voice takes; no source separation or claim of vocal reconstruction.
-class FormDSP {
+class FormEngine {
 public:
+    void setLiveMode(bool live) noexcept { live_=live; }
     void prepare(double fs,int maxBlock,int channels){
         (void)maxBlock;prepared_=false;latency_=0;
         if(!std::isfinite(fs)||fs<8000||fs>192000)return;
-        fs_=fs;channels_=std::clamp(channels,1,2);int fft=256;while(fft<fs*.042)fft*=2;
+        fs_=fs;channels_=std::clamp(channels,1,2);int fft=128;while(fft<fs*(live_?.004:.042))fft*=2;
         stretch_.configure(channels_,fft*2,fft/2,false);
         formants_.prepare(fs,channels_,fft);
         stretch_.setFormantFactor(1,false);
@@ -89,6 +90,28 @@ private:
     double fs_=48000,pitch_=0,formant_=0,wet_=0,pitchTarget_=0,formantTarget_=0,wetTarget_=0;
     double shortPower_=0,longPower_=0,transient_=0,shortAlpha_=0,longAlpha_=0,releaseAlpha_=0;
     int channels_=1,latency_=0,phase_=0,dryIndex_=0,paramRamp_=720,mixRamp_=240,paramRemaining_=0,mixRemaining_=0,transientHold_=0;
+    bool live_=false;
     bool prepared_=false,processed_=false,preserve_=true,wasOnset_=false;
+};
+class FormDSP {
+public:
+    void setLiveMode(bool live) noexcept { if(live_!=live){live_=live;selected().reset();} }
+    void prepare(double fs,int block,int channels) {
+        pro_.setLiveMode(false);low_.setLiveMode(true);
+        pro_.prepare(fs,block,channels);low_.prepare(fs,block,channels);
+    }
+    void setParameters(const FormParameters& p) noexcept {pro_.setParameters(p);low_.setParameters(p);}
+    void reset() noexcept {pro_.reset();low_.reset();}
+    void process(float*const* audio,int channels,int frames) noexcept {selected().process(audio,channels,frames);}
+    int latencySamples()const noexcept{return selected().latencySamples();}
+    int maximumLatencySamples()const noexcept{return std::max(pro_.latencySamples(),low_.latencySamples());}
+    double tailSeconds()const noexcept{return selected().tailSeconds();}
+    float inputRms()const noexcept{return selected().inputRms();}
+    float outputRms()const noexcept{return selected().outputRms();}
+    float gainReductionDb()const noexcept{return selected().gainReductionDb();}
+private:
+    FormEngine& selected() noexcept{return live_?low_:pro_;}
+    const FormEngine& selected()const noexcept{return live_?low_:pro_;}
+    FormEngine pro_,low_;bool live_=false;
 };
 }

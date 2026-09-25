@@ -9,7 +9,7 @@ if(CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum supported macOS")
     endif()
 endif()
-project(GILLNEXT VERSION 0.1.0 LANGUAGES C CXX)
+project(GILLNEXT VERSION 0.6.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Apple Clang contracts float multiply/add by default. JUCE's decimal
@@ -109,3 +109,6 @@ foreach(engine Ride CleanLoudness CleanSpecific Pocket FormAlign FormAlignEdge F
     add_test(NAME NEXT_${engine}_DSP COMMAND GillNext${engine}DspTests)
     set_tests_properties(NEXT_${engine}_DSP PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
 endforeach()
+
+add_executable(GillLiveQualityDspTests ../GILLCommon/LiveTests.cpp)
+add_test(NAME LIVE_QUALITY_DSP COMMAND GillLiveQualityDspTests)

@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import platform
@@ -28,10 +29,12 @@ HERE = Path(__file__).resolve().parent
 PRODUCTS = json.loads((HERE / "products.json").read_text(encoding="utf-8"))
 CTEST_MATRIX = json.loads((HERE / "ctest-matrix.json").read_text(encoding="utf-8"))
 GROUPS = sorted({p["group"] for p in PRODUCTS})
+PRODUCT_COUNT = len(PRODUCTS)
 JUCE_COMMIT = "29396c22c93392d6738e021b83196283d6e4d850"
 MIN_MACOS = "11.0"
-RELEASE = "05"
-SUITE_VERSION = "0.5.0"
+RELEASE = "06"
+SUITE_VERSION = "0.6.0"
+QUALITY_SAMPLE_RATES = (44100, 48000, 96000, 192000)
 PLUGINVAL_URL = "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip"
 PLUGINVAL_SHA256 = "3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f"
 MACHO_MAGICS = {b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe", b"\xfe\xed\xfa\xcf",
@@ -127,9 +130,18 @@ def bundle_digest(root):
 
 def source_check(source):
     source = Path(source).resolve()
-    require(len(PRODUCTS) == 29 and len({p["code"] for p in PRODUCTS}) == 29, "29 unique plug-ins required")
-    require(len({p["bundle_id"] for p in PRODUCTS}) == 29, "Duplicate bundle identifiers")
+    require(PRODUCT_COUNT > 0 and len({p["code"] for p in PRODUCTS}) == PRODUCT_COUNT, "Unique plug-in codes required")
+    require(len({p["bundle_id"] for p in PRODUCTS}) == PRODUCT_COUNT, "Duplicate bundle identifiers")
+    require(len({p["target"] for p in PRODUCTS}) == PRODUCT_COUNT and len({p["name"] for p in PRODUCTS}) == PRODUCT_COUNT, "Duplicate product names or targets")
+    require(set(GROUPS) == set(CTEST_MATRIX), "Each catalog group requires a native test gate")
     selected = {}
+    common = source / "GILLCommon"
+    for required in ("QualityBus.h", "QualityUi.h", "MaterialUi.h", "Tests/QualityHost.cpp",
+                     "Tests/MacQualityHost.mm", "Tests/QualityHostCMake/CMakeLists.txt"):
+        require((common / required).is_file(), f"Missing shared source: GILLCommon/{required}")
+    for path in sorted(common.rglob("*")):
+        if path.is_file() and path.suffix.lower() in (".h", ".hpp", ".cpp", ".c", ".mm", ".md", ".txt"):
+            selected[path.relative_to(source).as_posix()] = sha(path)
     for group in GROUPS:
         root = source / group
         require((root / "CMakeLists.txt").is_file(), f"Missing source group: {group}")
@@ -139,6 +151,20 @@ def source_check(source):
                     if path.is_file():
                         selected[path.relative_to(source).as_posix()] = sha(path)
         selected[f"{group}/CMakeLists.txt"] = sha(root / "CMakeLists.txt")
+        for path in sorted((root / "Tests").rglob("*")):
+            parts = path.relative_to(root / "Tests").parts
+            if any(part in {"__pycache__", "_python", ".git", "auto-quality", "final-ui-review"} or part.startswith(("build", "pluginval")) or part.endswith("_artefacts") for part in parts):
+                continue
+            code = path.suffix.lower() in (".cpp", ".h", ".hpp", ".c", ".mm", ".m")
+            # Match prepare_repository.py's licensed *input* fixture selection.
+            # Tests generate processed audio and nested latency baselines, which
+            # must not change the source fingerprint after native CTest runs.
+            fixture = (group in {"GILLDEREVERB", "GILLRESTORATION"} and path.parent == root / "Tests/fixtures" and
+                       (path.suffix.lower() in (".wav", ".flac") or path.name in ("ORIGIN-AND-LICENSE.md", "provenance.json", "prepare_fixtures.py")) and
+                       not path.name.startswith(("processed_", "DECLICK-clean", "DECLICK-mouth-restored", "DECLICK-restored",
+                                                 "DECRACKLE-clean", "DECRACKLE-mouth-restored", "DECRACKLE-restored")))
+            if path.is_file() and (code or fixture):
+                selected[path.relative_to(source).as_posix()] = sha(path)
     juce = source / "dependencies" / "JUCE"
     require((juce / "CMakeLists.txt").is_file(), "Pinned JUCE source is missing")
     if (juce / ".git").exists():
@@ -147,7 +173,7 @@ def source_check(source):
     selected["JUCE_PIN"] = JUCE_COMMIT
     selected["PRODUCT_CATALOG"] = sha(HERE / "products.json")
     selected["CTEST_MATRIX"] = sha(HERE / "ctest-matrix.json")
-    return {"products": 29, "groups": GROUPS, "source_sha256": digest_manifest(selected), "files": selected}
+    return {"products": PRODUCT_COUNT, "groups": GROUPS, "source_sha256": digest_manifest(selected), "files": selected}
 
 
 def macho(path):
@@ -205,15 +231,20 @@ def new_destination(path):
 def verify_ctest_listing(group, listing):
     discovered = [test["name"] for test in listing.get("tests", [])]
     expected = CTEST_MATRIX[group]
-    require(len(discovered) == len(expected) and set(discovered) == set(expected),
+    require(len(discovered) == len(set(discovered)) and set(expected).issubset(discovered),
             f"Native CTest suite differs for {group}; missing={sorted(set(expected) - set(discovered))}, "
-            f"unexpected={sorted(set(discovered) - set(expected))}")
+            f"duplicate_entries={len(discovered) - len(set(discovered))}")
 
 
 def collect_test_evidence(source_group, build_dir, dest, since_ns):
     """Collect only fresh results, including those left by a failed CTest run."""
     source_group = Path(source_group)
-    for path in (source_group / "Tests").glob("*"):
+    candidates = list((source_group / "Tests").glob("*"))
+    # New groups keep generated evidence in their build directory. Include only
+    # result-shaped files there, not CMake caches or unrelated build inputs.
+    candidates += list(Path(build_dir).glob("*-UI-*.png"))
+    candidates += list(Path(build_dir).glob("*-report.json"))
+    for path in candidates:
         if path.is_file() and path.stat().st_mtime_ns >= since_ns and path.suffix in (".png", ".json", ".txt", ".csv"):
             target = Path(dest) / "test-evidence" / source_group.name / path.name
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -256,6 +287,119 @@ def build_group(group, source, root, dest, arch, start, jobs):
     return {"group": group, "tests": [t["name"] for t in listing["tests"]], "passed": True}
 
 
+def verify_quality_result(result, rate, bundle_paths=None):
+    """Validate actual GillQualityHost output; this never runs a substitute DSP."""
+    require(result.get("passed") is True and result.get("failures") == 0 and result.get("checks", 0) > 0,
+            f"QualityHost failed at {rate} Hz")
+    require(result.get("sample_rate") == rate and result.get("actual_vst3_bundles") == PRODUCT_COUNT,
+            f"QualityHost sample rate or product count differs at {rate} Hz")
+    products = result.get("products", [])
+    expected = {p["name"]: p for p in PRODUCTS}
+    require(len(products) == PRODUCT_COUNT and {p.get("name") for p in products} == set(expected),
+            f"QualityHost product list differs at {rate} Hz")
+    identities = set()
+    for product in products:
+        name = product["name"]
+        require(product.get("factory_version") == expected[name]["version"] and product.get("factory_version_verified") is True,
+                f"QualityHost factory version not verified: {name}")
+        identity = product.get("factory_uid", "")
+        require(isinstance(identity, str) and re.fullmatch(r"[0-9a-fA-F]{1,8}", identity) and identity not in identities,
+                f"QualityHost factory identity invalid or duplicated: {name}")
+        identities.add(identity)
+        require(product.get("manufacturer") == "GILLPRODUCTION", f"QualityHost manufacturer differs: {name}")
+        if bundle_paths is not None:
+            require(Path(product.get("bundle", "")).resolve() == bundle_paths[name].resolve(),
+                    f"QualityHost loaded a different bundle: {name}")
+        live, pro = product.get("live_latency_samples"), product.get("pro_latency_samples")
+        require(type(live) is int and type(pro) is int and 0 <= live <= pro < rate,
+                f"QualityHost latency evidence invalid: {name}")
+        if name == "GILLCONTROL":
+            require(pro == 0, "QualityHost controller must have zero latency in both modes")
+        if name in ("GILLTUNE", "GILLTUNE LIVE"):
+            require(live == math.ceil(rate * .016), f"QualityHost Tune LIVE latency differs: {name}")
+        elif name == "GILLFORM":
+            require(0 < live < rate * .025, "QualityHost Form LIVE window exceeds 25 ms")
+        else:
+            require(live == 0, f"QualityHost LIVE is not zero latency: {name}")
+
+
+def verify_native_quality_gate(report, evidence_root=None):
+    gate = report.get("quality_host", {})
+    require(gate.get("passed") is True and gate.get("architecture") == report.get("architecture") and
+            gate.get("source_sha256") == report.get("source", {}).get("source_sha256"),
+            "Missing native QualityHost gate for this architecture/source")
+    require(gate.get("executable_architectures") == [report["architecture"]] and
+            re.fullmatch(r"[0-9a-f]{64}", gate.get("executable_sha256", "")),
+            "QualityHost native executable identity missing")
+    runs = gate.get("runs", [])
+    require(len(runs) == len(QUALITY_SAMPLE_RATES) and
+            sorted(r.get("sample_rate", 0) for r in runs) == list(QUALITY_SAMPLE_RATES),
+            "QualityHost requires all four native sample rates")
+    expected = {p["name"]: p["bundle_sha256"] for p in report.get("plugins", [])}
+    require(len(expected) == PRODUCT_COUNT and gate.get("bundle_sha256") == expected,
+            "QualityHost evidence refers to different native bundles")
+    for run_record in runs:
+        require(run_record.get("exit_code") == 0, "QualityHost execution did not succeed")
+        verify_quality_result(run_record.get("result", {}), run_record["sample_rate"])
+        if evidence_root is not None:
+            root = Path(evidence_root).resolve()
+            path = (root / run_record.get("report", "")).resolve()
+            require(path.is_relative_to(root) and path.is_file(), "QualityHost report file is missing")
+            require(sha(path) == run_record.get("report_sha256") and read(path) == run_record["result"],
+                    "QualityHost report bytes changed")
+
+
+def build_quality_host(source, root, dest, arch, jobs, records, source_sha256):
+    """Build a real JUCE VST3 host and load all copied native bundles together."""
+    started = time.monotonic()
+    build_dir = root / "QualityHost"
+    evidence = dest / "test-evidence" / "QUALITY_HOST"
+    evidence.mkdir(parents=True, exist_ok=True)
+    # The existing exported/prebuilt runtime is Windows-only. Native Mac builds
+    # use pinned JUCE sources; ccache can reuse matching compilation units.
+    run(["cmake", "-S", source / "GILLCommon/Tests/QualityHostCMake", "-B", build_dir, "-G", "Ninja",
+         "-DCMAKE_BUILD_TYPE=Release", f"-DCMAKE_OSX_ARCHITECTURES={arch}",
+         f"-DCMAKE_OSX_DEPLOYMENT_TARGET={MIN_MACOS}", "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache",
+         "-DGILL_PREBUILT_RUNTIME=", "-DGILL_JUCE_EXPORT="], log=dest / "logs/QualityHost-configure.txt")
+    run(["cmake", "--build", build_dir, "--config", "Release", "--parallel", jobs],
+        log=dest / "logs/QualityHost-build.txt", timeout=3600)
+    executable = build_dir / "GillQualityHost"
+    require(executable.is_file() and macho(executable), "QualityHost must be a real native Mach-O executable")
+    architectures = run(["lipo", "-archs", executable]).split()
+    require(architectures == [arch], "QualityHost executable is not the native runner architecture")
+    bundles = {p["name"]: dest / "plugins" / (p["name"] + ".vst3") for p in PRODUCTS}
+    before = {p["name"]: p["bundle_sha256"] for p in records}
+    require(all(bundle_digest(path) == before[name] for name, path in bundles.items()),
+            "Native bundles changed before QualityHost")
+    paths = evidence / "bundle-paths.json"
+    write(paths, {"plugins": [{"name": name, "path": str(path)} for name, path in bundles.items()]})
+    results, failures = [], []
+    executable_sha = sha(executable)
+    for rate in QUALITY_SAMPLE_RATES:
+        report = evidence / f"quality-host-{rate}.json"
+        try:
+            require(not report.exists(), "QualityHost requires a fresh report path")
+            run([executable, "--list", paths, "--sample-rate", rate, "--report", report],
+                log=dest / "logs" / f"QualityHost-{rate}.txt", timeout=600)
+            result = read(report)
+            verify_quality_result(result, rate, bundles)
+            require(sha(executable) == executable_sha, "QualityHost executable changed during tests")
+            require(all(bundle_digest(path) == before[name] for name, path in bundles.items()),
+                    "Native bundles changed during QualityHost")
+            results.append({"sample_rate": rate, "exit_code": 0, "result": result,
+                            "report": report.relative_to(dest).as_posix(), "report_sha256": sha(report)})
+        except (RuntimeError, subprocess.SubprocessError, OSError, ValueError) as error:
+            failures.append({"sample_rate": rate, "passed": False, "error": str(error)})
+            print(f"FAILED QualityHost {rate} Hz: {error}", file=sys.stderr, flush=True)
+    gate = {"passed": not failures, "architecture": arch, "source_sha256": source_sha256,
+            "executable_architectures": architectures, "executable_sha256": executable_sha,
+            "bundle_sha256": before, "runs": results, "failures": failures,
+            "elapsed_seconds": round(time.monotonic() - started, 3)}
+    write(evidence / "quality-host-gate.json", gate)
+    require(not failures, f"{len(failures)} native QualityHost sample-rate runs failed")
+    return gate
+
+
 def build(args):
     arch = native_arch()
     source = Path(args.source).resolve()
@@ -289,8 +433,15 @@ def build(args):
         require(matches, f"Missing fresh compact-size Mac screenshot for {product['name']}")
         ui.append({"name": product["name"], "size": product["default_size"], "screenshots": matches})
     records = [inspect_bundle(dest / "plugins" / (p["name"] + ".vst3"), p, [arch]) for p in PRODUCTS]
+    try:
+        quality = build_quality_host(source, root, dest, arch, args.jobs, records, snapshot["source_sha256"])
+    except (RuntimeError, subprocess.SubprocessError, OSError, ValueError) as error:
+        write(dest / "native-failure.json", {"passed": False, "architecture": arch, "source": snapshot,
+              "completed_groups": suites, "failed_groups": [], "failed_gates": [{"gate": "QualityHost", "error": str(error)}]})
+        raise
+    require(source_check(source)["source_sha256"] == snapshot["source_sha256"], "Source changed during QualityHost")
     write(dest / "native-build.json", {"passed": True, "architecture": arch, "source": snapshot,
-          "native_ctest": suites, "compact_ui_dimensions": ui, "plugins": records,
+          "native_ctest": suites, "compact_ui_dimensions": ui, "plugins": records, "quality_host": quality,
           "fl_studio_tested": False, "visual_review_required": True})
 
 
@@ -300,6 +451,7 @@ def merge(args):
     reports = {arch: read(root / "native-build.json") for arch, root in roots.items()}
     for arch, report in reports.items():
         require(report["passed"] and report["architecture"] == arch, f"Missing native {arch} build")
+        verify_native_quality_gate(report, roots[arch])
     require(reports["arm64"]["source"]["source_sha256"] == reports["x86_64"]["source"]["source_sha256"], "Architecture source mismatch")
     dest = new_destination(args.destination)
     identity = os.environ.get("GILL_APPLICATION_IDENTITY", "").strip()
@@ -375,12 +527,17 @@ def validate(args):
 
 def verify_release_gate(universal, validations):
     report = read(Path(universal) / "universal-build.json")
-    require(report["passed"] and len(report["plugins"]) == 29, "Universal build is incomplete")
+    require(report["passed"] and len(report["plugins"]) == PRODUCT_COUNT, "Universal build is incomplete")
     for arch in ("arm64", "x86_64"):
+        native = report.get("native_builds", {}).get(arch, {})
+        require(native.get("architecture") == arch, f"Missing native {arch} QualityHost build")
+        require(native.get("source", {}).get("source_sha256") == report.get("source_sha256"),
+                "QualityHost native evidence belongs to another Universal source build")
+        verify_native_quality_gate(native)
         result = read(Path(validations) / arch / f"validation-{arch}.json")
         require(result["passed"] and result["native_architecture"] == arch, f"Native {arch} validation is missing")
         require(result["universal_report_sha256"] == sha(Path(universal) / "universal-build.json"), "Validation report is for another build")
-        require(len(result["plugins"]) == 29, "Incomplete validation list")
+        require(len(result["plugins"]) == PRODUCT_COUNT, "Incomplete validation list")
         for product in PRODUCTS:
             record = next(p for p in result["plugins"] if p["name"] == product["name"])
             bundle = Path(universal) / "plugins" / (product["name"] + ".vst3")
@@ -459,7 +616,7 @@ def test_installer(pkg, universal, dest):
             log=Path(dest) / "installer-test-console.txt", timeout=600)
         expected_names = {p["name"] + ".vst3" for p in PRODUCTS}
         require({p.name for p in installed.glob("*.vst3")} == expected_names,
-                "Installed bundle list does not contain exactly the expected 29 plug-ins")
+                f"Installed bundle list does not contain exactly the expected {PRODUCT_COUNT} plug-ins")
         for product in PRODUCTS:
             name = product["name"] + ".vst3"
             expected = bundle_digest(Path(universal) / "plugins" / name)
@@ -521,7 +678,7 @@ def package(args):
     components = staging / "components.plist"
     run(["pkgbuild", "--analyze", "--root", payload, components])
     definitions = plistlib.loads(components.read_bytes())
-    require(len(definitions) == 29, "Installer did not discover all 29 VST3 bundles")
+    require(len(definitions) == PRODUCT_COUNT, f"Installer did not discover all {PRODUCT_COUNT} VST3 bundles")
     for item in definitions:
         item["BundleIsRelocatable"] = False
         item["BundleIsVersionChecked"] = False
@@ -534,7 +691,7 @@ def package(args):
          "--identifier", "com.gillproduction.bundle.vst3", "--version", SUITE_VERSION,
          "--install-location", "/", "--ownership", "recommended", component])
     distribution = ET.Element("installer-gui-script", {"minSpecVersion": "2"})
-    ET.SubElement(distribution, "title").text = "GILLPRODUCTION – 29 Vocal- und Mixing-Plugins"
+    ET.SubElement(distribution, "title").text = f"GILLPRODUCTION – {PRODUCT_COUNT} Vocal- und Mixing-Plugins"
     ET.SubElement(distribution, "options", {"customize": "never", "require-scripts": "false", "hostArchitectures": "arm64,x86_64"})
     ET.SubElement(distribution, "domains", {"enable_anywhere": "false", "enable_currentUserHome": "false", "enable_localSystem": "true"})
     allowed = ET.SubElement(distribution, "allowed-os-versions")
@@ -542,7 +699,7 @@ def package(args):
     ET.SubElement(distribution, "welcome", {"file": "welcome.html", "mime-type": "text/html"})
     ET.SubElement(distribution, "conclusion", {"file": "conclusion.html", "mime-type": "text/html"})
     ET.SubElement(distribution, "choices-outline").append(ET.Element("line", {"choice": "plugins"}))
-    choice = ET.SubElement(distribution, "choice", {"id": "plugins", "visible": "false", "title": "Alle 29 GILL-Plugins"})
+    choice = ET.SubElement(distribution, "choice", {"id": "plugins", "visible": "false", "title": f"Alle {PRODUCT_COUNT} GILL-Plugins"})
     ET.SubElement(choice, "pkg-ref", {"id": "com.gillproduction.bundle.vst3"})
     ET.SubElement(distribution, "pkg-ref", {"id": "com.gillproduction.bundle.vst3", "version": SUITE_VERSION, "onConclusion": "none"}).text = "GILL-VST3.pkg"
     distribution_path = staging / "Distribution.xml"
@@ -561,7 +718,7 @@ def package(args):
         run(["xcrun", "stapler", "validate", pkg])
         run(["spctl", "--assess", "--type", "install", "--verbose", pkg])
     # Exercise the real Apple Installer on the disposable build VM. Only exact
-    # copies of all 29 validated Universal bundles permit a DMG to be produced.
+    # copies of all catalogued validated Universal bundles permit a DMG to be produced.
     installation = test_installer(pkg, universal, dest)
     disk = staging / "disk"
     disk.mkdir()
@@ -583,7 +740,7 @@ def package(args):
         run(["xcrun", "stapler", "validate", dmg])
         run(["spctl", "--assess", "--type", "open", "--context", "context:primary-signature", "--verbose", dmg])
     run(["hdiutil", "verify", dmg], log=dest / "dmg-verify.txt")
-    write(dest / "MAC-RELEASE.json", {"release": RELEASE, "product_count": 29, "architectures": ["arm64", "x86_64"],
+    write(dest / "MAC-RELEASE.json", {"release": RELEASE, "product_count": PRODUCT_COUNT, "architectures": ["arm64", "x86_64"],
           "minimum_macos": MIN_MACOS, "native_validation_passed": True, "notarized": args.notarize,
           "end_user_release_ready": args.notarize, "fl_studio_tested": False,
           "ui_dimensions_verified": True, "visual_review_required": True,

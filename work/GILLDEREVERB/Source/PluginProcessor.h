@@ -1,4 +1,6 @@
 #pragma once
+#include "../../GILLCommon/ModeTransition.h"
+#include "../../GILLCommon/QualityBus.h"
 #include <JuceHeader.h>
 #include "DereverbDSP.h"
 #include <array>
@@ -45,7 +47,9 @@ public:
     bool isAutomaticMode() const { return automaticMode.load(std::memory_order_relaxed); }
     void setAnalyzerEnabled(bool enabled) { analyzerEnabled.store(enabled, std::memory_order_relaxed); }
     juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
 private:
+    gill::ModeTransition qualityTransition;
     template<class T> void process(juce::AudioBuffer<T>&, bool hostBypassed);
     void feedAnalyzer(float pre, float post);
     std::atomic<float> *amountParam{}, *roomParam{}, *preserveParam{}, *lowParam{}, *highParam{}, *mixParam{}, *outputParam{}, *removedParam{}, *bypassParam{};

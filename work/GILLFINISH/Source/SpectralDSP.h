@@ -1,7 +1,9 @@
 #pragma once
+#include "../../GILLCommon/LiveCausal.h"
 // Original GILLPRODUCTION DSP. SPDX-License-Identifier: AGPL-3.0-only
 // No JUCE or third-party DSP code. See work/spectral-notes.md for the algorithm.
 #include <algorithm>
+#include <type_traits>
 #include <array>
 #include <cmath>
 #include <complex>
@@ -243,31 +245,20 @@ inline Settings convert(const SparkParameters& p) noexcept {
 }
 } // namespace spectral_detail
 
-class SilkDSP {
+template<bool IsSpark>class QualitySpectral {
 public:
-    using Parameters = SilkParameters;
-    void prepare(double rate, int maxBlock, int channels) noexcept { core.prepare(rate, maxBlock, channels); }
-    void reset() noexcept { core.reset(); }
-    void setParameters(const Parameters& p) noexcept { core.set(spectral_detail::convert(p)); }
-    void process(float* const* data, int numSamples, int channelsCount) noexcept { core.process(data, numSamples, channelsCount); }
-    int latencySamples() const noexcept { return core.latencySamples(); }
-    float reductionDb() const noexcept { return core.reductionDb(); }
-    std::array<float, 128> reductionView() const noexcept { return core.reductionView(); }
-private:
-    spectral_detail::Core<8192, false> core;
+ using Parameters=std::conditional_t<IsSpark,SparkParameters,SilkParameters>;
+ QualitySpectral()noexcept{setParameters(Parameters{});}
+ void setLiveMode(bool v)noexcept{if(v!=liveMode_){liveMode_=v;reset();}}
+ void prepare(double rate,int block,int channels)noexcept{core.prepare(rate,block,channels);live.prepare(rate,channels,IsSpark?gill::live::Kind::Spark:gill::live::Kind::Silk);}
+ void reset()noexcept{core.reset();live.reset();}
+ void setParameters(const Parameters&p)noexcept{const auto s=spectral_detail::convert(p);core.set(s);gill::live::Settings v;v.amount=s.depth;v.sensitivity=s.sensitivity;v.low=s.low;v.high=s.high;v.attack=s.attack*.001;v.release=s.release*.001;v.mix=s.mix;v.output=s.output;v.boost=s.boost;live.set(v);}
+ void process(float*const*data,int count,int channels)noexcept{if(liveMode_)live.process(data,channels,count);else core.process(data,count,channels);}
+ int latencySamples()const noexcept{return liveMode_?0:core.latencySamples();}
+ float reductionDb()const noexcept{return liveMode_?float(live.reductionDb()):core.reductionDb();}
+ std::array<float,128>reductionView()const noexcept{return liveMode_?live.reductionView():core.reductionView();}
+private:spectral_detail::Core<IsSpark?2048:8192,IsSpark>core;gill::live::CausalBands live;bool liveMode_=false;
 };
-class SparkDSP {
-public:
-    using Parameters = SparkParameters;
-    SparkDSP() noexcept { setParameters(Parameters{}); }
-    void prepare(double rate, int maxBlock, int channels) noexcept { core.prepare(rate, maxBlock, channels); }
-    void reset() noexcept { core.reset(); }
-    void setParameters(const Parameters& p) noexcept { core.set(spectral_detail::convert(p)); }
-    void process(float* const* data, int numSamples, int channelsCount) noexcept { core.process(data, numSamples, channelsCount); }
-    int latencySamples() const noexcept { return core.latencySamples(); }
-    float reductionDb() const noexcept { return core.reductionDb(); }
-    std::array<float, 128> reductionView() const noexcept { return core.reductionView(); }
-private:
-    spectral_detail::Core<2048, true> core;
-};
+using SilkDSP=QualitySpectral<false>;
+using SparkDSP=QualitySpectral<true>;
 } // namespace gillfinish

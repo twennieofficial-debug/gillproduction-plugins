@@ -19,7 +19,7 @@ public:
         (void)maxBlock;fs_=std::clamp(detail::finite(fs,48000),8000.,192000.);rateMeter_=fs_;channels_=std::clamp(channels,1,maximumChannels);
         lookaheadBase_=std::max(1,int(std::ceil(fs_*.003)));lookahead_=lookaheadBase_*oversamplingFactor;latency_=lookaheadBase_+filterLatency;
         smoothing_=detail::alpha(.02,fs_);compressorDetect_=detail::alpha(.02,fs_);compressorAttack_=detail::alpha(.03,fs_);compressorRelease_=detail::alpha(.18,fs_);
-        limiterAttack_=detail::alpha(.00004,fs_*oversamplingFactor);limiterRelease_=detail::alpha(.09,fs_*oversamplingFactor);
+        limiterAttack_=detail::alpha(.00004,fs_*(liveMode_?1:oversamplingFactor));limiterRelease_=detail::alpha(.09,fs_*(liveMode_?1:oversamplingFactor));
         truePeakDecay_=std::exp(-1/(fs_*.5));makeFilter();meter_.prepare(fs_);prepared_=true;reset();
     }
     void setParameters(const FinishParameters& p) noexcept{
@@ -58,25 +58,25 @@ public:
             const double targetReduction=.7*detail::softExcess(detail::db(std::sqrt(std::max(0.,compressorPower_)))+18,8);
             detail::follow(compressorDb_,targetReduction,targetReduction>compressorDb_?compressorAttack_:compressorRelease_);
             const double preGain=detail::gain(drive_-comp_*compressorDb_);
-            for(int c=0;c<count;++c){auto& s=state_[c];x[c]*=preGain;dry[c]=s.dry[dryPosition_];s.dry[dryPosition_]=x[c];s.input[s.inputPosition]=s.input[s.inputPosition+inputHistory]=x[c];}
+            for(int c=0;c<count;++c){auto& s=state_[c];x[c]*=preGain;dry[c]=liveMode_?x[c]:s.dry[dryPosition_];s.dry[dryPosition_]=x[c];s.input[s.inputPosition]=s.input[s.inputPosition+inputHistory]=x[c];}
             const double ceiling=detail::gain(ceiling_);
             // Reserve 0.25 dB for finite interpolation/decimation and envelope
             // modulation. The final sample guard is separate from TP estimation.
             const double limitingCeiling=ceiling*0.9716279515771061;
-            for(int phase=0;phase<oversamplingFactor;++phase){
+            for(int phase=0;phase<(liveMode_?1:oversamplingFactor);++phase){
                 std::array<double,maximumChannels> candidate{},delayed{};double peak=0,delayedPeak=0;
-                for(int c=0;c<count;++c){auto& s=state_[c];double up=dot<inputHistory>(s.input.data()+s.inputPosition,interpolation_[phase].data());
+                for(int c=0;c<count;++c){auto& s=state_[c];double up=liveMode_?x[c]:dot<inputHistory>(s.input.data()+s.inputPosition,interpolation_[phase].data());
                     if(clip_>0){const double a=std::abs(up)/ceiling;const double shaped=a<=.75?up:std::copysign(ceiling*(.75+.25*std::tanh((a-.75)*4)),up);up+=clip_*(shaped-up);}
-                    candidate[c]=up;peak=std::max(peak,std::abs(up));delayed[c]=s.lookahead[delayPosition_];s.lookahead[delayPosition_]=up;delayedPeak=std::max(delayedPeak,std::abs(delayed[c]));
+                    candidate[c]=up;peak=std::max(peak,std::abs(up));delayed[c]=liveMode_?up:s.lookahead[delayPosition_];s.lookahead[delayPosition_]=up;delayedPeak=std::max(delayedPeak,std::abs(delayed[c]));
                 }
-                while(queueCount_&&queueIndex_[queueHead_]+std::uint64_t(lookahead_)<sampleClock_){queueHead_=(queueHead_+1)%maximumLookahead;--queueCount_;}
+                while(queueCount_&&queueIndex_[queueHead_]+std::uint64_t(liveMode_?0:lookahead_)<sampleClock_){queueHead_=(queueHead_+1)%maximumLookahead;--queueCount_;}
                 while(queueCount_){const int back=(queueHead_+queueCount_-1)%maximumLookahead;if(queuePeak_[back]>peak)break;--queueCount_;}
                 const int tail=(queueHead_+queueCount_)%maximumLookahead;queuePeak_[tail]=peak;queueIndex_[tail]=sampleClock_;++queueCount_;
                 const double wanted=std::min(1.,limitingCeiling/std::max(1e-20,queuePeak_[queueHead_]));
                 detail::follow(limiterGain_,wanted,wanted<limiterGain_?limiterAttack_:limiterRelease_);
                 const double guarded=std::min(limiterGain_,limitingCeiling/std::max(1e-20,delayedPeak));
                 const double applied=1+limiter_*(guarded-1);lastLimit=-detail::db(applied);
-                for(int c=0;c<count;++c){auto& s=state_[c];const double y=delayed[c]*applied;s.output[s.outputPosition]=s.output[s.outputPosition+filterTaps]=y;if(phase==0)decimated[c]=dot<filterTaps>(s.output.data()+s.outputPosition,filter_.data());if(--s.outputPosition<0)s.outputPosition=filterTaps-1;}
+                for(int c=0;c<count;++c){auto& s=state_[c];const double y=delayed[c]*applied;s.output[s.outputPosition]=s.output[s.outputPosition+filterTaps]=y;if(phase==0)decimated[c]=liveMode_?y:dot<filterTaps>(s.output.data()+s.outputPosition,filter_.data());if(--s.outputPosition<0)s.outputPosition=filterTaps-1;}
                 delayPosition_=(delayPosition_+1)%lookahead_;++sampleClock_;
             }
             double outputPeak=0,outputPower=0;std::array<double,maximumChannels> output{};
@@ -88,7 +88,15 @@ public:
         }
         meter_.publish();compressorMeter_=float(comp_*compressorDb_);limiterMeter_=float(std::max(0.,lastLimit));truePeakMeter_=float(truePeak_);maximumTruePeakMeter_=float(maximumTruePeak_);
     }
-    int latencySamples()const noexcept{return latency_;}double tailSeconds()const noexcept{return latency_/fs_+.12;}
+    // LIVE retains tone, width, compression and sample-peak protection without
+    // FIR/lookahead buffering. PRO provides the oversampled true-peak path.
+    void setLiveMode(bool live) noexcept {
+        if(liveMode_==live)return;liveMode_=live;
+        limiterAttack_=detail::alpha(.00004,fs_*(liveMode_?1:oversamplingFactor));
+        limiterRelease_=detail::alpha(.09,fs_*(liveMode_?1:oversamplingFactor));
+        reset();
+    }
+    int latencySamples()const noexcept{return liveMode_?0:latency_;}double tailSeconds()const noexcept{return latencySamples()/fs_+.12;}
     float gainReductionDb()const noexcept{return compressorReductionDb()+limiterReductionDb();}
     float compressorReductionDb()const noexcept{return compressorMeter_.load(std::memory_order_relaxed);}
     float limiterReductionDb()const noexcept{return limiterMeter_.load(std::memory_order_relaxed);}
@@ -99,6 +107,7 @@ public:
     void resetPeakStatistics()noexcept{peakResetRequested_.store(true,std::memory_order_relaxed);}
     float toneResponseDb(float frequency)const noexcept{const double fs=rateMeter_.load(std::memory_order_relaxed);return float(detail::db(std::abs(detail::shelf(fs,100,toneMeters_[0].load(),false).response(frequency,fs)*detail::peak(fs,900,.55,toneMeters_[1].load()).response(frequency,fs)*detail::shelf(fs,8000,toneMeters_[2].load(),true).response(frequency,fs))));}
 private:
+    bool liveMode_=false;
     static constexpr int inputHistory=(filterTaps+oversamplingFactor-1)/oversamplingFactor,meterHistory=65;
     template<int N>static double dot(const double* x,const double* c)noexcept{double a=0,b=0;int i=0;for(;i+1<N;i+=2){a+=x[i]*c[i];b+=x[i+1]*c[i+1];}if(i<N)a+=x[i]*c[i];return a+b;}
     void smooth(double& x,double target)noexcept{detail::follow(x,target,smoothing_);}

@@ -1,4 +1,6 @@
 #pragma once
+#include "../../GILLCommon/ModeTransition.h"
+#include "../../GILLCommon/QualityBus.h"
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "FlowDSP.h"
 #include "HeatDSP.h"
@@ -31,7 +33,7 @@ public:
     void getStateInformation(juce::MemoryBlock&) override;
     void setStateInformation(const void*,int) override;
     juce::AudioProcessorParameter* getBypassParameter() const override { return apvts.getParameter("bypass"); }
-    static juce::AudioProcessorValueTreeState::ParameterLayout layout(GillKind);
+    static juce::AudioProcessorValueTreeState::ParameterLayout layout(GillKind, int qualityDefault=1);
     float value(const juce::String&) const;
     void setValue(const juce::String&,float,bool gesture=true);
     void requestLearning(bool start) { learnCommand.store(start?1:2); }
@@ -39,11 +41,13 @@ public:
     const GillKind kind;
     const bool isLiveTune;
     juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
     std::atomic<float> inputPeak{0},outputPeak{0},reduction{0},learnProgress{0},pitchHz{0},targetHz{0},pitchConfidence{0};
     std::atomic<int> learnState{0};
     std::atomic<double> uiRate{48000};
     std::atomic<bool> rateSupported{true};
 private:
+    gill::ModeTransition qualityTransition;
     void process(juce::AudioBuffer<float>&,bool);
     void updateParameters();
     void exchangeProfile();

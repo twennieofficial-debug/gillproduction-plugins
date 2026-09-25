@@ -1,4 +1,6 @@
 #pragma once
+#include "../../GILLCommon/ModeTransition.h"
+#include "../../GILLCommon/QualityBus.h"
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "Presets.h"
 #include "CharacterDSP.h"
@@ -36,9 +38,11 @@ public:
     const std::vector<gillfinish::ParamSpec> definitions;
     const std::vector<gillfinish::Preset> programs;
     juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
     std::atomic<float> inputPeak{0},outputPeak{0},reduction{0},cutoff{1500},tempo{120};
     std::atomic<double> uiRate{48000};std::atomic<bool> rateSupported{true},hostTempo{false};
 private:
+    gill::ModeTransition qualityTransition;
     void process(juce::AudioBuffer<float>&,bool);
     void update(bool queryHost=false);
     float at(const char*)const;

@@ -1,4 +1,6 @@
 #pragma once
+#include "../../GILLCommon/ModeTransition.h"
+#include "../../GILLCommon/QualityBus.h"
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "AirDSP.h"
 #include "SpaceDSP.h"
@@ -47,11 +49,13 @@ public:
     static constexpr std::array<float,8> divisionBeats{.25f,1.f/3,.5f,.75f,1,1.5f,2,4};
     const GillKind kind;
     juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
     std::atomic<float> inputPeak{0},outputPeak{0},learnProgress{0},tempoBpm{120},delayMs{500};
     std::atomic<int> learnState{0};
     std::atomic<double> uiRate{48000};
     std::atomic<bool> rateSupported{true},hostTempoAvailable{false},delayLimited{false};
 private:
+    gill::ModeTransition qualityTransition;
     void process(juce::AudioBuffer<float>&,bool);
     void updateParameters(bool queryHost=false);
     void exchangeProfile();

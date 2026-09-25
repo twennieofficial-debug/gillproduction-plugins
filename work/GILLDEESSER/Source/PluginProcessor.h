@@ -1,4 +1,5 @@
 #pragma once
+#include "../../GILLCommon/QualityBus.h"
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "DeEsserDSP.h"
 #include <array>
@@ -36,6 +37,7 @@ public:
     double getUiSampleRate() const {return uiSampleRate.load(std::memory_order_relaxed);}
     bool readSpectrum(std::array<float,2048>&,std::array<float,2048>&);
     juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
 private:
     template<class T> void process(juce::AudioBuffer<T>&,bool);
     void feedAnalyzer(float,float);

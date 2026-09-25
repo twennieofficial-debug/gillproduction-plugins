@@ -1,6 +1,8 @@
 #include "PluginEditor.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
+#include "../../GILLCommon/MaterialUi.h"
+#include "../../GILLCommon/QualityUi.h"
 #include <array>
 #include <cmath>
 
@@ -110,26 +112,10 @@ public:
     }
     void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height, float pos, float start, float end, juce::Slider& slider) override
     {
-        const auto radius = (float) juce::jmin (width, height) * 0.43f;
-        const auto cx = (float) x + (float) width * 0.5f, cy = (float) y + (float) height * 0.5f;
-        const auto angle = start + pos * (end - start);
-        const auto alpha = slider.isEnabled() ? 1.0f : 0.35f;
-        juce::Path full, active;
-        full.addCentredArc (cx, cy, radius, radius, 0, start, end, true);
-        active.addCentredArc (cx, cy, radius, radius, 0, start, angle, true);
-        g.setColour (line.withAlpha (alpha)); g.strokePath (full, juce::PathStrokeType (3.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-        g.setColour (sage.withAlpha (alpha)); g.strokePath (active, juce::PathStrokeType (4.0f, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
-        auto knob = juce::Rectangle<float> (cx - radius + 7, cy - radius + 7, (radius - 7) * 2, (radius - 7) * 2);
-        g.setColour (juce::Colours::black.withAlpha (0.13f * alpha)); g.fillEllipse (knob.translated (0, 3));
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffaf8ef).withAlpha (alpha), knob.getX(), knob.getY(), juce::Colour (0xffaaa594).withAlpha (alpha), knob.getRight(), knob.getBottom(), false));
-        g.fillEllipse (knob);
-        knob.reduce (2.3f, 2.3f);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff7f4eb).withAlpha (alpha), cx - radius * 0.4f, cy - radius * 0.6f, juce::Colour (0xffd5d0c1).withAlpha (alpha), cx + radius, cy + radius, false));
-        g.fillEllipse (knob);
-        g.setColour (juce::Colours::white.withAlpha (0.6f * alpha)); g.drawEllipse (knob.reduced (1), 1);
-        const float indicatorStart = radius * 0.35f, indicatorEnd = radius * 0.71f;
-        g.setColour (ink.withAlpha (alpha));
-        g.drawLine (cx + std::sin (angle) * indicatorStart, cy - std::cos (angle) * indicatorStart, cx + std::sin (angle) * indicatorEnd, cy - std::cos (angle) * indicatorEnd, 3.0f);
+        const juce::Graphics::ScopedSaveState saved(g);
+        g.beginTransparencyLayer(slider.isEnabled() ? 1.0f : 0.38f);
+        gill::material::rotary(g, {static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height)}, pos, start, end, sage);
+        g.endTransparencyLayer();
     }
 };
 
@@ -648,10 +634,11 @@ struct GilleqAudioProcessorEditor::Impl final : private juce::Timer
     juce::Rectangle<int> header, controlPanel, footer;
     int selected = 3;
     bool abIsB = false;
+    gill::QualitySelector quality{p.apvts, p};
     explicit Impl (GilleqAudioProcessorEditor& editor, GilleqAudioProcessor& processor)
         : owner (editor), p (processor), graph (processor), dynamicsMeter (processor), rangeHandle (processor), tips (&editor, 600)
     {
-        owner.setLookAndFeel (&look);
+        owner.setLookAndFeel (&look);owner.addAndMakeVisible(quality);
         wood = juce::ImageCache::getFromMemory (BinaryData::oak_sage_png, BinaryData::oak_sage_pngSize);
         owner.addAndMakeVisible (graph); owner.addAndMakeVisible (meter);
         owner.addChildComponent (dynamicsMeter);
@@ -793,6 +780,7 @@ struct GilleqAudioProcessorEditor::Impl final : private juce::Timer
     }
     void resized()
     {
+        quality.setBounds(365,25,110,26);
         const int w = owner.getWidth(), h = owner.getHeight();
         if (w < 760 || h < 500) return;
         header = { 12, 8, w - 24, 60 };
@@ -834,19 +822,13 @@ struct GilleqAudioProcessorEditor::Impl final : private juce::Timer
         }
         g.setColour (juce::Colour (0xff745a3c).withAlpha (0.6f)); g.drawRoundedRectangle (all.reduced (1.5f), 8, 1.0f);
         auto face = all.reduced (15).withTop ((float) header.getBottom());
-        g.setColour (juce::Colours::black.withAlpha (0.16f)); g.fillRoundedRectangle (face.translated (0, 2), 9);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfff0eee5), face.getX(), face.getY(), juce::Colour (0xffdfdcd2), face.getRight(), face.getBottom(), false));
-        g.fillRoundedRectangle (face, 9);
-        g.setColour (juce::Colour (0xff9e967f)); g.drawRoundedRectangle (face, 9, 1.0f);
-        g.setColour (juce::Colours::white.withAlpha (0.6f)); g.drawRoundedRectangle (face.reduced (1), 8, 1.0f);
+        gill::material::panel(g,face,juce::Colour(0xffeeeade),9);
         if (wood.isValid()) g.drawImage (wood, 28, 16, 61, 41, 95, 80, 105, 70);
         else { g.setFont (font (28, true)); g.setColour (juce::Colour (0xff60482d)); g.drawText ("GP", 28, 16, 61, 41, juce::Justification::centred); }
         g.setColour (juce::Colour (0xff80633e)); g.drawVerticalLine (105, 17, 57);
         g.setFont (font (26.0f)); g.setColour (juce::Colour (0xff332e23)); g.drawText ("GILLEQ", 123, 15, 160, 31, juce::Justification::centredLeft);
         g.setFont (font (12.0f, true)); g.setColour (juce::Colour (0xff67563d)); g.drawText ("GILLPRODUCTION", 124, 46, 240, 15, juce::Justification::centredLeft);
-        g.setColour (juce::Colours::white.withAlpha (0.19f)); g.fillRoundedRectangle (controlPanel.toFloat(), 8);
-        g.setColour (line.withAlpha (0.9f)); g.drawRoundedRectangle (controlPanel.toFloat(), 8, 1.0f);
-        g.setColour (juce::Colours::white.withAlpha (0.6f)); g.drawRoundedRectangle (controlPanel.toFloat().reduced (1), 7, 0.7f);
+        gill::material::panel(g,controlPanel.toFloat(),juce::Colour(0xfff5f1e6),8,true);
         labelAbove (g, frequency, "FREQUENCY"); labelAbove (g, gain, "GAIN"); labelAbove (g, q, "Q");
         labelAbove (g, channel, "CHANNEL"); labelAbove (g, slope, "SLOPE");
         g.setFont (font (13, true)); g.setColour (muted);

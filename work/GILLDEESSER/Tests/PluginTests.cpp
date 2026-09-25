@@ -1,3 +1,4 @@
+#include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <algorithm>
 #include <array>
@@ -27,6 +28,9 @@ struct HostListener final:juce::AudioProcessorListener{
     void audioProcessorParameterChangeGestureEnd(juce::AudioProcessor*,int)override{++ends;}
 };
 void collect(juce::Component& component,std::vector<juce::Slider*>& sliders,std::vector<juce::Button*>& buttons,std::vector<juce::Component*>& all){
+    // LIVE/PRO has a separate full interaction test in QualityTests.h.
+    if(dynamic_cast<gill::QualitySelector*>(&component))return;
+
     all.push_back(&component);if(auto* slider=dynamic_cast<juce::Slider*>(&component))sliders.push_back(slider);if(auto* button=dynamic_cast<juce::Button*>(&component))buttons.push_back(button);
     for(auto* child:component.getChildren())collect(*child,sliders,buttons,all);
 }
@@ -101,7 +105,7 @@ void uiTests(){
     GillDeEsserAudioProcessor processor;processor.setPlayConfigDetails(2,2,48000,128);processor.prepareToPlay(48000,128);
     std::unique_ptr<juce::AudioProcessorEditor> editor(processor.createEditor());check(editor!=nullptr,"editor exists");if(!editor)return;
     std::vector<juce::Slider*> sliders;std::vector<juce::Button*> buttons;std::vector<juce::Component*> components;collect(*editor,sliders,buttons,components);
-    check(sliders.size()==2&&buttons.size()==1,"exactly two knobs and one listen button");check(editor->getWidth()==480&&editor->getHeight()==330,"compact 480 by 330 default size");
+    check(sliders.size()==2&&buttons.size()==1,"two knobs and one listen button plus separately tested LIVE/PRO");check(editor->getWidth()==480&&editor->getHeight()==330,"compact 480 by 330 default size");
     const auto* limits=editor->getConstrainer();check(limits&&limits->getMinimumWidth()==480&&limits->getMinimumHeight()==330&&limits->getMaximumWidth()==960&&limits->getMaximumHeight()==660&&std::abs(limits->getFixedAspectRatio()-480./330.)<1e-12,"documented resize limits and fixed aspect ratio");
     HostListener listener;processor.addListener(&listener);
     for(auto* slider:sliders){const bool isAmount=slider->getName()=="AMOUNT";const char* id=isAmount?"amount":"frequency";
@@ -153,7 +157,10 @@ void uiTests(){
 }
 }
 int main(){const auto start=std::chrono::steady_clock::now();juce::ScopedJuceInitialiser_GUI gui;
-    GillDeEsserAudioProcessor metadata;check(metadata.getName()=="GILL-DE-ESSER","exact uppercase product name");check(metadata.getParameters().size()==4,"amount frequency listen and bypass are the four parameters");check(metadata.supportsDoublePrecisionProcessing(),"double precision is supported");check(metadata.getBypassParameter()==metadata.apvts.getParameter("bypass"),"host bypass is registered");check(values(metadata)==std::array<float,4>{55,6500,0,0},"documented default parameter values");
+    // Update06: exercise real LIVE/PRO host state, audio timing and UI.
+    gill::testing::qualityRoutes([]{return std::make_unique<GillDeEsserAudioProcessor>();},[](bool ok,const std::string& why){check(ok,why.c_str());});
+
+    GillDeEsserAudioProcessor metadata;check(metadata.getName()=="GILL-DE-ESSER","exact uppercase product name");check(metadata.getParameters().size()==5,"four original parameters plus appended LIVE/PRO");check(metadata.supportsDoublePrecisionProcessing(),"double precision is supported");check(metadata.getBypassParameter()==metadata.apvts.getParameter("bypass"),"host bypass is registered");check(values(metadata)==std::array<float,4>{55,6500,0,0},"documented default parameter values");
     for(double fs:{44100.,48000.,88200.,96000.,192000.})for(int channels:{1,2}){dryRoutes<float>(fs,channels);dryRoutes<double>(fs,channels);listenRoute<float>(fs,channels);listenRoute<double>(fs,channels);}
     for(bool host:{false,true})for(double fs:{44100.,48000.,192000.}){routeTransitions<float>(host,fs);routeTransitions<double>(host,fs);}
     stateTests();automationTests();uiTests();

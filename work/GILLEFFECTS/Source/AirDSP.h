@@ -69,7 +69,7 @@ public:
         channels_ = std::clamp(channels, 1, 2);
         smoothing_ = 1.0 - std::exp(-1.0 / (rate_ * 0.015));
         makeFilter();
-        for (auto& state : state_) state.core.prepare(rate_ * oversamplingFactor, rate_);
+        for (auto& state : state_) state.core.prepare(rate_ * (liveMode_ ? 1 : oversamplingFactor), rate_);
         prepared_ = true;
         reset();
     }
@@ -89,7 +89,13 @@ public:
         targetOutput_ = std::pow(10.0, std::clamp(air_detail::finite(outputDb), -18.0, 6.0) / 20.0);
         if (!hasAudio_) { mid_ = targetMid_; high_ = targetHigh_; mix_ = targetMix_; output_ = targetOutput_; }
     }
-    int latencySamples() const noexcept { return fixedLatencySamples; }
+    void setLiveMode(bool live) noexcept {
+        if (liveMode_ == live) return;
+        liveMode_ = live;
+        for (auto& state : state_) state.core.prepare(rate_ * (liveMode_ ? 1 : oversamplingFactor), rate_);
+        reset();
+    }
+    int latencySamples() const noexcept { return liveMode_ ? 0 : fixedLatencySamples; }
 
     void process(float* const* buffers, int channels, int samples) noexcept {
         if (!prepared_ || !buffers || channels <= 0 || samples <= 0) return;
@@ -102,12 +108,13 @@ public:
             for (int c = 0; c < active; ++c) {
                 auto& state = state_[static_cast<std::size_t>(c)];
                 const float input = static_cast<float>(std::clamp(air_detail::finite(buffers[c][n]), -32.0, 32.0));
-                const float dry = state.dry[state.dryPosition];
+                const float dry = liveMode_ ? input : state.dry[state.dryPosition];
                 state.dry[state.dryPosition] = input;
                 state.dryPosition = (state.dryPosition + 1) % fixedLatencySamples;
                 state.input[state.inputPosition] = input;
                 double extra = 0.0;
-                for (int phase = 0; phase < oversamplingFactor; ++phase) {
+                if (liveMode_) extra = state.core.process(input, mid_, high_);
+                for (int phase = 0; !liveMode_ && phase < oversamplingFactor; ++phase) {
                     double upsampled = 0.0;
                     int position = state.inputPosition;
                     for (int tap = phase; tap < filterTaps; tap += oversamplingFactor) {
@@ -133,6 +140,7 @@ public:
     }
 
 private:
+    bool liveMode_ = false;
     static constexpr int inputHistory = (filterTaps + oversamplingFactor - 1) / oversamplingFactor;
     struct State {
         std::array<double, inputHistory> input{};

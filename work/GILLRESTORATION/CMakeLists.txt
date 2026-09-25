@@ -9,7 +9,7 @@ if(CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum supported macOS")
     endif()
 endif()
-project(GILLRESTORATION VERSION 0.3.0 LANGUAGES C CXX)
+project(GILLRESTORATION VERSION 0.6.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Apple Clang contracts float multiply/add by default. JUCE's decimal
@@ -107,7 +107,8 @@ set_tests_properties(RESTORATION_INTEGRATION PROPERTIES WORKING_DIRECTORY "${CMA
 if(WIN32)
 add_executable(GillSuiteVst3HostTests Tests/Vst3HostTests.cpp)
 target_link_libraries(GillSuiteVst3HostTests PRIVATE GillRestorationRuntime)
-target_include_directories(GillSuiteVst3HostTests PRIVATE "$<TARGET_PROPERTY:GillRestorationRuntime,INCLUDE_DIRECTORIES>")
+target_include_directories(GillSuiteVst3HostTests PRIVATE "$<TARGET_PROPERTY:GillRestorationRuntime,INCLUDE_DIRECTORIES>"
+    "${JUCE_MODULES_DIR}/juce_audio_processors_headless/format_types/VST3_SDK")
 target_compile_definitions(GillSuiteVst3HostTests PRIVATE JUCE_PLUGINHOST_VST3=1 "$<TARGET_PROPERTY:GillRestorationRuntime,COMPILE_DEFINITIONS>")
 target_sources(GillSuiteVst3HostTests PRIVATE
     "${JUCE_MODULES_DIR}/juce_audio_processors/juce_audio_processors.cpp"

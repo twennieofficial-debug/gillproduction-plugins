@@ -25,7 +25,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GillRestorationAudioProcesso
     juce::AudioProcessorValueTreeState::ParameterLayout result;
     result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"amount", 1}, "AMOUNT", juce::NormalisableRange<float>(0,100,0.1f),55));
     result.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass", 1}, "BYPASS",false));
-    return result;
+    result.add(gill::qualityParameter()); return result;
 }
 bool GillRestorationAudioProcessor::isBusesLayoutSupported(const BusesLayout& layout) const {
     const auto out = layout.getMainOutputChannelSet();
@@ -34,17 +34,20 @@ bool GillRestorationAudioProcessor::isBusesLayoutSupported(const BusesLayout& la
 void GillRestorationAudioProcessor::prepareToPlay(double fs, int) {
     if (!std::isfinite(fs) || fs < 8000 || fs > 192000) fs = 48000;
     engine.prepare(fs, mode);
+    engine.setLiveMode(!qualityClient.isPro());qualityClient.requestLatencySamples(engine.getLatencySamples());
     engine.setAmount(juce::jlimit(0.0,1.0,read(amountParam,55)*0.01));
     bypassSmooth.reset(fs, 0.005);
     bypassSmooth.setCurrentAndTargetValue(read(bypassParam,0) > 0.5 ? 1.0 : 0.0);
-    setLatencySamples(engine.getLatencySamples());
+    engine.setLiveMode(!qualityClient.isPro());setLatencySamples(engine.getLatencySamples());
+    qualityTransition.prepare(fs,qualityClient.mode());
 }
 void GillRestorationAudioProcessor::releaseResources() { engine.reset(); }
-template<class T> void GillRestorationAudioProcessor::process(juce::AudioBuffer<T>& buffer, bool hostBypassed) {
+template<class T> void GillRestorationAudioProcessor::process(juce::AudioBuffer<T>& buffer, bool hostBypassed) {const int blockQuality=qualityClient.mode();
     juce::ScopedNoDenormals noDenormals;
     const int samples = buffer.getNumSamples(), channels = std::min(2, buffer.getNumChannels());
     if (samples <= 0 || channels <= 0) return;
     for (int c = getTotalNumInputChannels(); c < buffer.getNumChannels(); ++c) buffer.clear(c,0,samples);
+    engine.setLiveMode(blockQuality==0);qualityClient.requestLatencySamples(engine.getLatencySamples());
     engine.setAmount(juce::jlimit(0.0,1.0,read(amountParam,55)*0.01));
     bypassSmooth.setTargetValue(hostBypassed || read(bypassParam,0)>0.5 ? 1.0 : 0.0);
     constexpr int chunk = 128;
@@ -66,6 +69,7 @@ template<class T> void GillRestorationAudioProcessor::process(juce::AudioBuffer<
             }
         }
     }
+    qualityTransition.process(buffer.getArrayOfWritePointers(),channels,samples,blockQuality);
 }
 void GillRestorationAudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer& m){m.clear();process(b,false);}
 void GillRestorationAudioProcessor::processBlock(juce::AudioBuffer<double>& b,juce::MidiBuffer& m){m.clear();process(b,false);}
@@ -80,7 +84,9 @@ void GillRestorationAudioProcessor::setStateInformation(const void* data,int siz
     if(!data || size<=0 || size>1024*1024)return;
     if(auto xml=getXmlFromBinary(data,size))if(xml->hasTagName(apvts.state.getType())) {
         auto state=juce::ValueTree::fromXml(*xml);if(!state.isValid())return;
-        auto clean=apvts.copyState();bool changed=false;
+        auto clean=apvts.copyState();
+    if (!state.getChildWithProperty("id","gillQuality").isValid()) { auto oldQuality=clean.getChildWithProperty("id","gillQuality"); if(oldQuality.isValid()) oldQuality.setProperty("value",apvts.getParameter("gillQuality")->convertFrom0to1(apvts.getParameter("gillQuality")->getDefaultValue()),nullptr); }
+bool changed=false;
         for(auto child:state) {
             auto* parameter=apvts.getParameter(child.getProperty("id").toString());if(!parameter)continue;
             if(!child.hasProperty("value"))continue;

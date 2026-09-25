@@ -1,3 +1,4 @@
+#include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <algorithm>
 #include <array>
@@ -92,7 +93,7 @@ void metadataAndState(GillKind kind, bool liveTune = false) {
     GillVocalProcessor p(kind,liveTune);
     product = p.getName().toStdString();
     const auto parameterIds = ids(kind);
-    check(p.getParameters().size() == static_cast<int>(parameterIds.size()) &&
+    check(p.getParameters().size() == static_cast<int>(parameterIds.size()) + 1 &&
           p.getBypassParameter() == p.apvts.getParameter("bypass") && p.hasEditor() &&
           !p.acceptsMidi() && !p.producesMidi(), "parameter count, host bypass and effect metadata");
     auto layout = p.getBusesLayout();
@@ -545,6 +546,12 @@ void heatBenchmark() {
 int main() {
     const auto start = std::chrono::steady_clock::now();
     juce::ScopedJuceInitialiser_GUI gui;
+    // Update06: exercise real LIVE/PRO host state, audio timing and UI.
+    gill::testing::qualityRoutes([]{return std::make_unique<GillVocalProcessor>(GillKind::Flow);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillVocalProcessor>(GillKind::Heat);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillVocalProcessor>(GillKind::Tune);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillVocalProcessor>(GillKind::Tune,true);},[](bool ok,const std::string&why){check(ok,why);});
+
     for (auto kind : {GillKind::Flow, GillKind::Heat, GillKind::Tune}) {
         metadataAndState(kind); dryRoutes(kind); bypassTransitions(kind); automation(kind);
     }

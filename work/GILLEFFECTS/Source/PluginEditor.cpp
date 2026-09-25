@@ -1,6 +1,8 @@
 #include "PluginEditor.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
+#include "../../GILLCommon/MaterialUi.h"
+#include "../../GILLCommon/QualityUi.h"
 #include <cmath>
 #include <complex>
 namespace {
@@ -15,7 +17,7 @@ public:OakLook(){setColour(juce::Slider::textBoxTextColourId,ink);setColour(juce
     juce::Font getComboBoxFont(juce::ComboBox&)override{return font(13,true);}
     juce::Font getLabelFont(juce::Label& l)override{return l.getFont();}
     juce::Label* createSliderTextBox(juce::Slider& slider)override{auto* label=juce::LookAndFeel_V4::createSliderTextBox(slider);label->setFont(font(13,true));label->setColour(juce::Label::textColourId,ink);label->setColour(juce::Label::backgroundColourId,cream.withAlpha(.9f));label->setColour(juce::Label::outlineColourId,juce::Colours::transparentBlack);label->setColour(juce::TextEditor::textColourId,ink);label->setColour(juce::TextEditor::backgroundColourId,cream);return label;}
-    void drawButtonBackground(juce::Graphics& g,juce::Button& b,const juce::Colour&,bool over,bool down)override{auto r=b.getLocalBounds().toFloat().reduced(1);if(b.getName()=="LEARN"){g.setColour(juce::Colours::black.withAlpha(.22f));g.fillRoundedRectangle(r.translated(0,3),8);g.setGradientFill(juce::ColourGradient(juce::Colour(0xffdfbf8f),0,0,juce::Colour(0xff987249),0,r.getHeight(),false));g.fillRoundedRectangle(r,8);g.setColour(ink.withAlpha(.16f));for(int y=4;y<r.getHeight();y+=5)g.drawLine(7,static_cast<float>(y),r.getRight()-7,static_cast<float>(y)+1,.6f);g.setColour(cream.withAlpha(.7f));g.drawRoundedRectangle(r.reduced(1),7,1);return;}g.setColour(juce::Colours::black.withAlpha(.13f));g.fillRoundedRectangle(r.translated(0,2),6);g.setColour(b.getToggleState()?sage:cream.withAlpha(over?.98f:.88f));g.fillRoundedRectangle(r,6);g.setColour(down?ink:sage.withAlpha(.35f));g.drawRoundedRectangle(r,6,1);}
+    void drawButtonBackground(juce::Graphics& g,juce::Button& b,const juce::Colour&,bool over,bool down)override{auto r=b.getLocalBounds().toFloat().reduced(1);if(b.getName()=="LEARN"){g.setColour(juce::Colours::black.withAlpha(.22f));g.fillRoundedRectangle(r.translated(0,3),8);g.setGradientFill(juce::ColourGradient(juce::Colour(0xffdfbf8f),0,0,juce::Colour(0xff987249),0,r.getHeight(),false));g.fillRoundedRectangle(r,8);g.setColour(ink.withAlpha(.16f));for(int y=4;y<r.getHeight();y+=5)g.drawLine(7,static_cast<float>(y),r.getRight()-7,static_cast<float>(y)+1,.6f);g.setColour(cream.withAlpha(.7f));g.drawRoundedRectangle(r.reduced(1),7,1);return;}g.setColour(juce::Colours::black.withAlpha(.13f));g.fillRoundedRectangle(r.translated(0,2),6);gill::material::panel(g,r,b.getToggleState()?sage:(over?cream.brighter(.05f):cream),6,down);}
     void drawLinearSlider(juce::Graphics& g,int x,int y,int w,int h,float pos,float,float,const juce::Slider::SliderStyle style,juce::Slider&)override{
         const bool vertical=style==juce::Slider::LinearVertical;const float cx=x+w*.5f,cy=y+h*.5f;
         auto track=vertical?juce::Rectangle<float>(cx-5,static_cast<float>(y),10,static_cast<float>(h)):juce::Rectangle<float>(static_cast<float>(x),cy-4,static_cast<float>(w),8);
@@ -25,9 +27,7 @@ public:OakLook(){setColour(juce::Slider::textBoxTextColourId,ink);setColour(juce
         g.setColour(juce::Colours::black.withAlpha(.23f));g.fillRoundedRectangle(thumb.translated(2,4),5);g.setGradientFill(juce::ColourGradient(juce::Colours::white,thumb.getX(),thumb.getY(),juce::Colour(0xffd1d0c5),thumb.getRight(),thumb.getBottom(),false));g.fillRoundedRectangle(thumb,4);g.setColour(cream);g.drawRoundedRectangle(thumb.reduced(.5f),4,1);g.setColour(sage);if(vertical)g.fillRect(thumb.reduced(9,13));else g.fillRect(thumb.reduced(9,8));
     }
     void drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,float value,float start,float end,juce::Slider&)override{
-        const auto r=juce::Rectangle<float>(static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)).reduced(7);const float size=std::min(r.getWidth(),r.getHeight()),radius=size*.5f,cx=r.getCentreX(),cy=r.getCentreY();auto body=juce::Rectangle<float>(size-15,size-15).withCentre({cx,cy});
-        juce::Path a,b;a.addCentredArc(cx,cy,radius,radius,0,start,end,true);b.addCentredArc(cx,cy,radius,radius,0,start,start+value*(end-start),true);g.setColour(ink.withAlpha(.2f));g.strokePath(a,juce::PathStrokeType(4));g.setColour(sage);g.strokePath(b,juce::PathStrokeType(5));g.setColour(juce::Colours::black.withAlpha(.2f));g.fillEllipse(body.translated(2,4));g.setGradientFill(juce::ColourGradient(juce::Colours::white,body.getX(),body.getY(),juce::Colour(0xffcac8bb),body.getRight(),body.getBottom(),false));g.fillEllipse(body);g.setColour(cream);g.drawEllipse(body.reduced(1),1.2f);
-        const float angle=start+value*(end-start);g.setColour(sage);g.drawLine(cx+std::sin(angle)*radius*.36f,cy-std::cos(angle)*radius*.36f,cx+std::sin(angle)*radius*.64f,cy-std::cos(angle)*radius*.64f,4);
+        gill::material::rotary(g, {static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)}, value, start, end, sage);
     }
 };
 struct Binding {
@@ -87,8 +87,9 @@ struct GillEffectEditor::Impl:private juce::Timer {
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment,lockAttachment,syncAttachment;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ComboBoxAttachment> targetAttachment,divisionAttachment;
     int baseWidth=790,baseHeight=550;
+    gill::QualitySelector quality{p.apvts, p};
     Impl(GillEffectEditor& o,GillEffectProcessor& v):owner(o),p(v),display(v),tooltip(&o,600){
-        owner.setLookAndFeel(&look);wood=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);owner.addAndMakeVisible(display);
+        owner.setLookAndFeel(&look);owner.addAndMakeVisible(quality);wood=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);owner.addAndMakeVisible(display);
         auto add=[&](const char* id,const char* title,const char* suffix){auto b=std::make_unique<Binding>(p,id,title,suffix);owner.addAndMakeVisible(b->slider);owner.addAndMakeVisible(b->label);controls.push_back(std::move(b));};
         bypass.setName("BYPASS");bypass.setClickingTogglesState(true);owner.addAndMakeVisible(bypass);bypassAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"bypass",bypass);
         if(p.kind==GillKind::Air){baseWidth=440;baseHeight=300;add("midair","MID AIR"," %");add("highair","HIGH AIR"," %");add("mix","MIX"," %");add("output","OUTPUT"," DB");}
@@ -109,7 +110,7 @@ struct GillEffectEditor::Impl:private juce::Timer {
     }
     void bounds(juce::Component& c,float x,float y,float w,float h){const float s=owner.getWidth()/static_cast<float>(baseWidth);c.setBounds(juce::Rectangle<float>(x*s,y*s,w*s,h*s).toNearestInt());}
     void control(int i,float x,float y,float w,float h){bounds(controls[i]->label,x,y,w,21);bounds(controls[i]->slider,x,y+24,w,h-24);}
-    void resized(){bounds(bypass,baseWidth-105.f,19,84,29);
+    void resized(){bounds(bypass,baseWidth-105.f,19,84,29);bounds(quality,baseWidth-228.f,21,110,26);
         if(p.kind==GillKind::Air){bounds(display,20,65,400,75);control(0,22,151,106,133);control(1,133,151,106,133);control(2,250,169,80,112);control(3,337,169,80,112);}
         else if(p.kind==GillKind::Balance){bounds(display,22,65,636,220);bounds(learn,25,316,106,34);bounds(target,145,316,301,34);bounds(status,25,364,435,29);control(0,515,293,124,109);}
         else{const bool echo=p.kind==GillKind::Echo;bounds(display,22,65,baseWidth-44.f,echo?121:115);
@@ -120,7 +121,7 @@ struct GillEffectEditor::Impl:private juce::Timer {
         }
     }
     void paint(juce::Graphics& g){const float s=owner.getWidth()/static_cast<float>(baseWidth),w=static_cast<float>(owner.getWidth()),h=static_cast<float>(owner.getHeight());g.fillAll(juce::Colour(0xffc9ac85));if(wood.isValid()){g.drawImage(wood,0,0,static_cast<int>(w),static_cast<int>(h),950,285,170,805);g.setColour(cream.withAlpha(.16f));g.fillAll();g.setOpacity(1.f);g.drawImage(wood,juce::roundToInt(21*s),juce::roundToInt(15*s),juce::roundToInt(46*s),juce::roundToInt(33*s),224,146,174,122);}
-        g.setColour(juce::Colour(0xff65543c).withAlpha(.52f));g.drawRoundedRectangle({3*s,3*s,w-6*s,h-6*s},15*s,5*s);g.setColour(cream.withAlpha(.5f));g.drawRoundedRectangle({7*s,7*s,w-14*s,h-14*s},12*s,s);g.setColour(ink.withAlpha(.4f));g.drawLine(80*s,17*s,80*s,49*s,s);g.setColour(ink);g.setFont(font(22*s));g.drawText(p.getName(),juce::Rectangle<float>(94*s,17*s,(baseWidth-210)*s,33*s),juce::Justification::centredLeft,false);
+        g.setColour(juce::Colour(0xff65543c).withAlpha(.52f));g.drawRoundedRectangle({3*s,3*s,w-6*s,h-6*s},15*s,5*s);g.setColour(cream.withAlpha(.5f));g.drawRoundedRectangle({7*s,7*s,w-14*s,h-14*s},12*s,s);g.setColour(ink.withAlpha(.4f));g.drawLine(80*s,17*s,80*s,49*s,s);g.setColour(ink);g.setFont(font(22*s));g.drawText(p.getName(),juce::Rectangle<float>(94*s,17*s,(baseWidth-332)*s,33*s),juce::Justification::centredLeft,false);
         if(p.kind==GillKind::Space||p.kind==GillKind::Echo){g.setColour(ink.withAlpha(.22f));g.drawLine(35*s,(baseHeight-54)*s,(baseWidth-35)*s,(baseHeight-54)*s,s);}
         if(p.kind==GillKind::Balance){g.setFont(font(12*s,true));g.setColour(ink.withAlpha(.72f));g.drawText("VOCAL PROFILE",juce::Rectangle<float>(26*s,292*s,110*s,18*s),juce::Justification::left,false);g.drawText("TARGET",juce::Rectangle<float>(146*s,292*s,290*s,18*s),juce::Justification::left,false);}
     }

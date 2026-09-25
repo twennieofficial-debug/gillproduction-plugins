@@ -1,4 +1,5 @@
 #pragma once
+#include "../../GILLCommon/LiveCausal.h"
 // Original localized impulse restoration. Research background (not copied code):
 // L. Oudre, IPOL 2015, doi:10.5201/ipol.2015.64, detection followed by interpolation.
 #include <algorithm>
@@ -12,7 +13,7 @@ enum class Mode { Declick, Decrackle };
 inline double finiteAmount(double x) noexcept { return std::isfinite(x)?std::clamp(x,0.0,1.0):0.0; }
 inline double validSampleRate(double fs) noexcept { return std::isfinite(fs)&&fs>=8000.0&&fs<=192000.0?fs:48000.0; }
 
-class RestorationEngine {
+class RestorationProEngine {
 public:
     void prepare(double fs,Mode selectedMode) {
         sampleRate=validSampleRate(fs);mode=selectedMode;
@@ -162,5 +163,15 @@ private:
             }
         }
     }
+};
+class RestorationEngine {
+public:
+ void prepare(double fs,Mode mode){pro_.prepare(fs,mode);live_.prepare(fs,mode==Mode::Decrackle);}
+ void setLiveMode(bool v)noexcept{if(v!=liveMode_){liveMode_=v;reset();}}
+ void reset()noexcept{pro_.reset();live_.reset();}
+ void setAmount(double a)noexcept{pro_.setAmount(a);live_.setAmount(a);}
+ int getLatencySamples()const noexcept{return liveMode_?0:pro_.getLatencySamples();}
+ template<class T>void process(T**a,int c,int n,T**dry=nullptr)noexcept{if(liveMode_)live_.process(a,c,n,dry);else pro_.process(a,c,n,dry);}
+private:RestorationProEngine pro_;gill::live::ClickRepair live_;bool liveMode_=false;
 };
 } // namespace gillrestoration

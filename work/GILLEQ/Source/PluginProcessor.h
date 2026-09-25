@@ -1,4 +1,5 @@
 #pragma once
+#include "../../GILLCommon/QualityBus.h"
 #include <JuceHeader.h>
 #include "EqDSP.h"
 #include <array>
@@ -51,6 +52,7 @@ public:
     void resetAllBands();
     void setAnalyzerEnabled(bool enabled) { analyzerEnabled.store(enabled, std::memory_order_relaxed); }
     juce::AudioProcessorValueTreeState apvts;
+    gill::QualityClient qualityClient{*this, apvts};
 private:
     template<class T> void process(juce::AudioBuffer<T>&, bool hostBypassed);
     void feedAnalyzer(float pre, float post);

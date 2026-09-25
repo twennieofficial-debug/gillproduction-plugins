@@ -1,3 +1,4 @@
+#include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include "Presets.h"
 #include <algorithm>
@@ -81,7 +82,7 @@ void metadataAndState(GillKind kind) {
     GillEffectProcessor p(kind);
     product = p.getName().toStdString();
     const auto parameterIds = ids(kind);
-    check(p.getParameters().size() == static_cast<int>(parameterIds.size()) &&
+    check(p.getParameters().size() == static_cast<int>(parameterIds.size()) + 1 &&
           p.getBypassParameter() == p.apvts.getParameter("bypass") && p.hasEditor() &&
           !p.acceptsMidi() && !p.producesMidi(), "parameter count, host bypass and effect metadata");
     auto layout = p.getBusesLayout();
@@ -438,6 +439,12 @@ void ui(GillKind kind) {
 
 int main() {
     const auto start=std::chrono::steady_clock::now();juce::ScopedJuceInitialiser_GUI gui;
+    // Update06: exercise real LIVE/PRO host state, audio timing and UI.
+    gill::testing::qualityRoutes([]{return std::make_unique<GillEffectProcessor>(GillKind::Air);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillEffectProcessor>(GillKind::Space);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillEffectProcessor>(GillKind::Echo);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillEffectProcessor>(GillKind::Balance);},[](bool ok,const std::string& why){check(ok,why);});
+
     for(auto kind:{GillKind::Air,GillKind::Space,GillKind::Echo,GillKind::Balance}){metadataAndState(kind);dryRoutes(kind);bypassTransitions(kind);automation(kind);}
     programs(GillKind::Space);programs(GillKind::Echo);learning();tempo();dryMigration();
     for(auto kind:{GillKind::Air,GillKind::Space,GillKind::Echo,GillKind::Balance})ui(kind);

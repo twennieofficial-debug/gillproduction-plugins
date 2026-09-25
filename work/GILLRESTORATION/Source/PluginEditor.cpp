@@ -1,6 +1,8 @@
 #include "PluginEditor.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
+#include "../../GILLCommon/MaterialUi.h"
+#include "../../GILLCommon/QualityUi.h"
 #include <cmath>
 
 namespace
@@ -87,68 +89,7 @@ public:
     void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height,
                            float proportion, float start, float end, juce::Slider&) override
     {
-        const float s = (float) juce::jmin (width, height) / 252.0f;
-        const float cx = (float) x + (float) width * 0.5f;
-        const float cy = (float) y + (float) height * 0.5f;
-        const float radius = 113.4f * s;
-        const float angle = start + proportion * (end - start);
-        juce::Path track, active;
-        track.addCentredArc (cx, cy, radius, radius, 0, start, end, true);
-        active.addCentredArc (cx, cy, radius, radius, 0, start, angle, true);
-        const auto roundedStroke = [] (float w) { return juce::PathStrokeType (w, juce::PathStrokeType::curved, juce::PathStrokeType::rounded); };
-        g.setColour (juce::Colour (0xff80694d).withAlpha (0.50f));
-        g.strokePath (track, roundedStroke (5.0f*s));
-        g.setColour (juce::Colour (0xffffedce).withAlpha (0.7f));
-        g.strokePath (track, roundedStroke (1.0f*s), juce::AffineTransform::translation (0.8f*s, 0.8f*s));
-        if (proportion > 0.00001f)
-        {
-            g.setColour (juce::Colour (0xff334b3a).withAlpha (0.35f));
-            g.strokePath (active, roundedStroke (11.6f*s), juce::AffineTransform::translation (0, 0.6f*s));
-            g.setGradientFill (juce::ColourGradient (juce::Colour (0xff3e5948), cx-radius, cy-radius,
-                                                    juce::Colour (0xff779079), cx+radius, cy+radius, false));
-            g.strokePath (active, roundedStroke (9.5f*s));
-            g.setColour (juce::Colours::white.withAlpha (0.12f));
-            g.strokePath (active, roundedStroke (0.8f*s), juce::AffineTransform::translation (-1.0f*s, -1.0f*s));
-        }
-        const float bodyRadius = 92.7f * s;
-        auto body = juce::Rectangle<float> (bodyRadius*2, bodyRadius*2).withCentre ({cx, cy});
-        juce::Path bodyPath; bodyPath.addEllipse (body);
-        juce::DropShadow (juce::Colours::black.withAlpha (0.33f), juce::jmax (1, juce::roundToInt (9*s)),
-                          {juce::roundToInt (2*s), juce::roundToInt (6*s)}).drawForPath (g, bodyPath);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffffffff), body.getX(), body.getY(),
-                                                juce::Colour (0xffa5a18f), body.getRight(), body.getBottom(), false));
-        g.fillEllipse (body);
-        g.setColour (juce::Colour (0xfffefbf5)); g.drawEllipse (body.reduced (0.7f*s), 1.1f*s);
-        auto bevel = body.reduced (2.7f*s);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffefcf8), cx-bodyRadius*0.5f, cy-bodyRadius,
-                                                juce::Colour (0xffd2cec3), cx+bodyRadius*0.7f, cy+bodyRadius, false));
-        g.fillEllipse (bevel);
-        auto face = body.reduced (7.0f*s);
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xfffffefb), cx-bodyRadius*0.45f, cy-bodyRadius*0.7f,
-                                                juce::Colour (0xffe7e4dc), cx+bodyRadius*0.7f, cy+bodyRadius, false));
-        g.fillEllipse (face);
-        {
-            juce::Graphics::ScopedSaveState save (g);
-            juce::Path clip; clip.addEllipse (face); g.reduceClipRegion (clip);
-            juce::Random grain (0x4750434f5245LL);
-            for (int i=0; i<1500; ++i)
-            {
-                const auto px = face.getX()+grain.nextFloat()*face.getWidth();
-                const auto py = face.getY()+grain.nextFloat()*face.getHeight();
-                g.setColour (i%2 ? juce::Colours::white.withAlpha (0.23f) : juce::Colour (0xff988f7c).withAlpha (0.065f));
-                g.fillEllipse (px, py, 0.75f*s, 0.75f*s);
-            }
-        }
-        g.setColour (juce::Colours::white.withAlpha (0.9f)); g.drawEllipse (face, 1.3f*s);
-        juce::Path mark;
-        mark.startNewSubPath (cx+std::sin(angle)*bodyRadius*0.44f, cy-std::cos(angle)*bodyRadius*0.44f);
-        mark.lineTo (cx+std::sin(angle)*bodyRadius*0.79f, cy-std::cos(angle)*bodyRadius*0.79f);
-        g.setColour (juce::Colour (0xff283b2f).withAlpha (0.65f)); g.strokePath (mark, roundedStroke (8.7f*s));
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff38523f), cx-bodyRadius, cy-bodyRadius,
-                                                juce::Colour (0xff6a846b), cx+bodyRadius, cy+bodyRadius, false));
-        g.strokePath (mark, roundedStroke (6.8f*s));
-        g.setColour (juce::Colours::white.withAlpha (0.23f));
-        g.strokePath (mark, roundedStroke (0.7f*s), juce::AffineTransform::translation (0.7f*s, 0.7f*s));
+        gill::material::rotary(g, {static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height)}, proportion, start, end, sage);
     }
 };
 }
@@ -166,10 +107,11 @@ struct GillRestorationAudioProcessorEditor::Impl
     bool applyingHostValue = false;
     int gestureDepth = 0;
 
+    gill::QualitySelector quality{processor.apvts, processor};
     Impl (GillRestorationAudioProcessorEditor& editor, GillRestorationAudioProcessor& p)
         : owner (editor), processor (p), tooltip (&editor, 650)
     {
-        owner.setLookAndFeel (&look);
+        owner.setLookAndFeel (&look);owner.addAndMakeVisible(quality);
         reference = juce::ImageCache::getFromMemory (BinaryData::core_reference_png, BinaryData::core_reference_pngSize);
         amount.setName ("AMOUNT");
         amount.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
@@ -230,7 +172,8 @@ struct GillRestorationAudioProcessorEditor::Impl
     {
         const float s = (float) owner.getWidth()/320.0f;
         look.scale = s;
-        amount.setBounds (juce::Rectangle<float> (30*s, 64*s, 260*s, 224*s).toNearestInt());
+        quality.setBounds(juce::Rectangle<float>(103*s, 39*s, 110*s, 26*s).toNearestInt());
+        amount.setBounds (juce::Rectangle<float> (30*s, 68*s, 260*s, 220*s).toNearestInt());
         amount.setMouseDragSensitivity (juce::roundToInt (240*s));
         amount.resized();
         amount.repaint();
@@ -266,8 +209,8 @@ struct GillRestorationAudioProcessorEditor::Impl
         g.drawLine (87*s, 16*s, 87*s, 51*s, 0.8f*s);
         g.setColour (juce::Colour (0xffffe7c4).withAlpha (0.75f));
         g.drawLine (88*s, 16*s, 88*s, 51*s, 0.7f*s);
-        const auto titleBounds = juce::Rectangle<float> (103*s, 19*s, 199*s, 30*s);
-        g.setFont (coreFont (24*s));
+        const auto titleBounds = juce::Rectangle<float> (103*s, 15*s, 199*s, 22*s);
+        g.setFont (coreFont (20*s));
         g.setColour (juce::Colour (0xffffe8c7).withAlpha (0.8f)); g.drawText (processor.getName(), titleBounds.translated (0,0.8f*s), juce::Justification::centredLeft, false);
         g.setColour (juce::Colour (0xff392b1a)); g.drawText (processor.getName(), titleBounds, juce::Justification::centredLeft, false);
         const auto captionBounds = juce::Rectangle<float> (36*s, 229*s, 248*s, 18*s);

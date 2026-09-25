@@ -73,7 +73,7 @@ public:
         fs_=std::clamp(buss_detail::finite(fs,48000),8000.,384000.);
         channels_=std::clamp(channels,1,maximumChannels);
         smoothing_=1-std::exp(-1/(.015*fs_));
-        dcPole_=std::exp(-2*buss_detail::pi*8/(fs_*oversamplingFactor));
+        dcPole_=std::exp(-2*buss_detail::pi*8/(fs_*(liveMode_?1:oversamplingFactor)));
         humIncrement_=2*buss_detail::pi*50/fs_;
         makeFilter();prepared_=true;reset();
     }
@@ -93,7 +93,13 @@ public:
         gain_=targetGain_;amount_=targetAmount_;trim_=targetTrim_;style_=targetStyle_;
         noise_=targetNoise_;active_=targetActive_;humPhase_=0;
     }
-    int latencySamples() const noexcept{return fixedLatencySamples;}
+    void setLiveMode(bool live) noexcept {
+        if (liveMode_ == live) return;
+        liveMode_ = live;
+        dcPole_ = std::exp(-2*buss_detail::pi*8/(fs_*(liveMode_?1:oversamplingFactor)));
+        reset();
+    }
+    int latencySamples() const noexcept{return liveMode_?0:fixedLatencySamples;}
     void process(float* const* buffers,int frames,int channels) noexcept {
         if(!buffers||frames<=0||channels<=0)return;
         if(!prepared_)prepare(48000,frames,channels);
@@ -111,12 +117,12 @@ public:
             for(int ch=0;ch<count;++ch){
                 auto& s=state_[ch];
                 const float x=buffers[ch]?float(std::clamp(buss_detail::finite(buffers[ch][i]),-32.,32.)):0;
-                const double dry=s.dry[s.dryPosition];s.dry[s.dryPosition]=x;
+                const double dry=liveMode_?x:s.dry[s.dryPosition];s.dry[s.dryPosition]=x;
                 s.dryPosition=(s.dryPosition+1)%fixedLatencySamples;
                 s.input[s.inputPosition]=s.input[s.inputPosition+inputHistory]=x;
                 double residualOutput=0;
-                for(int phase=0;phase<oversamplingFactor;++phase){
-                    const double up=buss_detail::dot<inputHistory>(s.input.data()+s.inputPosition,interpolation_[phase].data());
+                for(int phase=0;phase<(liveMode_?1:oversamplingFactor);++phase){
+                    const double up=liveMode_?x:buss_detail::dot<inputHistory>(s.input.data()+s.inputPosition,interpolation_[phase].data());
                     double residual=0;
                     if(amount_>0){
                         const double driven=up*gain_;
@@ -128,7 +134,7 @@ public:
                     const double dc=residual-s.previousResidual+dcPole_*s.dcState;
                     s.previousResidual=residual;s.dcState=buss_detail::quiet(dc);
                     s.residual[s.residualPosition]=s.residual[s.residualPosition+filterTaps]=s.dcState;
-                    if(phase==0)residualOutput=buss_detail::dot<filterTaps>(s.residual.data()+s.residualPosition,filter_.data());
+                    if(phase==0)residualOutput=liveMode_?s.dcState:buss_detail::dot<filterTaps>(s.residual.data()+s.residualPosition,filter_.data());
                     if(--s.residualPosition<0)s.residualPosition=filterTaps-1;
                 }
                 if(--s.inputPosition<0)s.inputPosition=inputHistory-1;
@@ -147,6 +153,7 @@ public:
         }
     }
 private:
+    bool liveMode_=false;
     static constexpr int inputHistory=(filterTaps+oversamplingFactor-1)/oversamplingFactor;
     struct State {
         std::array<double,inputHistory*2> input{};

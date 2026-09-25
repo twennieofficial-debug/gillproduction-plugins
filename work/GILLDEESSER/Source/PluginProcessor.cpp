@@ -16,7 +16,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GillDeEsserAudioProcessor::c
     auto f=juce::NormalisableRange<float>(2500,12000,1.f);f.setSkewForCentre(6500);
     l.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"frequency",1},"FREQUENCY",f,6500.f));
     l.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"listen",1},"LISTEN S",false));
-    l.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));return l;
+    l.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));l.add(gill::qualityParameter()); return l;
 }
 bool GillDeEsserAudioProcessor::isBusesLayoutSupported(const BusesLayout& l)const{
     const auto out=l.getMainOutputChannelSet();return (out==juce::AudioChannelSet::mono()||out==juce::AudioChannelSet::stereo())&&out==l.getMainInputChannelSet();
@@ -70,7 +70,9 @@ void GillDeEsserAudioProcessor::getStateInformation(juce::MemoryBlock& out){auto
 void GillDeEsserAudioProcessor::setStateInformation(const void* data,int size){
     if(!data||size<=0||size>1024*1024)return;
     if(auto x=getXmlFromBinary(data,size))if(x->hasTagName(apvts.state.getType())){auto state=juce::ValueTree::fromXml(*x);if(!state.isValid())return;
-        auto clean=apvts.copyState();bool changed=false;
+        auto clean=apvts.copyState();
+    if (!state.getChildWithProperty("id","gillQuality").isValid()) { auto oldQuality=clean.getChildWithProperty("id","gillQuality"); if(oldQuality.isValid()) oldQuality.setProperty("value",apvts.getParameter("gillQuality")->convertFrom0to1(apvts.getParameter("gillQuality")->getDefaultValue()),nullptr); }
+bool changed=false;
         for(auto child:state){auto* parameter=apvts.getParameter(child.getProperty("id").toString());if(!parameter||!child.hasProperty("value"))continue;
             const double v=static_cast<double>(child.getProperty("value"));if(!std::isfinite(v))continue;const auto& r=parameter->getNormalisableRange();
             auto target=clean.getChildWithProperty("id",child.getProperty("id"));if(target.isValid()){target.setProperty("value",juce::jlimit(static_cast<double>(r.start),static_cast<double>(r.end),v),nullptr);changed=true;}}

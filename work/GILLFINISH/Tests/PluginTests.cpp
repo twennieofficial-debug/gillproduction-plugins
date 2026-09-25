@@ -1,3 +1,4 @@
+#include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <fstream>
 #include <iostream>
@@ -59,4 +60,11 @@ void ui(FinishKind k){auto p=std::make_unique<GillFinishProcessor>(k);product=p-
     check(listener.closed()&&listener.begins>0,"all UI host gestures are balanced, ordered and closed");p->removeListener(&listener);
     p->selectPreset(0,false);p->setValue("bypass",0,false);p->setValue("delta",0,false);prepare(*p);render(*p,96000);tick();const int w=editor->getWidth(),h=editor->getHeight();bool pngs=true;for(int mult:{1,2}){editor->setSize(w*mult,h*mult);tick();auto image=editor->createComponentSnapshot(editor->getLocalBounds());juce::File f=juce::File::getCurrentWorkingDirectory().getChildFile(p->getName()+"-UI-"+juce::String(w*mult)+"x"+juce::String(h*mult)+".png");juce::FileOutputStream out(f);out.setPosition(0);out.truncate();juce::PNGImageFormat png;pngs&=out.openedOk()&&png.writeImageToStream(image,out)&&image.getWidth()==w*mult;}check(pngs,"native editor renders at1x and2x with actual processed meters");editor.reset();p->releaseResources();}
 }
-int main(){juce::ScopedJuceInitialiser_GUI gui;for(auto k:{FinishKind::Silk,FinishKind::Spark,FinishKind::Strip,FinishKind::Gold,FinishKind::Dive}){metadata(k);routes(k);automation(k);ui(k);}std::ofstream o("finish-integration-report.json");o<<"{\"passed\":"<<(failures?"false":"true")<<",\"checks\":"<<checks<<",\"failures\":"<<failures<<",\"ui_edits\":"<<edits<<",\"presets_tested\":"<<presetsTested<<",\"audio_configurations\":"<<configs<<",\"failed_cases\":[";for(size_t i=0;i<errors.size();++i)o<<(i?",":"")<<'"'<<errors[i]<<'"';o<<"]}";std::cout<<"RESULT "<<checks<<" checks, "<<failures<<" failures, "<<edits<<" UI edits, "<<presetsTested<<" presets\n";return failures?1:0;}
+int main(){juce::ScopedJuceInitialiser_GUI gui;
+    // Update06: exercise real LIVE/PRO host state, audio timing and UI.
+    gill::testing::qualityRoutes([]{return std::make_unique<GillFinishProcessor>(FinishKind::Silk);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillFinishProcessor>(FinishKind::Spark);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillFinishProcessor>(FinishKind::Strip);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillFinishProcessor>(FinishKind::Gold);},[](bool ok,const std::string& why){check(ok,why);});
+    gill::testing::qualityRoutes([]{return std::make_unique<GillFinishProcessor>(FinishKind::Dive);},[](bool ok,const std::string& why){check(ok,why);});
+for(auto k:{FinishKind::Silk,FinishKind::Spark,FinishKind::Strip,FinishKind::Gold,FinishKind::Dive}){metadata(k);routes(k);automation(k);ui(k);}std::ofstream o("finish-integration-report.json");o<<"{\"passed\":"<<(failures?"false":"true")<<",\"checks\":"<<checks<<",\"failures\":"<<failures<<",\"ui_edits\":"<<edits<<",\"presets_tested\":"<<presetsTested<<",\"audio_configurations\":"<<configs<<",\"failed_cases\":[";for(size_t i=0;i<errors.size();++i)o<<(i?",":"")<<'"'<<errors[i]<<'"';o<<"]}";std::cout<<"RESULT "<<checks<<" checks, "<<failures<<" failures, "<<edits<<" UI edits, "<<presetsTested<<" presets\n";return failures?1:0;}
