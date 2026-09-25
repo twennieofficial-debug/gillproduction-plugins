@@ -1,0 +1,39 @@
+name: Diagnose new Mac groups
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+env:
+  DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+  CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_MAXSIZE: 600M
+jobs:
+  compile:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/ccache
+          key: macos15-arm64-xcode164-juce8012-probe-${{ github.run_id }}
+          restore-keys: macos15-arm64-xcode164-juce8012-
+      - run: brew install ninja ccache
+      - name: Compile MIX with visible compiler diagnostics
+        run: |
+          cmake -S work/GILLMIX -B "$RUNNER_TEMP/mix" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build "$RUNNER_TEMP/mix" --parallel 2
+      - name: Compile TOOLS with visible compiler diagnostics
+        if: success() || failure()
+        run: |
+          cmake -S work/GILLTOOLS -B "$RUNNER_TEMP/tools" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+          cmake --build "$RUNNER_TEMP/tools" --parallel 2
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: .cache/ccache
+          key: macos15-arm64-xcode164-juce8012-probe-${{ github.run_id }}
