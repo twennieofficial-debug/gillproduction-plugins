@@ -27,11 +27,13 @@ jobs:
         run: |
           cmake -S work/GILLMIX -B "$RUNNER_TEMP/mix" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build "$RUNNER_TEMP/mix" --parallel 2
+          ctest --test-dir "$RUNNER_TEMP/mix" --output-on-failure
       - name: Compile TOOLS with visible compiler diagnostics
         if: success() || failure()
         run: |
           cmake -S work/GILLTOOLS -B "$RUNNER_TEMP/tools" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0 -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
           cmake --build "$RUNNER_TEMP/tools" --parallel 2
+          ctest --test-dir "$RUNNER_TEMP/tools" --output-on-failure
       - uses: actions/cache/save@v4
         if: always()
         with:
