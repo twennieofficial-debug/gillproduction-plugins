@@ -1,0 +1,140 @@
+name: GILL Mac QualityHost Quick Source Diagnostics
+
+# Copy to .github/workflows/mac-quality-quick.yml. Diagnostic subset only:
+# this workflow cannot publish or approve a full bundle/installer release.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+  CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_MAXSIZE: 600M
+
+jobs:
+  quick-host-diagnostics:
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: arm64
+          - runner: macos-15-intel
+            architecture: x86_64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/ccache
+          key: quick-host-${{ matrix.architecture }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            macos15-${{ matrix.architecture }}-xcode164-juce8012-
+      - name: Build three plugins and run unchanged real-host assertions at 48 kHz
+        env:
+          DIAGNOSTIC_ARCH: ${{ matrix.architecture }}
+        run: |
+          brew install ninja ccache
+          python3 - <<'PY'
+          import importlib.util, os, pathlib, shutil, subprocess, time
+          source = pathlib.Path('work').resolve()
+          root = pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          destination = root / 'quick-native'
+          evidence = destination / 'test-evidence/QUALITY_HOST'
+          evidence.mkdir(parents=True)
+          spec = importlib.util.spec_from_file_location('gill_pipeline', source / 'packaging/macos/pipeline.py')
+          pipeline = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(pipeline)
+          architecture = os.environ['DIAGNOSTIC_ARCH']
+          pipeline.require(pipeline.native_arch() == architecture, 'Native architecture differs')
+          names = ['GILLCONTROL', 'GILLPHRASE', 'GILLDIRECTOR']
+          products = [next(p for p in pipeline.PRODUCTS if p['name'] == name) for name in names]
+          flags = ['-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
+                   '-DCMAKE_OSX_ARCHITECTURES=' + architecture, '-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0',
+                   '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache', '-DGILL_PREBUILT_RUNTIME=', '-DGILL_JUCE_EXPORT=']
+          def build(label, directory, targets):
+              folder = root / 'quick-build' / label
+              pipeline.run(['cmake', '-S', directory, '-B', folder, *flags],
+                           log=destination / 'logs' / (label + '-configure.txt'))
+              pipeline.run(['cmake', '--build', folder, '--config', 'Release', '--parallel', '2', '--target', *targets],
+                           log=destination / 'logs' / (label + '-build.txt'), timeout=1800)
+              return folder
+          folders = {}
+          for group in sorted({p['group'] for p in products}):
+              targets = [p['target'] + '_VST3' for p in products if p['group'] == group]
+              folders[group] = build(group, source / group, targets)
+          host_folder = build('QualityHost', source / 'GILLCommon/Tests/QualityHostCMake', ['GillQualityHost'])
+          executable = host_folder / 'GillQualityHost'
+          pipeline.require(pipeline.macho(executable), 'Diagnostic host is not Mach-O')
+          pipeline.require(pipeline.run(['lipo', '-archs', executable]).split() == [architecture], 'Host architecture differs')
+          bundles = {}
+          records = []
+          for product in products:
+              built = folders[product['group']] / (product['target'] + '_artefacts') / 'Release/VST3' / (product['name'] + '.vst3')
+              bundle = destination / 'plugins' / built.name
+              shutil.copytree(built, bundle, symlinks=True)
+              bundles[product['name']] = bundle
+              records.append(pipeline.inspect_bundle(bundle, product, [architecture]))
+          hashes = {p['name']: p['bundle_sha256'] for p in records}
+          paths = evidence / 'bundle-paths.json'
+          pipeline.write(paths, {'plugins': [{'name': name, 'path': str(bundles[name])} for name in names]})
+          report = evidence / 'quality-host-48000.json'
+          summary = {'diagnostic_only': True, 'release_approved': False, 'full_suite_tested': False,
+                     'architecture': architecture, 'source_commit': os.environ['GITHUB_SHA'],
+                     'sample_rate': 48000, 'plugins': records, 'host_sha256': pipeline.sha(executable),
+                     'passed': False}
+          pipeline.write(destination / 'quick-diagnostic.json', summary)
+          started = time.time_ns()
+          try:
+              pipeline.run([executable, '--list', paths, '--sample-rate', '48000', '--report', report],
+                           log=destination / 'logs/QualityHost-48000.txt', timeout=300)
+              result = pipeline.read(report)
+              pipeline.require(result.get('passed') is True and result.get('failures') == 0 and result.get('checks', 0) > 0,
+                               'Unchanged real-host assertions failed')
+              pipeline.require(result.get('sample_rate') == 48000 and result.get('actual_vst3_bundles') == 3,
+                               'Diagnostic sample rate or subset count differs')
+              actual = result.get('products', [])
+              pipeline.require(len(actual) == 3 and {p['name'] for p in actual} == set(names), 'Diagnostic product list differs')
+              for product in actual:
+                  pipeline.require(product.get('factory_version') == '0.6.0' and product.get('factory_version_verified') is True,
+                                   'Native factory version differs')
+                  pipeline.require(product.get('manufacturer') == 'GILLPRODUCTION', 'Native manufacturer differs')
+                  pipeline.require(pathlib.Path(product['bundle']).resolve() == bundles[product['name']].resolve(),
+                                   'Host loaded an unexpected bundle')
+                  pipeline.require(product.get('live_latency_samples') == 0 and product.get('pro_latency_samples') == 0,
+                                   'Diagnostic product latency differs')
+              pipeline.require(all(pipeline.bundle_digest(path) == hashes[name] for name, path in bundles.items()),
+                               'Native bundles changed during host test')
+              summary.update(passed=True, result=result)
+              pipeline.write(destination / 'quick-diagnostic.json', summary)
+          except (RuntimeError, subprocess.SubprocessError, OSError, ValueError) as error:
+              summary['error'] = str(error)
+              try:
+                  summary['diagnostics'] = pipeline.diagnose_quality_failure(executable, paths, 48000, destination, started, True)
+              except (RuntimeError, subprocess.SubprocessError, OSError) as diagnostic_error:
+                  summary['diagnostic_error'] = str(diagnostic_error)
+              pipeline.write(destination / 'quick-diagnostic.json', summary)
+              raise
+          PY
+      - name: Retain quick diagnostics, phase logs, and native crash evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quick-quality-host-${{ matrix.architecture }}
+          path: |
+            ${{ runner.temp }}/quick-native/logs
+            ${{ runner.temp }}/quick-native/test-evidence
+            ${{ runner.temp }}/quick-native/quick-diagnostic.json
+          if-no-files-found: warn
+          retention-days: 7
