@@ -24,6 +24,9 @@ decode the manufacturer's four-character plugin code.
 
 Repeat with 44100, 48000, 96000 and 192000 for the supported sample-rate matrix.
 Use a native desktop session: the test briefly creates a small offscreen
-controller editor to deliver the repeated button click. macOS initialises a real
-NSApplication and uses native AppKit event delivery. Platform execution results
+controller editor to activate the real button repeatedly. Windows delivers native
+mouse messages. macOS initialises a real NSApplication, finds the uniquely named
+button in its native accessibility tree, and invokes `accessibilityPerformPress`.
+This runs the plugin's existing button action; it never writes a parameter as a
+substitute for the UI action. Platform execution results
 must be recorded separately; a Windows result does not verify the Mac binary.

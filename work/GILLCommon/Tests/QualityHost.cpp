@@ -16,7 +16,7 @@
 
 #if defined(__APPLE__)
 extern "C" void gillInitialiseMacQualityHost();
-extern "C" bool gillClickMacQualityHost(void*, double, double);
+extern "C" bool gillPressMacQualityHost(void*, const char*);
 #endif
 namespace {
 void phase(const juce::String& text) { std::cout << "PHASE " << juce::Time::getMillisecondCounterHiRes() << " " << text << '\n'; }
@@ -124,12 +124,12 @@ public:
             }
         }
         // Hosted plugin components live across the native child-window boundary,
-        // so a host cannot dynamic_cast their private JUCE Button tree. Send a
-        // native mouse click to the centre of the fixed 420x220 controller UI.
+        // so a host cannot dynamic_cast their private JUCE Button tree. Activate
+        // the real native button, then verify actual processor state afterwards.
         bool clicked = false;
         if (editor && editor->getPeer()) {
-            const double x = mode == 0 ? 114.5 / 420.0 : 305.5 / 420.0, y = 114.0 / 220.0;
 #if defined(_WIN32)
+            const double x = mode == 0 ? 114.5 / 420.0 : 305.5 / 420.0, y = 114.0 / 220.0;
             auto window = static_cast<HWND>(editor->getPeer()->getNativeHandle());
             RECT bounds{}; GetClientRect(window, &bounds);
             POINT point{LONG(x * (bounds.right - bounds.left)), LONG(y * (bounds.bottom - bounds.top))};
@@ -143,12 +143,16 @@ public:
             SendMessageW(window, WM_LBUTTONDOWN, MK_LBUTTON, coordinates);
             SendMessageW(window, WM_LBUTTONUP, 0, coordinates); clicked = true;
 #elif defined(__APPLE__)
-            phase("controller AppKit click begin");
-            clicked = gillClickMacQualityHost(editor->getPeer()->getNativeHandle(), x, y);
-            phase("controller AppKit click end");
+            phase("controller AppKit accessibility press begin");
+            clicked = gillPressMacQualityHost(editor->getPeer()->getNativeHandle(), mode == 0 ? "GLOBAL LIVE" : "GLOBAL PRO");
+            phase("controller AppKit accessibility press end");
 #endif
         }
+#if defined(__APPLE__)
+        check(clicked, "native accessibility press accepted by real controller button");
+#else
         check(clicked, "native mouse click delivered to real controller editor");
+#endif
         phase("controller click end");
     }
     void render() {

@@ -1,5 +1,14 @@
 cmake_minimum_required(VERSION 3.22)
 project(GillQualityHost VERSION 0.6.0 LANGUAGES C CXX)
+# Keep each Mach-O image's JUCE implementation private, including custom
+# static runtimes and Objective-C++ units. VST3 entry points stay explicit exports.
+if(APPLE)
+    set(CMAKE_C_VISIBILITY_PRESET hidden)
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    set(CMAKE_OBJC_VISIBILITY_PRESET hidden)
+    set(CMAKE_OBJCXX_VISIBILITY_PRESET hidden)
+    set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 if(MSVC)

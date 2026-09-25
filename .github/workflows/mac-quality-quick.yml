@@ -36,9 +36,10 @@ jobs:
         with:
           python-version: '3.11'
       - uses: actions/cache/restore@v4
+        id: compiler-cache
         with:
           path: .cache/ccache
-          key: quick-host-${{ matrix.architecture }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/GILLCommon/**', 'work/**/Source/**', 'work/**/Tests/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-quick-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             macos15-${{ matrix.architecture }}-xcode164-juce8012-
       - name: Build three plugins and run unchanged real-host assertions at 48 kHz
@@ -134,6 +135,13 @@ jobs:
               pipeline.write(destination / 'quick-diagnostic.json', summary)
               raise
           PY
+      - name: Retain compiler cache for the complete native suite
+        if: always() && steps.compiler-cache.outputs.cache-hit != 'true' && steps.compiler-cache.outputs.cache-primary-key != ''
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/ccache
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
       - name: Retain quick diagnostics, phase logs, and native crash evidence
         if: always()
         uses: actions/upload-artifact@v4

@@ -1,27 +1,52 @@
 #import <AppKit/AppKit.h>
 #include <cstdio>
 extern "C" void gillInitialiseMacQualityHost() { @autoreleasepool { [NSApplication sharedApplication]; [NSApp setActivationPolicy:NSApplicationActivationPolicyProhibited]; } }
-extern "C" bool gillClickMacQualityHost(void* native, double x, double y) {
+extern "C" bool gillPressMacQualityHost(void* native, const char* buttonTitle) {
     @autoreleasepool {
       @try {
         NSView* root = (__bridge NSView*) native;
-        NSWindow* window = root.window;
-        if (!root || !window) return false;
-        const NSRect bounds = root.bounds;
-        NSPoint local = NSMakePoint(NSMinX(bounds) + x * NSWidth(bounds), NSMinY(bounds) + (root.isFlipped ? y : 1.0 - y) * NSHeight(bounds));
-        std::fprintf(stderr, "APPKIT hitTest begin\n"); std::fflush(stderr);
-        NSView* target = [root hitTest:[root convertPoint:local toView:root.superview]];
-        std::fprintf(stderr, "APPKIT hitTest end\n"); std::fflush(stderr);
-        if (!target) return false;
-        const NSPoint location = [root convertPoint:local toView:nil];
-        const NSTimeInterval time = NSProcessInfo.processInfo.systemUptime;
-        NSEvent* down = [NSEvent mouseEventWithType:NSEventTypeLeftMouseDown location:location modifierFlags:0 timestamp:time windowNumber:window.windowNumber context:nil eventNumber:1 clickCount:1 pressure:1.0];
-        NSEvent* up = [NSEvent mouseEventWithType:NSEventTypeLeftMouseUp location:location modifierFlags:0 timestamp:time + .01 windowNumber:window.windowNumber context:nil eventNumber:2 clickCount:1 pressure:0.0];
-        std::fprintf(stderr, "APPKIT mouseDown begin\n"); std::fflush(stderr);
-        [target mouseDown:down];
-        std::fprintf(stderr, "APPKIT mouseDown end; mouseUp begin\n"); std::fflush(stderr);
-        [target mouseUp:up];
-        std::fprintf(stderr, "APPKIT mouseUp end\n"); std::fflush(stderr); return true;
+        if (![NSThread isMainThread] || !root || !root.window || !buttonTitle) return false;
+        NSString* wanted = [NSString stringWithUTF8String:buttonTitle];
+        if (!wanted) return false;
+
+        // Cross the hosted NSView boundary through AppKit's native accessibility
+        // tree. JUCE's press action queues triggerClick and the existing onClick.
+        // No processor, parameter, QualityBus, or private JUCE object is used.
+        NSMutableArray* pending = [NSMutableArray arrayWithObject:root];
+        NSMutableArray* matches = [NSMutableArray array];
+        NSHashTable* visited = [NSHashTable hashTableWithOptions:
+            NSPointerFunctionsStrongMemory | NSPointerFunctionsObjectPointerPersonality];
+        while (pending.count != 0 && visited.count < 512) {
+            id node = pending.lastObject;
+            if ([visited containsObject:node]) { [pending removeLastObject]; continue; }
+            [visited addObject:node];
+            [pending removeLastObject];
+            NSString* role = [node respondsToSelector:@selector(accessibilityRole)] ? [node accessibilityRole] : nil;
+            NSString* title = [node respondsToSelector:@selector(accessibilityTitle)] ? [node accessibilityTitle] : nil;
+            NSString* label = [node respondsToSelector:@selector(accessibilityLabel)] ? [node accessibilityLabel] : nil;
+            if ([role isEqualToString:NSAccessibilityButtonRole]
+                && ([title isEqualToString:wanted] || [label isEqualToString:wanted]))
+                [matches addObject:node];
+            if ([node respondsToSelector:@selector(accessibilityChildren)]) {
+                NSArray* children = [node accessibilityChildren];
+                if (children) [pending addObjectsFromArray:children];
+            }
+            // Native hosting containers may be ignored in the AX tree. Their
+            // NSView descendants still expose the actual plugin's controls.
+            if ([node isKindOfClass:[NSView class]])
+                [pending addObjectsFromArray:[(NSView*) node subviews]];
+        }
+        std::fprintf(stderr, "APPKIT accessibility search %s: %lu nodes, %lu exact buttons\n",
+                     buttonTitle, (unsigned long) visited.count, (unsigned long) matches.count);
+        std::fflush(stderr);
+        if (pending.count != 0 || matches.count != 1) return false;
+        id button = matches.firstObject;
+        if (![button respondsToSelector:@selector(isAccessibilityEnabled)] || ![button isAccessibilityEnabled]
+            || ![button respondsToSelector:@selector(accessibilityPerformPress)]) return false;
+        const BOOL pressed = [button accessibilityPerformPress];
+        std::fprintf(stderr, "APPKIT accessibilityPerformPress %s: %s\n", buttonTitle, pressed ? "accepted" : "rejected");
+        std::fflush(stderr);
+        return pressed == YES;
       } @catch (NSException* exception) {
         std::fprintf(stderr, "APPKIT exception %s: %s\n", exception.name.UTF8String, exception.reason.UTF8String); std::fflush(stderr);
         @throw;
