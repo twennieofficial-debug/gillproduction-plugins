@@ -340,6 +340,19 @@ class NativeQualityGateTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "report bytes changed"):
                 p.verify_native_quality_gate(self.report, root)
 
+    def test_crash_collection_is_fresh_and_only_for_quality_host(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp); reports = root / "reports"; reports.mkdir()
+            fresh = reports / "GillQualityHost-current.ips"
+            stale = reports / "GillQualityHost-old.crash"
+            other = reports / "OtherApplication-current.ips"
+            for path in (fresh, stale, other): path.write_text("diagnostic fixture")
+            old = time.time_ns() - 10_000_000_000
+            p.os.utime(stale, ns=(old, old))
+            copied = p.collect_quality_crashes([reports], root / "collected", time.time_ns() - 3_000_000_000)
+            self.assertEqual(copied, [fresh.name])
+            self.assertEqual([path.name for path in (root / "collected").iterdir()], [fresh.name])
+
 
 class InstallerEnvironmentTests(unittest.TestCase):
     def test_local_mac_is_not_allowed(self):

@@ -100,6 +100,52 @@ jobs:
             ${{ runner.temp }}/native/test-evidence
             ${{ runner.temp }}/native/native-failure.json
           retention-days: 14
+      - name: Preserve native binaries for a separate diagnostic run
+        if: failure()
+        continue-on-error: true
+        env:
+          DIAGNOSTIC_ARCH: ${{ matrix.architecture }}
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib, subprocess
+          root = pathlib.Path(os.environ['RUNNER_TEMP']).resolve()
+          plugins = root / 'native/plugins'
+          if not plugins.is_dir() or not any(plugins.glob('*.vst3')):
+              print('No native VST3 bundles available to preserve.')
+              raise SystemExit(0)
+          candidates = ['native/plugins', 'native/native-failure.json',
+                        'native/test-evidence/QUALITY_HOST',
+                        'gill-build/QualityHost/GillQualityHost']
+          entries = [name for name in candidates if (root / name).exists()]
+          payload_bytes = sum(p.stat().st_size for name in entries
+                              for p in ([root / name] if (root / name).is_file()
+                                        else (root / name).rglob('*'))
+                              if p.is_file())
+          if payload_bytes > 2 * 1024**3:
+              raise SystemExit('Diagnostic payload exceeds the 2 GiB uncompressed limit.')
+          metadata = {'diagnostic_only': True, 'release_approved': False,
+                      'architecture': os.environ['DIAGNOSTIC_ARCH'],
+                      'source_commit': os.environ['GITHUB_SHA'],
+                      'run_id': os.environ['GITHUB_RUN_ID'],
+                      'run_attempt': os.environ['GITHUB_RUN_ATTEMPT'],
+                      'payload_bytes': payload_bytes,
+                      'plugins': sorted(p.name for p in plugins.glob('*.vst3'))}
+          (root / 'diagnostic-binaries.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
+          entries.append('diagnostic-binaries.json')
+          archive = root / ('failed-native-binaries-' + os.environ['DIAGNOSTIC_ARCH'] + '.tar.gz')
+          subprocess.run(['tar', '-C', str(root), '-czf', str(archive), *entries], check=True, timeout=240)
+          print(f'Preserved {len(metadata["plugins"])} native bundles; {archive.stat().st_size} archive bytes.')
+          PY
+      - name: Retain failed native binaries with executable permissions
+        if: failure()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-native-binaries-${{ matrix.architecture }}
+          path: ${{ runner.temp }}/failed-native-binaries-${{ matrix.architecture }}.tar.gz
+          if-no-files-found: ignore
+          retention-days: 3
+          compression-level: 0
 
   merge:
     needs: native-build

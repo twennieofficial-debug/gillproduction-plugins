@@ -349,6 +349,54 @@ def verify_native_quality_gate(report, evidence_root=None):
                     "QualityHost report bytes changed")
 
 
+def collect_quality_crashes(directories, destination, since_ns):
+    """Copy only fresh crash reports belonging to this test executable."""
+    copied = []
+    for directory in directories:
+        if not directory.is_dir():
+            continue
+        for path in directory.glob("GillQualityHost*"):
+            if (path.is_file() and path.suffix in (".ips", ".crash") and
+                    path.stat().st_mtime_ns >= since_ns and path.stat().st_size <= 20 * 1024 * 1024):
+                destination.mkdir(parents=True, exist_ok=True)
+                target = destination / path.name
+                shutil.copy2(path, target)
+                copied.append(target.name)
+    return sorted(set(copied))
+
+
+def diagnose_quality_failure(executable, paths, rate, dest, since_ns, debugger):
+    """Keep the original failure; an LLDB reproduction cannot turn it green."""
+    if sys.platform != "darwin":
+        return {}
+    evidence = dest / "test-evidence/QUALITY_HOST"
+    directories = [Path.home() / "Library/Logs/DiagnosticReports", Path("/Library/Logs/DiagnosticReports")]
+    detail = {"sample_rate": rate, "diagnostic_only": True}
+    try:
+        detail["crash_reports"] = collect_quality_crashes(directories, evidence / "crashes", since_ns)
+    except OSError as error:
+        detail["crash_collection_error"] = str(error)
+    if debugger:
+        log = dest / "logs/QualityHost-lldb.txt"
+        command = ["xcrun", "lldb", "--batch", "-o", "settings set target.disable-aslr false",
+                   "-o", "run", "-o", "thread backtrace all", "-o", "image list -o -f", "--",
+                   str(executable), "--list", str(paths), "--sample-rate", str(rate),
+                   "--report", str(evidence / "lldb-diagnostic-only.json")]
+        try:
+            with log.open("wb") as output:
+                diagnostic = subprocess.run(command, stdout=output, stderr=subprocess.STDOUT, timeout=150)
+            detail["lldb_exit_code"] = diagnostic.returncode
+        except (OSError, subprocess.SubprocessError) as error:
+            detail["lldb_error"] = str(error)
+        detail["lldb_log"] = log.relative_to(dest).as_posix()
+        try:
+            detail["crash_reports"] = collect_quality_crashes(directories, evidence / "crashes", since_ns)
+        except OSError as error:
+            detail["crash_collection_error"] = str(error)
+    write(evidence / f"failure-diagnostics-{rate}.json", detail)
+    return detail
+
+
 def build_quality_host(source, root, dest, arch, jobs, records, source_sha256):
     """Build a real JUCE VST3 host and load all copied native bundles together."""
     started = time.monotonic()
@@ -377,6 +425,7 @@ def build_quality_host(source, root, dest, arch, jobs, records, source_sha256):
     executable_sha = sha(executable)
     for rate in QUALITY_SAMPLE_RATES:
         report = evidence / f"quality-host-{rate}.json"
+        run_started = time.time_ns()
         try:
             require(not report.exists(), "QualityHost requires a fresh report path")
             run([executable, "--list", paths, "--sample-rate", rate, "--report", report],
@@ -391,6 +440,13 @@ def build_quality_host(source, root, dest, arch, jobs, records, source_sha256):
         except (RuntimeError, subprocess.SubprocessError, OSError, ValueError) as error:
             failures.append({"sample_rate": rate, "passed": False, "error": str(error)})
             print(f"FAILED QualityHost {rate} Hz: {error}", file=sys.stderr, flush=True)
+            log = dest / "logs" / f"QualityHost-{rate}.txt"
+            if log.is_file():
+                print(ctest_failure_excerpt(log.read_text(encoding="utf-8", errors="replace")), file=sys.stderr, flush=True)
+            try:
+                failures[-1]["diagnostics"] = diagnose_quality_failure(executable, paths, rate, dest, run_started, len(failures) == 1)
+            except (RuntimeError, OSError, subprocess.SubprocessError) as diagnostic_error:
+                failures[-1]["diagnostic_error"] = str(diagnostic_error)
     gate = {"passed": not failures, "architecture": arch, "source_sha256": source_sha256,
             "executable_architectures": architectures, "executable_sha256": executable_sha,
             "bundle_sha256": before, "runs": results, "failures": failures,

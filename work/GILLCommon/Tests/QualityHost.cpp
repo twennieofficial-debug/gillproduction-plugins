@@ -19,6 +19,7 @@ extern "C" void gillInitialiseMacQualityHost();
 extern "C" bool gillClickMacQualityHost(void*, double, double);
 #endif
 namespace {
+void phase(const juce::String& text) { std::cout << "PHASE " << juce::Time::getMillisecondCounterHiRes() << " " << text << '\n'; }
 struct Item {
     juce::String path, name;
     juce::PluginDescription description;
@@ -35,6 +36,7 @@ public:
         ++checks; if (!good) { ++failures; std::cerr << "FAIL " << message << '\n'; }
     }
     bool create(Item& item) {
+        phase("factory begin " + item.name);
         juce::String error;
         item.processor = format.createInstanceFromDescription(item.description, sampleRate, 128, error);
         check(item.processor != nullptr, item.name + " native factory: " + error);
@@ -45,10 +47,12 @@ public:
         }
         check(item.quality && item.quality->getNumSteps() == 2, item.name + " exposes two quality modes");
         item.processor->setPlayConfigDetails(2, 2, sampleRate, 128); item.processor->prepareToPlay(sampleRate, 128);
+        phase("factory prepared " + item.name);
         return item.quality != nullptr;
     }
     bool load(const juce::StringArray& paths) {
         for (const auto& path : paths) {
+            phase("scan begin " + juce::File(path).getFileName());
             auto item = std::make_unique<Item>(); item->path = path;
             juce::OwnedArray<juce::PluginDescription> descriptions; format.findAllTypesForFile(descriptions, path);
             check(descriptions.size() == 1, path + " exactly one VST3 factory"); if (descriptions.size() != 1) return false;
@@ -108,9 +112,16 @@ public:
         }
     }
     void clickGlobal(int mode) {
+        phase("controller click begin " + juce::String(mode));
         if (!editor) {
+            phase("controller createEditor begin");
             editor.reset(items[static_cast<std::size_t>(master)]->processor->createEditor());
-            if (editor) { editor->setTopLeftPosition(-10000, -10000); editor->addToDesktop(0); editor->setVisible(true); }
+            phase("controller createEditor end");
+            if (editor) {
+                editor->setTopLeftPosition(-10000, -10000);
+                phase("controller addToDesktop begin"); editor->addToDesktop(0); phase("controller addToDesktop end");
+                phase("controller setVisible begin"); editor->setVisible(true); phase("controller setVisible end");
+            }
         }
         // Hosted plugin components live across the native child-window boundary,
         // so a host cannot dynamic_cast their private JUCE Button tree. Send a
@@ -132,10 +143,13 @@ public:
             SendMessageW(window, WM_LBUTTONDOWN, MK_LBUTTON, coordinates);
             SendMessageW(window, WM_LBUTTONUP, 0, coordinates); clicked = true;
 #elif defined(__APPLE__)
+            phase("controller AppKit click begin");
             clicked = gillClickMacQualityHost(editor->getPeer()->getNativeHandle(), x, y);
+            phase("controller AppKit click end");
 #endif
         }
         check(clicked, "native mouse click delivered to real controller editor");
+        phase("controller click end");
     }
     void render() {
         bool finite = true, controlIdentical = true;
@@ -156,18 +170,22 @@ public:
         check(finite, "all real DLLs render finite audio on audio worker"); check(controlIdentical, "real controller DLL is bit-exact dry");
     }
     void timerCallback() override {
-        render(); if (++ticks < 20) return; ticks = 0;
+        if (ticks == 0) phase("render stage " + juce::String(stage) + " begin");
+        render(); if (ticks == 0) phase("render stage " + juce::String(stage) + " end");
+        if (++ticks < 20) return; ticks = 0;
+        phase("action stage " + juce::String(stage));
         switch (stage++) {
             case 0: items[static_cast<std::size_t>(master)]->quality->setValueNotifyingHost(0); break;
             case 1: verify(0); items[static_cast<std::size_t>(local)]->quality->setValueNotifyingHost(1); break;
             case 2: verify(0, true); clickGlobal(0); break;
-            case 3: verify(0); editor.reset(); items[static_cast<std::size_t>(master)]->quality->setValueNotifyingHost(1); break;
+            case 3: verify(0); phase("controller editor close begin"); editor.reset(); phase("controller editor close end"); items[static_cast<std::size_t>(master)]->quality->setValueNotifyingHost(1); break;
             case 4: verify(1); items[static_cast<std::size_t>(master)]->processor->getStateInformation(savedMaster); clickGlobal(0); break;
             case 5: {
                 verify(0); editor.reset(); auto& item = *items[static_cast<std::size_t>(master)];
+                phase("controller recreate begin");
                 item.processor->releaseResources(); item.processor.reset();
                 if (!create(item)) { finish(); return; }
-                item.processor->setStateInformation(savedMaster.getData(), static_cast<int>(savedMaster.getSize())); break;
+                item.processor->setStateInformation(savedMaster.getData(), static_cast<int>(savedMaster.getSize())); phase("controller recreate end"); break;
             }
             case 6: verify(1); finish(); break;
             default: finish(); break;
@@ -204,12 +222,16 @@ private:
 };
 }
 int main(int argc, char** argv) {
-    std::cout << std::unitbuf;
+    std::cout << std::unitbuf; std::cerr << std::unitbuf;
+    std::cout << "START GillQualityHost main\n";
     if (argc < 2) { std::cerr << "Usage: GillQualityHost --list paths.json [--report report.json] [--sample-rate 48000] OR bundle.vst3 ...\n"; return 2; }
 #if defined(__APPLE__)
+    phase("NSApplication initialise begin");
     gillInitialiseMacQualityHost();
+    phase("NSApplication initialise end");
 #endif
     juce::ScopedJuceInitialiser_GUI gui; juce::StringArray paths;
+    phase("JUCE GUI initialised");
     double sampleRate = 48000;
     juce::File report = juce::File::getCurrentWorkingDirectory().getChildFile("quality-real-vst3-host-report.json");
     for (int i = 1; i < argc; ++i) {
@@ -225,6 +247,7 @@ int main(int argc, char** argv) {
     if (sampleRate < 44100 || sampleRate > 192000) { std::cerr << "Sample rate must be 44100 through 192000\n"; return 2; }
     Host host(sampleRate);
     if (!host.load(paths)) { host.report(report); return 1; }
+    phase("all " + juce::String(paths.size()) + " bundles prepared; dispatch loop begin");
     std::thread watchdog([&] {
         for (int i=0; i<1200 && !host.finished.load(); ++i) juce::Thread::sleep(100);
         if (!host.finished.load()) juce::MessageManager::callAsync([&] { host.check(false, "host test exceeded 120 seconds"); host.finish(); });
