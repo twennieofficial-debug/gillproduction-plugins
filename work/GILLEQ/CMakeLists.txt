@@ -12,6 +12,13 @@ endif()
 project(GILLEQ VERSION 0.4.0 LANGUAGES C CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Apple Clang contracts float multiply/add by default. JUCE's decimal
+# parameter-grid snapping must retain the same rounding steps as Windows:
+# e.g. -12 + 0.01f * 1200 must be exactly 0 dB, not an FMA residual.
+# Keep IEEE rounding boundaries for control/state and DSP code consistently.
+if(APPLE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(-ffp-contract=off)
+endif()
 if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()

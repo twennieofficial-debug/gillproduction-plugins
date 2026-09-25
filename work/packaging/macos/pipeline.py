@@ -25,6 +25,7 @@ import zipfile
 
 HERE = Path(__file__).resolve().parent
 PRODUCTS = json.loads((HERE / "products.json").read_text(encoding="utf-8"))
+CTEST_MATRIX = json.loads((HERE / "ctest-matrix.json").read_text(encoding="utf-8"))
 GROUPS = sorted({p["group"] for p in PRODUCTS})
 JUCE_COMMIT = "29396c22c93392d6738e021b83196283d6e4d850"
 MIN_MACOS = "11.0"
@@ -122,6 +123,7 @@ def source_check(source):
         require(not run(["git", "-C", juce, "status", "--porcelain"]), "JUCE source has uncommitted changes")
     selected["JUCE_PIN"] = JUCE_COMMIT
     selected["PRODUCT_CATALOG"] = sha(HERE / "products.json")
+    selected["CTEST_MATRIX"] = sha(HERE / "ctest-matrix.json")
     return {"products": 29, "groups": GROUPS, "source_sha256": digest_manifest(selected), "files": selected}
 
 
@@ -177,6 +179,60 @@ def new_destination(path):
     return path
 
 
+def verify_ctest_listing(group, listing):
+    discovered = [test["name"] for test in listing.get("tests", [])]
+    expected = CTEST_MATRIX[group]
+    require(len(discovered) == len(expected) and set(discovered) == set(expected),
+            f"Native CTest suite differs for {group}; missing={sorted(set(expected) - set(discovered))}, "
+            f"unexpected={sorted(set(discovered) - set(expected))}")
+
+
+def collect_test_evidence(source_group, build_dir, dest, since_ns):
+    """Collect only fresh results, including those left by a failed CTest run."""
+    source_group = Path(source_group)
+    for path in (source_group / "Tests").glob("*"):
+        if path.is_file() and path.stat().st_mtime_ns >= since_ns and path.suffix in (".png", ".json", ".txt", ".csv"):
+            target = Path(dest) / "test-evidence" / source_group.name / path.name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+    for name in ("LastTest.log", "LastTestsFailed.log"):
+        path = Path(build_dir) / "Testing/Temporary" / name
+        if path.is_file() and path.stat().st_mtime_ns >= since_ns:
+            target = Path(dest) / "logs" / f"{source_group.name}-{name}"
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(path, target)
+
+
+def build_group(group, source, root, dest, arch, start, jobs):
+    build_dir = root / group
+    command = ["cmake", "-S", source / group, "-B", build_dir, "-G", "Ninja",
+               "-DCMAKE_BUILD_TYPE=Release", f"-DCMAKE_OSX_ARCHITECTURES={arch}",
+               f"-DCMAKE_OSX_DEPLOYMENT_TARGET={MIN_MACOS}", "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"]
+    run(command, log=dest / "logs" / f"{group}-configure.txt")
+    run(["cmake", "--build", build_dir, "--config", "Release", "--parallel", jobs],
+        log=dest / "logs" / f"{group}-build.txt", timeout=7200)
+    listing = json.loads(run(["ctest", "--test-dir", build_dir, "-C", "Release", "--show-only=json-v1"]))
+    verify_ctest_listing(group, listing)
+    try:
+        run(["ctest", "--test-dir", build_dir, "-C", "Release", "--output-on-failure", "--timeout", "1800", "-j", "1"],
+            log=dest / "logs" / f"{group}-ctest.txt", timeout=7200)
+    except Exception:
+        # Preserve the CTest error even if collecting diagnostic files also
+        # fails; copying screenshots must never turn a failed test green.
+        try:
+            collect_test_evidence(source / group, build_dir, dest, start)
+        except Exception as evidence_error:
+            print(f"Could not collect all failure evidence: {evidence_error}", file=sys.stderr)
+        raise
+    collect_test_evidence(source / group, build_dir, dest, start)
+    for product in (p for p in PRODUCTS if p["group"] == group):
+        name = product["name"] + ".vst3"
+        bundle = build_dir / f'{product["target"]}_artefacts/Release/VST3' / name
+        inspect_bundle(bundle, product, [arch])
+        shutil.copytree(bundle, dest / "plugins" / name, symlinks=True)
+    return {"group": group, "tests": [t["name"] for t in listing["tests"]], "passed": True}
+
+
 def build(args):
     arch = native_arch()
     source = Path(args.source).resolve()
@@ -184,32 +240,19 @@ def build(args):
     dest = new_destination(args.destination)
     root = Path(args.build_root).resolve()
     start = time.time_ns()
-    suites = []
+    suites, failures = [], []
     for group in GROUPS:
-        build_dir = root / group
-        command = ["cmake", "-S", source / group, "-B", build_dir, "-G", "Ninja",
-                   "-DCMAKE_BUILD_TYPE=Release", f"-DCMAKE_OSX_ARCHITECTURES={arch}",
-                   f"-DCMAKE_OSX_DEPLOYMENT_TARGET={MIN_MACOS}", "-DCMAKE_CXX_COMPILER_LAUNCHER=ccache"]
-        run(command, log=dest / "logs" / f"{group}-configure.txt")
-        run(["cmake", "--build", build_dir, "--config", "Release", "--parallel", args.jobs],
-            log=dest / "logs" / f"{group}-build.txt", timeout=7200)
-        listing = json.loads(run(["ctest", "--test-dir", build_dir, "-C", "Release", "--show-only=json-v1"]))
-        require(listing.get("tests"), f"No native CTest suite discovered: {group}")
-        run(["ctest", "--test-dir", build_dir, "-C", "Release", "--output-on-failure", "--timeout", "1800", "-j", "1"],
-            log=dest / "logs" / f"{group}-ctest.txt", timeout=7200)
-        suites.append({"group": group, "tests": [t["name"] for t in listing["tests"]], "passed": True})
-        for product in (p for p in PRODUCTS if p["group"] == group):
-            name = product["name"] + ".vst3"
-            bundle = build_dir / f'{product["target"]}_artefacts/Release/VST3' / name
-            inspect_bundle(bundle, product, [arch])
-            shutil.copytree(bundle, dest / "plugins" / name, symlinks=True)
-        # Only files produced in this run can be called Mac test evidence.
-        tests_dir = source / group / "Tests"
-        for path in tests_dir.glob("*"):
-            if path.is_file() and path.stat().st_mtime_ns >= start and path.suffix in (".png", ".json", ".txt", ".csv"):
-                target = dest / "test-evidence" / group / path.name
-                target.parent.mkdir(parents=True, exist_ok=True)
-                shutil.copy2(path, target)
+        try:
+            suites.append(build_group(group, source, root, dest, arch, start, args.jobs))
+        except (RuntimeError, subprocess.SubprocessError, OSError, ValueError) as error:
+            failures.append({"group": group, "error": str(error), "passed": False})
+            print(f"FAILED {group}; continuing independent groups: {error}", file=sys.stderr, flush=True)
+    if failures:
+        write(dest / "native-failure.json", {"passed": False, "architecture": arch,
+              "source": snapshot, "completed_groups": suites, "failed_groups": failures})
+        # No native-build.json is produced, so no merge/package phase can accept
+        # a partial result. Independent groups still provide useful diagnostics.
+        raise RuntimeError(f"{len(failures)} native source groups failed; see native-failure.json")
     require(source_check(source)["source_sha256"] == snapshot["source_sha256"], "Source changed during build")
     ui = []
     for product in PRODUCTS:
@@ -360,6 +403,8 @@ def verify_source_archive(path, source_report):
                 continue
             if name == "PRODUCT_CATALOG":
                 name = "packaging/macos/products.json"
+            if name == "CTEST_MATRIX":
+                name = "packaging/macos/ctest-matrix.json"
             archive_name = "work/" + name
             require(archive_name in names, f"Corresponding source is missing: {archive_name}")
             require(hashlib.sha256(archive.read(archive_name)).hexdigest() == expected, f"Source archive mismatch: {archive_name}")
@@ -367,8 +412,50 @@ def verify_source_archive(path, source_report):
                 "The source ZIP must include JUCE itself, not only a submodule pointer")
 
 
+def require_disposable_install_runner(pkg):
+    require(sys.platform == "darwin", "Installer execution requires macOS")
+    require(os.environ.get("GITHUB_ACTIONS") == "true"
+            and os.environ.get("RUNNER_ENVIRONMENT") == "github-hosted"
+            and os.environ.get("RUNNER_OS") == "macOS",
+            "Installer execution is restricted to a disposable GitHub-hosted macOS runner")
+    temporary = os.environ.get("RUNNER_TEMP", "")
+    require(temporary and Path(temporary).is_absolute(), "GitHub runner temporary directory is missing")
+    require(Path(pkg).resolve().is_relative_to(Path(temporary).resolve()),
+            "Installer test package must be inside the GitHub runner temporary directory")
+
+
+def test_installer(pkg, universal, dest):
+    require_disposable_install_runner(pkg)
+    installed = Path("/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION")
+    require(not installed.exists() or not any(installed.iterdir()),
+            "Installer smoke test requires an empty GILLPRODUCTION folder on the disposable runner")
+    result = {"passed": False, "environment": "disposable-github-hosted-macos",
+              "installer_sha256": sha(pkg), "installation_directory": str(installed), "plugins": []}
+    try:
+        run(["sudo", "-n", "/usr/sbin/installer", "-pkg", pkg, "-target", "/"],
+            log=Path(dest) / "installer-test-console.txt", timeout=600)
+        expected_names = {p["name"] + ".vst3" for p in PRODUCTS}
+        require({p.name for p in installed.glob("*.vst3")} == expected_names,
+                "Installed bundle list does not contain exactly the expected 29 plug-ins")
+        for product in PRODUCTS:
+            name = product["name"] + ".vst3"
+            expected = bundle_digest(Path(universal) / "plugins" / name)
+            actual = bundle_digest(installed / name)
+            require(actual == expected, f"Installer changed or omitted bundle contents: {name}")
+            result["plugins"].append({"name": product["name"], "expected_sha256": expected,
+                                      "installed_sha256": actual, "passed": True})
+        result["passed"] = True
+    except Exception as error:
+        result["error"] = str(error)
+        raise
+    finally:
+        write(Path(dest) / "installer-test.json", result)
+    return result
+
+
 def package(args):
     native_arch()
+    require(args.test_install, "DMG packaging requires --test-install on a disposable GitHub macOS runner")
     universal = Path(args.universal).resolve()
     report = verify_release_gate(universal, args.validations)
     dest = new_destination(args.destination)
@@ -450,6 +537,9 @@ def package(args):
         run(["xcrun", "stapler", "staple", pkg])
         run(["xcrun", "stapler", "validate", pkg])
         run(["spctl", "--assess", "--type", "install", "--verbose", pkg])
+    # Exercise the real Apple Installer on the disposable build VM. Only exact
+    # copies of all 29 validated Universal bundles permit a DMG to be produced.
+    installation = test_installer(pkg, universal, dest)
     disk = staging / "disk"
     disk.mkdir()
     shutil.copy2(pkg, disk / pkg.name)
@@ -474,6 +564,7 @@ def package(args):
           "minimum_macos": MIN_MACOS, "native_validation_passed": True, "notarized": args.notarize,
           "end_user_release_ready": args.notarize, "fl_studio_tested": False,
           "ui_dimensions_verified": True, "visual_review_required": True,
+          "installer_execution_passed": installation["passed"], "installed_bundles_verified": len(installation["plugins"]),
           "source_sha256": report["source_sha256"], "source_archive_sha256": sha(source_archive),
           "files": {p.name: sha(p) for p in (pkg, dmg)},
           "install_location": "/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION"})
@@ -508,6 +599,7 @@ def main():
     pack.add_argument("--staging", required=True)
     pack.add_argument("--destination", required=True)
     pack.add_argument("--notarize", action="store_true")
+    pack.add_argument("--test-install", action="store_true", help="Test the actual PKG installation on a disposable GitHub-hosted Mac; required for DMG output")
     args = parser.parse_args()
     if args.command == "check-source":
         result = source_check(args.source)

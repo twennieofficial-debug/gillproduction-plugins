@@ -45,7 +45,10 @@ Der Ablauf ist:
 3. Ressourcenvergleich beider Builds, Universal-Zusammenführung, Signierung.
 4. Genau diese Universal-Bundles durchlaufen pluginval Stufe 10 nativ auf ARM
    und Intel: fünf Abtastraten und acht Puffergrößen, einschließlich GUI-Tests.
-5. Erst wenn die Berichte zu den unveränderten Bundle-Hashes passen: PKG/DMG.
+5. Erst wenn die Berichte zu den unveränderten Bundle-Hashes passen: PKG.
+6. Der normale Apple Installer installiert das PKG tatsächlich auf dem temporären
+   GitHub-Mac. Alle 29 installierten Bundles müssen bytegenau zu den validierten
+   Universal-Bundles passen. Erst danach wird die DMG erstellt.
 
 Ein GitHub-Job ist kein FL-Studio-Hörtest. Native GUI-Screenshots liegen in den
 Build-Artefakten; eine finale Sichtprüfung bleibt erforderlich. Ein fehlender
@@ -82,8 +85,10 @@ Die Ad-hoc-Testversion erhält kein `end_user_release_ready=true`.
 
 Xcode mit Mac-SDK, CMake ab 3.22, Ninja, ccache und Python 3.11 vorausgesetzt.
 Beide nativen Architekturen müssen auf passenden Macs geprüft werden. Die
-einzelnen Phasen sind mit `python3 pipeline.py --help` aufgelistet; keine Phase
-installiert ungefragt Plugins auf dem Build-Mac.
+einzelnen Phasen sind mit `python3 pipeline.py --help` aufgelistet. Build und
+Validierung installieren keine Plugins. Die DMG-Phase verlangt ausdrücklich
+`--test-install` und akzeptiert dafür ausschließlich einen temporären
+GitHub-gehosteten Mac; lokale oder selbst gehostete Macs werden abgewiesen.
 
 Der macOS-11-Deployment-Target ist eine Build-Untergrenze. Der Workflow prüft auf
 macOS 15. Er behauptet damit keinen realen FL-Test auf jeder älteren macOS-Version.

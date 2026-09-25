@@ -13,7 +13,25 @@ namespace {
 int checks=0, failures=0, automationCases=0, uiChanges=0;
 void check(bool pass,const char* name) {
     ++checks;
-    if(!pass){++failures;if(failures<=30)std::cerr<<"FAIL: "<<name<<"\n";}
+    if(!pass){++failures;static juce::StringArray reported;if(!reported.contains(name)){reported.add(name);std::cerr<<"FAIL: "<<name<<"\n";}}
+}
+void parameterGridRegression() {
+    // Decimal grids with negative starts must preserve the exact neutral point.
+    // On Apple Clang, implicit FMA contraction previously turned OUTPUT=0 into
+    // -2.682209e-7 dB after a state round-trip. The real dry-route checks below
+    // deliberately keep their bit-exact comparisons in both audio precisions.
+    volatile float decimalStep=0.01f;
+    const float fusedZero=std::fma(decimalStep,1200.0f,-12.0f);
+    check(fusedZero!=0.0f,"regression fixture exercises an actual float FMA residual");
+    for(const auto config:std::array<std::array<float,3>,4>{{{{-12.f,12.f,.01f}},{{-24.f,24.f,.01f}},{{-24.f,12.f,.1f}},{{-18.f,6.f,.1f}}}}) {
+        volatile float low=config[0],high=config[1],step=config[2];
+        juce::NormalisableRange<float> range(low,high,step);
+        for(float expected:{-12.f,-6.f,0.f,6.f}) {
+            const float snapped=range.snapToLegalValue(expected);
+            check(snapped==expected,"decimal gain grid preserves exact integer and zero dB values");
+            if(snapped!=expected)std::cerr<<"GRID low="<<config[0]<<" step="<<config[2]<<" expected="<<expected<<" actual="<<std::scientific<<snapped<<std::defaultfloat<<"\n";
+        }
+    }
 }
 void set(GillDereverbAudioProcessor& p,const juce::String& id,float value) {
     auto* parameter=p.apvts.getParameter(id);check(parameter!=nullptr,"parameter exists");
@@ -135,6 +153,7 @@ template<typename T> void testAudioRoutes() {
 
 int main() {
     const auto started=std::chrono::steady_clock::now();juce::ScopedJuceInitialiser_GUI gui;
+    parameterGridRegression();
     GillDereverbAudioProcessor p;
     check(p.getParameters().size()==9,"nine parameter IDs retained for project compatibility");
     check(p.getName()=="GILLDEREVERB","uppercase product name");check(p.supportsDoublePrecisionProcessing(),"double precision supported");

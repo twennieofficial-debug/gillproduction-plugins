@@ -28,7 +28,7 @@ env:
 jobs:
   native-build:
     strategy:
-      fail-fast: true
+      fail-fast: false
       max-parallel: 2
       matrix:
         include:
@@ -46,11 +46,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: compiler-cache
         with:
           path: .cache/ccache
-          key: macos15-${{ matrix.architecture }}-juce8012-${{ hashFiles('work/**/Source/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}
-          restore-keys: macos15-${{ matrix.architecture }}-juce8012-
+          key: macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/**/Source/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/**/Source/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-
+            macos15-${{ matrix.architecture }}-xcode164-juce8012-
       - name: Build tools
         run: |
           brew install ninja ccache
@@ -64,8 +67,23 @@ jobs:
           --build-root "$RUNNER_TEMP/gill-build"
           --destination "$RUNNER_TEMP/native"
           --jobs 2
+      - name: Retain compiler cache after successful or failed tests
+        if: always() && steps.compiler-cache.outputs.cache-hit != 'true' && steps.compiler-cache.outputs.cache-primary-key != ''
+        continue-on-error: true
+        uses: actions/cache/save@v4
+        with:
+          path: .cache/ccache
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
       - name: Archive native results with executable permissions
         run: tar -C "$RUNNER_TEMP/native" -czf "$RUNNER_TEMP/native-${{ matrix.architecture }}.tar.gz" .
+      - name: Retain compact UI and native test reports separately
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-and-tests-${{ matrix.architecture }}
+          path: |
+            ${{ runner.temp }}/native/test-evidence
+            ${{ runner.temp }}/native/native-build.json
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: native-${{ matrix.architecture }}
@@ -77,7 +95,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: failed-native-${{ matrix.architecture }}
-          path: ${{ runner.temp }}/native/logs
+          path: |
+            ${{ runner.temp }}/native/logs
+            ${{ runner.temp }}/native/test-evidence
+            ${{ runner.temp }}/native/native-failure.json
           retention-days: 14
 
   merge:
@@ -130,7 +151,7 @@ jobs:
   universal-validation:
     needs: merge
     strategy:
-      fail-fast: true
+      fail-fast: false
       max-parallel: 2
       matrix:
         include:
@@ -219,7 +240,16 @@ jobs:
         run: |
           options=()
           if [ "$NOTARIZE" = true ]; then options+=(--notarize); fi
-          python3 "$PIPELINE" package --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE.zip" --staging "$RUNNER_TEMP/package-staging" --destination "$RUNNER_TEMP/delivery" "${options[@]}"
+          python3 "$PIPELINE" package --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE.zip" --staging "$RUNNER_TEMP/package-staging" --destination "$RUNNER_TEMP/delivery" --test-install "${options[@]}"
+      - name: Retain installer failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: failed-mac-installer
+          path: |
+            ${{ runner.temp }}/delivery/*.txt
+            ${{ runner.temp }}/delivery/*.json
+          retention-days: 14
       - uses: actions/upload-artifact@v4
         with:
           name: GILL-MAC-INSTALLER-${{ inputs.notarize && 'NOTARISIERT' || 'UNSIGNIERT-TESTVERSION' }}
