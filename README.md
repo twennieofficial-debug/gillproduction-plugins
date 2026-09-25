@@ -1,11 +1,11 @@
 # GILLPRODUCTION Plugins
 
-Private source and build automation for the 29 GILLPRODUCTION audio effects.
+Public source code and build automation for 29 GILLPRODUCTION vocal and mix effects. Build targets are Windows x64 VST3 and macOS Universal VST3 for Apple Silicon and Intel.
 
-The existing Windows x64 VST3 modules passed release-04 validation. macOS support is being built for native Apple Silicon and Intel, then combined into Universal VST3 bundles and checked on both platforms. A DMG is produced only after its build and validation gates pass. An unsigned test package is explicitly distinguished from a Developer-ID-signed and Apple-notarized release.
+Sources, presets, tests and artwork are in `work/GILL*`. Each product group includes `BUILDING.md`. JUCE 8.0.12 is pinned as a submodule under `work/dependencies/JUCE`; initialize submodules before building. See the [Mac build and packaging guide](work/packaging/macos/README.md) for the native build, validation and installer workflow.
 
-All editors retain their compact logical dimensions. macOS Retina scaling changes physical pixels, not the intended editor size. Generated native screenshots are review artifacts; actual FL Studio UI verification is a separate check.
+The unsigned Mac build is a **test version**: it uses ad-hoc signing, is not Developer-ID-signed or Apple-notarized, and has not been verified in FL Studio on macOS. The pipeline produces a DMG only after the native tests, validation of the same Universal bundles on both architectures, and installer checks pass.
 
-Sources are in `work/GILL*`. JUCE is pinned as a submodule to 8.0.12 commit `29396c22c93392d6738e021b83196283d6e4d850`. Build instructions and packaging scripts are in `work/packaging/macos`.
+Editors use compact logical window sizes, recorded in [products.json](work/packaging/macos/products.json). Retina scaling changes physical pixels while preserving the intended interface size; generated screenshots support layout review.
 
-Each product's license and third-party notices are included beside its CMakeLists.txt. No personal conversation, account credentials, private recordings, or Windows build binaries are part of this repository.
+Licensing is documented per product in `LICENSE`, `LICENSE-NOTICE.md` and `THIRD-PARTY.md` or `THIRD-PARTY-NOTICES.md`, beside `CMakeLists.txt`. Included third-party libraries retain their own notices. Speech test fixtures have separate attribution and licensing in their `Tests/fixtures/ORIGIN-AND-LICENSE.md` files.

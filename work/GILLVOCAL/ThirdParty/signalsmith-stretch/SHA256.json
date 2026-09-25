@@ -1,41 +1,41 @@
 [
   {
-    "path": "C:\\Users\\iangi\\Documents\\Codex\\2026-09-24\\streaming-ding-soll-also-halt-nicht\\work\\GILLVOCAL\\ThirdParty\\signalsmith-stretch\\LICENSE.txt",
+    "path": "LICENSE.txt",
     "sha256": "EE2EF82481FFB445ECDD4B3A4C1F82C0CDDB2DA8FE39D8E8DC384FFFB3E7F06F",
     "bytes": 1093
   },
   {
-    "path": "C:\\Users\\iangi\\Documents\\Codex\\2026-09-24\\streaming-ding-soll-also-halt-nicht\\work\\GILLVOCAL\\ThirdParty\\signalsmith-stretch\\README.md",
+    "path": "README.md",
     "sha256": "D2C43D92312154A09660BFFBB06B408F3B470662F89CB4123FA5268A4CED444C",
     "bytes": 8205
   },
   {
-    "path": "C:\\Users\\iangi\\Documents\\Codex\\2026-09-24\\streaming-ding-soll-also-halt-nicht\\work\\GILLVOCAL\\ThirdParty\\signalsmith-stretch\\signalsmith-stretch.h",
+    "path": "signalsmith-stretch.h",
     "sha256": "1188667959AC19DD40C0A6ABBCE694E44705615EC4F0E8DB8AF0F1CFB4C5DEA7",
     "bytes": 35446
   },
   {
-    "path": "C:\\Users\\iangi\\Documents\\Codex\\2026-09-24\\streaming-ding-soll-also-halt-nicht\\work\\GILLVOCAL\\ThirdParty\\signalsmith-stretch\\signalsmith-linear\\approx.h",
+    "path": "signalsmith-linear/approx.h",
     "sha256": "BF6F703193253A241E7A80D44547BB73C383A9A1F1EBE1F7FEFDCF3D234515BD",
     "bytes": 4956
   },
   {
-    "path": "C:\\Users\\iangi\\Documents\\Codex\\2026-09-24\\streaming-ding-soll-also-halt-nicht\\work\\GILLVOCAL\\ThirdParty\\signalsmith-stretch\\signalsmith-linear\\fft.h",
+    "path": "signalsmith-linear/fft.h",
     "sha256": "FB55F69AC14CDBAC66B9C76053069FF63BC36D18AF20D8C028B9ACC0AAD6516A",
     "bytes": 45242
   },
   {
-    "path": "C:\\Users\\iangi\\Documents\\Codex\\2026-09-24\\streaming-ding-soll-also-halt-nicht\\work\\GILLVOCAL\\ThirdParty\\signalsmith-stretch\\signalsmith-linear\\LICENSE.txt",
+    "path": "signalsmith-linear/LICENSE.txt",
     "sha256": "072B5E9EB5B22880BDF6256324654CF3CE53DBA828EDB911921121E1BE09D9C3",
     "bytes": 1074
   },
   {
-    "path": "C:\\Users\\iangi\\Documents\\Codex\\2026-09-24\\streaming-ding-soll-also-halt-nicht\\work\\GILLVOCAL\\ThirdParty\\signalsmith-stretch\\signalsmith-linear\\linear.h",
+    "path": "signalsmith-linear/linear.h",
     "sha256": "CF10C586861BB1293D3640F55D2F74A839885B8682D4B1809F076196FE953678",
     "bytes": 36382
   },
   {
-    "path": "C:\\Users\\iangi\\Documents\\Codex\\2026-09-24\\streaming-ding-soll-also-halt-nicht\\work\\GILLVOCAL\\ThirdParty\\signalsmith-stretch\\signalsmith-linear\\stft.h",
+    "path": "signalsmith-linear/stft.h",
     "sha256": "F64204D0B9650A33CAA02C06A0C06BA135613AD888DA02E7033B9289DBEC2397",
     "bytes": 24303
   }
