@@ -15,6 +15,7 @@ import os
 from pathlib import Path
 import platform
 import plistlib
+import re
 import shutil
 import struct
 import subprocess
@@ -58,6 +59,24 @@ def read(path):
     return json.loads(Path(path).read_text(encoding="utf-8"))
 
 
+def ctest_failure_excerpt(text):
+    """Bounded first/last failure context plus final CTest summary for live CI."""
+    lines = text.splitlines()
+    if not lines:
+        return "CTest produced no output; inspect the retained full log."
+    failure = re.compile(r"(?:^|\s)(?:FAIL(?:ED)?\b|error\b|assert(?:ion)?\b)|\*\*\*", re.IGNORECASE)
+    hits = [i for i, line in enumerate(lines) if failure.search(line)]
+    chosen = set(range(max(0, len(lines) - 35), len(lines)))
+    for index in hits[:10] + hits[-10:]:
+        chosen.update(range(max(0, index - 1), min(len(lines), index + 2)))
+    selected = sorted(chosen)
+    excerpts = [f"{index + 1}: {lines[index][:400]}" for index in selected]
+    result = "\n".join(excerpts)
+    if len(result) > 18000:
+        result = result[:10000] + "\n[excerpt shortened; full log retained]\n" + result[-7500:]
+    return result
+
+
 def run(command, *, log=None, timeout=3600):
     command = [str(x) for x in command]
     # Signing credentials are kept in the keychain, never in printed commands.
@@ -66,6 +85,10 @@ def run(command, *, log=None, timeout=3600):
         Path(log).parent.mkdir(parents=True, exist_ok=True)
         with Path(log).open("wb") as f:
             process = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
+        if process.returncode != 0 and Path(command[0]).name.lower() in ("ctest", "ctest.exe"):
+            output = Path(log).read_text(encoding="utf-8", errors="replace")
+            print(f"\nCTEST FAILURE DETAILS — {Path(log).name}\n{ctest_failure_excerpt(output)}\nEND CTEST FAILURE DETAILS\n",
+                  flush=True)
         require(process.returncode == 0, f"Command failed ({process.returncode}); see {log}")
         return Path(log).read_text(encoding="utf-8", errors="replace")
     return subprocess.check_output(command, stderr=subprocess.STDOUT, text=True, timeout=timeout).strip()

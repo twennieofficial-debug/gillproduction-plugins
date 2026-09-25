@@ -7,6 +7,12 @@
 #include <thread>
 #include <atomic>
 
+#if JUCE_MAC
+// Console main bypasses JUCEApplicationBase::main(), which normally creates
+// NSApplication before installing JUCE's main-thread message queue.
+bool initialiseGilleqTestApplication();
+#endif
+
 namespace {
 int checks=0,failures=0,automationCases=0,uiChanges=0;
 void check(bool pass,const char* name) {
@@ -61,6 +67,12 @@ juce::MouseEvent mouseAt(juce::Component& target,juce::Component& ancestor,juce:
 }
 int main() {
     const auto start=std::chrono::steady_clock::now();
+#if JUCE_MAC
+    if(!initialiseGilleqTestApplication()) {
+        std::cerr<<"FAIL: native macOS test application must initialise on the main thread\n";
+        return 2;
+    }
+#endif
     juce::ScopedJuceInitialiser_GUI gui;
     GilleqAudioProcessor p;
     check(p.getParameters().size()==99,"59 existing and 40 appended dynamic parameters");

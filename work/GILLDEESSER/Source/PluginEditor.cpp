@@ -236,12 +236,25 @@ private:
 };
 class ReductionMeter final : public juce::Component,private juce::Timer{
 public:explicit ReductionMeter(GillDeEsserAudioProcessor& processor):p(processor){setName("GAIN REDUCTION METER");startTimerHz(25);}
-    void paint(juce::Graphics& g)override{const float s=getWidth()/100.f;const auto gr=juce::jlimit(0.f,12.f,p.getReductionDb());const auto bar=juce::Rectangle<float>(22*s,24*s,19*s,96*s);
+    void paint(juce::Graphics& g)override{const float s=getWidth()/100.f;const auto gr=juce::jlimit(0.f,12.f,p.getReductionDb());
+       #if JUCE_MAC
+        // Mac font metrics need a separate row for the bottom tick and readout.
+        const auto bar=juce::Rectangle<float>(22*s,24*s,19*s,86*s);
+       #else
+        const auto bar=juce::Rectangle<float>(22*s,24*s,19*s,96*s);
+       #endif
         g.setFont(coreFont(12*s,true));g.setColour(ink);g.drawText("REDUCTION",0,0,getWidth(),static_cast<int>(18*s),juce::Justification::centred);
         g.setColour(juce::Colour(0xff594f3b));g.fillRoundedRectangle(bar,4*s);
+       #if JUCE_MAC
+        for(int i=0;i<24;++i){const float y=bar.getY()+3*s+i*(bar.getHeight()-8*s)/24.f;g.setColour(i<gr*2?juce::Colour(0xffc5ddbd):juce::Colour(0xff8a816b));g.fillRect(bar.getX()+4*s,y,11*s,2.1f*s);}
+        g.setFont(coreFont(10*s));g.setColour(ink);for(int db:{0,3,6,9,12})g.drawText(juce::String(db),static_cast<int>(47*s),juce::roundToInt(bar.getY()+db*bar.getHeight()/12.f-7.5f*s),static_cast<int>(27*s),static_cast<int>(15*s),juce::Justification::left);
+        g.setFont(coreFont(21*s,true));g.drawText((gr>.005f?"-":"")+juce::String(gr,1)+" DB",0,static_cast<int>(123*s),getWidth(),static_cast<int>(28*s),juce::Justification::centred);
+       #else
         for(int i=0;i<24;++i){const float y=bar.getY()+3*s+i*3.7f*s;g.setColour(i<gr*2?juce::Colour(0xffc5ddbd):juce::Colour(0xff8a816b));g.fillRect(bar.getX()+4*s,y,11*s,2.1f*s);}
         g.setFont(coreFont(10*s));g.setColour(ink);for(int db:{0,3,6,9,12})g.drawText(juce::String(db),static_cast<int>(47*s),static_cast<int>((20+db*8)*s),static_cast<int>(27*s),static_cast<int>(15*s),juce::Justification::left);
-        g.setFont(coreFont(21*s,true));g.drawText((gr>.005f?"-":"")+juce::String(gr,1)+" DB",0,static_cast<int>(119*s),getWidth(),static_cast<int>(28*s),juce::Justification::centred);}
+        g.setFont(coreFont(21*s,true));g.drawText((gr>.005f?"-":"")+juce::String(gr,1)+" DB",0,static_cast<int>(119*s),getWidth(),static_cast<int>(28*s),juce::Justification::centred);
+       #endif
+    }
 private:void timerCallback()override{repaint();}GillDeEsserAudioProcessor& p;
 };
 }

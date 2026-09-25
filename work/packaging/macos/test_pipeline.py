@@ -119,6 +119,24 @@ class SourceArchiveTests(unittest.TestCase):
 
 
 class NativeEvidenceTests(unittest.TestCase):
+    def test_live_failure_excerpt_keeps_first_last_failures_and_final_summary(self):
+        lines = ["PASS " + str(i) for i in range(2000)]
+        lines[10] = "FAIL important first measurement"
+        lines[1900] = "FAILED important late measurement"
+        lines[-1] = "The following tests FAILED: DYNAMICS_REALTIME"
+        excerpt = p.ctest_failure_excerpt("\n".join(lines))
+        self.assertIn("important first measurement", excerpt)
+        self.assertIn("important late measurement", excerpt)
+        self.assertIn("DYNAMICS_REALTIME", excerpt)
+        self.assertLess(len(excerpt), 18000)
+        self.assertNotIn("PASS 1000\n", excerpt)
+
+    def test_live_failure_excerpt_is_bounded_for_very_noisy_failures(self):
+        excerpt = p.ctest_failure_excerpt("\n".join("FAIL " + str(i) + " x" * 500 for i in range(10000)))
+        self.assertLessEqual(len(excerpt), 18000)
+        self.assertIn("FAIL 0 ", excerpt)
+        self.assertIn("FAIL 9999 ", excerpt)
+
     def test_failed_group_does_not_hide_later_groups_or_create_success(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

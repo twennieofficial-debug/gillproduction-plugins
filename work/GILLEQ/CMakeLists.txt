@@ -93,6 +93,14 @@ enable_testing()
 add_test(NAME DSP COMMAND GilleqDspTests)
 add_executable(GilleqIntegrationTests)
 target_sources(GilleqIntegrationTests PRIVATE Tests/PluginTests.cpp)
+if(APPLE)
+    enable_language(OBJCXX)
+    # Console tests bypass JUCEApplicationBase::main(). Create NSApplication
+    # before ScopedJuceInitialiser_GUI so the real AppKit loop delivers the
+    # existing asynchronous automation and live editor timer assertions.
+    target_sources(GilleqIntegrationTests PRIVATE Tests/MacTestApplication.mm)
+    target_link_libraries(GilleqIntegrationTests PRIVATE "-framework AppKit")
+endif()
 target_include_directories(GilleqIntegrationTests PRIVATE Source "$<TARGET_PROPERTY:GILLEQ,INCLUDE_DIRECTORIES>")
 target_link_libraries(GilleqIntegrationTests PRIVATE GILLEQ GilleqAssets)
 target_compile_definitions(GilleqIntegrationTests PRIVATE "$<TARGET_PROPERTY:GILLEQ,COMPILE_DEFINITIONS>")
