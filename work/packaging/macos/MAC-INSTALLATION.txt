@@ -1,4 +1,4 @@
-GILLPRODUCTION – UPDATE 07 / 39 PLUGINS FÜR MAC
+GILLPRODUCTION – UPDATE 09 / 47 PLUGINS FÜR MAC
 
 1. Dein Projekt speichern und FL Studio schließen.
 2. Die DMG-Datei öffnen und „GILL-PLUGINS…pkg“ doppelt anklicken.
@@ -10,8 +10,8 @@ GILLPRODUCTION – UPDATE 07 / 39 PLUGINS FÜR MAC
 Installationsort:
 /Library/Audio/Plug-Ins/VST3/GILLPRODUCTION
 
-Alle 39 VST3-Plugins sind gemeinsam enthalten. Die 34 vorhandenen behalten ihre
-Version 0.6.0; fünf neue Plugins verwenden 0.7.0. Es wird keine zusätzliche
+Alle 47 VST3-Plugins sind gemeinsam enthalten. Die 39 vorhandenen behalten ihre
+bisherigen Versionen; acht neue Master-Plugins verwenden 0.9.0. Es wird keine zusätzliche
 Downloader-App installiert. Nach dem Download funktioniert die Installation
 offline. Deine Projekte, Audioeinstellungen und Aufnahmen werden nicht verändert.
 Die gleiche Installer-Datei unterstützt Apple Silicon und Intel.
@@ -29,8 +29,10 @@ Für die Gesamtlatenz kommen Audiointerface- und FL-Studio-Puffer hinzu.
 Für GILLMIX: GILLLINK als letzten Insert auf jede gewünschte Quellspur setzen,
 FL-Spurfader zunächst auf 0 dB. Gewünschte Links auswählen, CONNECT SELECTED,
 Rollen kontrollieren, LEARN abspielen, Vorschlag mit APPLY übernehmen.
-Weitere Bedienung und Presets stehen in GILL-UPDATE-07-ANLEITUNG.md;
-GILL-PLUGINS-UEBERSICHT.txt erklärt alle 39 Plugins in Stichpunkten.
+GILLCEILING PRO benötigt bei 48 kHz 176 Samples, GILLWEIGHT PRO 32 Samples.
+Die acht neuen Master-Plugins haben in LIVE keine zusätzliche Audioverzögerung.
+Weitere Bedienung und Presets stehen in GILL-UPDATE-09-ANLEITUNG.md;
+GILL-PLUGINS-UEBERSICHT.txt erklärt alle 47 Plugins in Stichpunkten.
 
 Die vollständigen Quellen und Lizenztexte liegen in der DMG bei.
 Zusätzliche Lizenztexte liegen nach Installation unter

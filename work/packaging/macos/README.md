@@ -1,6 +1,6 @@
 # GILL Mac – Build und Installer
 
-Diese Pipeline baut alle 39 Plugins als echte Universal-VST3 für Apple Silicon
+Diese Pipeline baut alle 47 Plugins als echte Universal-VST3 für Apple Silicon
 und Intel. Die Oberfläche bleibt in den gleichen kompakten logischen Größen wie
 unter Windows. Die Abmessungen sind in `products.json` festgeschrieben; frische
 Mac-Screenshots der nativen Tests müssen für jedes Plugin genau diese Größe
@@ -17,7 +17,7 @@ Windows-DLLs werden niemals nur umbenannt oder als DMG ausgegeben.
 
 DMG öffnen → PKG doppelt anklicken → Installieren → in FL Studio
 **Options → Manage plugins → Find installed plugins**. Anschließend stehen alle
-39 Plugins in **More plugins** unter GILL. Es wird keine Downloader-App benötigt.
+47 Plugins in **More plugins** unter GILL. Es wird keine Downloader-App benötigt.
 Die Dateien liegen in `/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION`.
 Der Installer ändert keine FL-Projekte, Audioeinstellungen oder Gatekeeper-Regeln.
 
@@ -42,7 +42,7 @@ Der Ablauf ist:
 
 1. Native ARM- und Intel-Kompilierung, sämtliche registrierten DSP-/GUI-CTest.
 2. Versions-, Bundle-ID-, Mach-O-, Systembibliotheken- und UI-Größenprüfung.
-3. Ein separat gebauter nativer VST3-Host lädt alle 39 fertigen Bundles gemeinsam.
+3. Ein separat gebauter nativer VST3-Host lädt alle 47 fertigen Bundles gemeinsam.
    Bei 44,1/48/96/192 kHz prüft er echte LIVE/PRO-Parameterzustände, Host-Latenz,
    globale und lokale Umschaltung, wiederholte Controller-Klicks und State-Recall.
    JSON-Berichte liegen unter `test-evidence/QUALITY_HOST`, vollständige Logs
@@ -53,7 +53,7 @@ Der Ablauf ist:
    und Intel: fünf Abtastraten und acht Puffergrößen, einschließlich GUI-Tests.
 6. Erst wenn die Berichte zu den unveränderten Bundle-Hashes passen: PKG.
 7. Der normale Apple Installer installiert das PKG tatsächlich auf dem temporären
-   GitHub-Mac. Alle 39 installierten Bundles müssen bytegenau zu den validierten
+   GitHub-Mac. Alle 47 installierten Bundles müssen bytegenau zu den validierten
    Universal-Bundles passen. Erst danach wird die DMG erstellt.
 
 Ein GitHub-Job ist kein FL-Studio-Hörtest. Native GUI-Screenshots liegen in den
