@@ -219,7 +219,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLVOX",
     "name": "GILLVOX",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gvx1",
     "bundle_id": "com.gillproduction.gillvox",
     "default_size": [
@@ -231,7 +231,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLOPTA",
     "name": "GILLOPTA",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gop1",
     "bundle_id": "com.gillproduction.gillopta",
     "default_size": [
@@ -243,7 +243,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLBUSS",
     "name": "GILLBUSS",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gbs1",
     "bundle_id": "com.gillproduction.gillbuss",
     "default_size": [
@@ -255,7 +255,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLQUAD",
     "name": "GILLQUAD",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gqd1",
     "bundle_id": "com.gillproduction.gillquad",
     "default_size": [
@@ -267,7 +267,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLSTAGE",
     "name": "GILLSTAGE",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gsg1",
     "bundle_id": "com.gillproduction.gillstage",
     "default_size": [
@@ -279,7 +279,7 @@
     "group": "GILLNEXT",
     "target": "GILLRIDE",
     "name": "GILLRIDE",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gri1",
     "bundle_id": "com.gillproduction.gillride",
     "default_size": [
@@ -291,7 +291,7 @@
     "group": "GILLNEXT",
     "target": "GILLCLEAN",
     "name": "GILLCLEAN",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gcl1",
     "bundle_id": "com.gillproduction.gillclean",
     "default_size": [
@@ -303,7 +303,7 @@
     "group": "GILLNEXT",
     "target": "GILLPOCKET",
     "name": "GILLPOCKET",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gpt1",
     "bundle_id": "com.gillproduction.gillpocket",
     "default_size": [
@@ -315,7 +315,7 @@
     "group": "GILLNEXT",
     "target": "GILLALIGN",
     "name": "GILLALIGN",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gal1",
     "bundle_id": "com.gillproduction.gillalign",
     "default_size": [
@@ -327,7 +327,7 @@
     "group": "GILLNEXT",
     "target": "GILLFORM",
     "name": "GILLFORM",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gfm1",
     "bundle_id": "com.gillproduction.gillform",
     "default_size": [
@@ -339,7 +339,7 @@
     "group": "GILLNEXT",
     "target": "GILLFINISH",
     "name": "GILLFINISH",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gfn1",
     "bundle_id": "com.gillproduction.gillfinish",
     "default_size": [
@@ -351,7 +351,7 @@
     "group": "GILLCONTROL",
     "target": "GILLCONTROL",
     "name": "GILLCONTROL",
-    "version": "0.6.0",
+    "version": "0.8.0",
     "code": "Gct6",
     "bundle_id": "com.gillproduction.gillcontrol",
     "default_size": [

@@ -1,8 +1,8 @@
 # GILLPRODUCTION Plugins
 
-Development sources and build automation for 39 GILLPRODUCTION vocal and mix effects (update 07). The 34 existing products retain version 0.6.0; GILLMIX, GILLLINK, GILLHARMONY, GILLREFERENCE and GILLRESCUE use 0.7.0. Build targets are Windows x64 VST3 and macOS Universal VST3 for Apple Silicon and Intel. A new installer is produced only after its native verification gates pass.
+Development sources and build automation for 39 GILLPRODUCTION vocal and mix effects (update 08). Twelve existing products use 0.8.0 for rectangular editor layouts. The other 27 retain their validated versions; product IDs and audio processing are unchanged. Build targets are Windows x64 VST3 and macOS Universal VST3 for Apple Silicon and Intel. A new installer is produced only after its native verification gates pass.
 
-[Download Update 07 — 39 plugins, Windows installer and unsigned Mac DMG](https://github.com/twennieofficial-debug/gillproduction-plugins/releases/tag/bundle-test-07). Windows installation and the FL Studio 2025 scan passed. Both native Mac architectures, the same Universal bundles, and the actual Mac package installation passed their automated gates. The Mac build remains an unsigned test version; it has not been tested in FL Studio on macOS.
+[Download the published update 07 — Windows installer and unsigned Mac DMG](https://github.com/twennieofficial-debug/gillproduction-plugins/releases/tag/bundle-test-07). This verified release contains 39 plugins. Update 08 rectangular editor builds will be published after native checks complete. The eight new master-series artworks are concepts, not additional executable products.
 
 Sources, presets, tests and artwork are in `work/GILL*`; shared quality and interface helpers are in `work/GILLCommon` and must be included when building any group. Each product group includes `BUILDING.md`. JUCE 8.0.12 is pinned as a submodule under `work/dependencies/JUCE`; initialize submodules before building. See the [Mac build and packaging guide](work/packaging/macos/README.md) for the native build, validation and installer workflow.
 

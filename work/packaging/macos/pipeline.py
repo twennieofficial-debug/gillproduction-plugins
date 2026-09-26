@@ -32,8 +32,8 @@ GROUPS = sorted({p["group"] for p in PRODUCTS})
 PRODUCT_COUNT = len(PRODUCTS)
 JUCE_COMMIT = "29396c22c93392d6738e021b83196283d6e4d850"
 MIN_MACOS = "11.0"
-RELEASE = "07"
-SUITE_VERSION = "0.7.0"
+RELEASE = "08"
+SUITE_VERSION = "0.8.0"
 QUALITY_SAMPLE_RATES = (44100, 48000, 96000, 192000)
 PLUGINVAL_URL = "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip"
 PLUGINVAL_SHA256 = "3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f"
@@ -825,7 +825,7 @@ def package(args):
     shutil.copytree(universal / "plugins", plugin_dir, symlinks=True)
     docs = payload / "Library/Application Support/GILLPRODUCTION"
     docs.mkdir(parents=True)
-    for name in ("MAC-INSTALLATION.txt", "products.json", "GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-07-ANLEITUNG.md"):
+    for name in ("MAC-INSTALLATION.txt", "products.json", "GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-08-ANLEITUNG.md"):
         shutil.copy2(HERE / name, docs / name)
     source = Path(args.source).resolve()
     for group in GROUPS:
@@ -896,7 +896,7 @@ def package(args):
     disk.mkdir()
     shutil.copy2(pkg, disk / pkg.name)
     shutil.copy2(HERE / "MAC-INSTALLATION.txt", disk / "ZUERST-LESEN.txt")
-    for name in ("GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-07-ANLEITUNG.md"):
+    for name in ("GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-08-ANLEITUNG.md"):
         shutil.copy2(HERE / name, disk / name)
     shutil.copy2(source_archive, disk / "GILL-QUELLCODE.zip")
     if not args.notarize:

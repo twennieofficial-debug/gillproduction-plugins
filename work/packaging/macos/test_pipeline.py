@@ -215,7 +215,7 @@ class SourceArchiveTests(unittest.TestCase):
     def test_catalog_preserves_products_and_compact_sizes(self):
         self.assertEqual(len(p.PRODUCTS), 39)
         self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 39)
-        self.assertEqual(sum(x["version"] == "0.6.0" for x in p.PRODUCTS), 34)
+        self.assertEqual(sum(x["version"] == "0.6.0" for x in p.PRODUCTS), 22)
         self.assertEqual({x["name"] for x in p.PRODUCTS if x["version"] == "0.7.0"},
                          {"GILLMIX", "GILLLINK", "GILLHARMONY", "GILLREFERENCE", "GILLRESCUE"})
         self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 54)
@@ -376,12 +376,12 @@ class NativeQualityGateTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(RuntimeError):
                 p.verify_quality_result(result, 48000)
 
-    def test_release07_keeps_exact_old_and_new_product_versions(self):
-        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("07", "0.7.0"))
+    def test_release08_keeps_exact_old_and_updated_product_versions(self):
+        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("08", "0.8.0"))
         for rate in p.QUALITY_SAMPLE_RATES:
             p.verify_quality_result(quality_result_fixture(rate), rate)
         for name, wrong in (("GILLEQ", "0.7.0"), ("GILLHARMONY", "0.6.0"),
-                            ("GILLREFERENCE", "0.8.0"), ("GILLLINK", "")):
+                            ("GILLREFERENCE", "0.8.0"), ("GILLLINK", ""), ("GILLVOX", "0.6.0"), ("GILLFINISH", "0.7.0")):
             result = quality_result_fixture(48000)
             next(x for x in result["products"] if x["name"] == name)["factory_version"] = wrong
             with self.subTest(name=name, version=wrong), self.assertRaisesRegex(RuntimeError, "factory version"):

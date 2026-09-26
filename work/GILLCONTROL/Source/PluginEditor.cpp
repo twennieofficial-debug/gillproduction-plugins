@@ -20,16 +20,16 @@ void GillControlEditor::paint(juce::Graphics& g) {
     const auto bounds = getLocalBounds().toFloat();
     g.fillAll(juce::Colour(0xff191512));
     g.setGradientFill(juce::ColourGradient(juce::Colour(0xff5b3c27), 0, 0, juce::Colour(0xff251b15), 0, bounds.getHeight(), false));
-    g.fillRoundedRectangle(bounds.reduced(5), 20);
+    g.fillRect(bounds);
     // Restrained procedural walnut grain remains crisp at Retina scale.
-    g.saveState(); g.reduceClipRegion(getLocalBounds().reduced(10));
+    g.saveState(); g.reduceClipRegion(getLocalBounds());
     for (int i = 0; i < 40; ++i) {
         juce::Path grain; const float y = 8.f + i * 5.5f;
         grain.startNewSubPath(0, y); grain.cubicTo(120, y + 5 + std::sin(i * .8f) * 3, 280, y - 4, 420, y + 1);
         g.setColour(juce::Colour(i % 3 == 0 ? 0x1430180a : 0x0cffe6b5)); g.strokePath(grain, juce::PathStrokeType(.7f));
     }
     g.restoreState();
-    g.setColour(juce::Colour(0xffab8a5c)); g.drawRoundedRectangle(bounds.reduced(6), 19, 1);
+    g.setColour(juce::Colour(0xffab8a5c)); g.drawRect(bounds.reduced(1), 1);
     g.setColour(juce::Colour(0xfff0dfc2)); g.setFont(juce::FontOptions(25, juce::Font::bold));
     g.drawText("GP", 23, 18, 49, 40, juce::Justification::centred);
     g.setFont(juce::FontOptions(23, juce::Font::bold)); g.drawText("GILLCONTROL", 83, 20, 310, 29, juce::Justification::centredLeft);
