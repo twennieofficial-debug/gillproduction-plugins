@@ -269,12 +269,14 @@ bool sameProfile(const gill::LearnProfile& a, const gill::LearnProfile& b) {
 void learning() {
     GillVocalProcessor p(GillKind::Flow); product = p.getName().toStdString(); prepare(p);
     p.requestLearning(true); silence(p, 24000);
-    check(p.learnState.load() == 1 && p.learnProgress.load() == 0.0f && !p.savedProfile().valid,
-          "LEARN ignores silence and has no fabricated progress");
+    check(p.learnState.load() == 1 && p.learnProgress.load() > 0.0f && !p.savedProfile().valid,
+          "LEARN counts elapsed capture time while silence creates no profile");
     feedVocal(p, 10.1);
+    check(p.learnState.load()==1,"full-song learning does not finish at former ten-second limit");
+    p.requestLearning(false);silence(p,128);
     const auto learned = p.savedProfile();
     check(learned.valid && p.learnState.load() == 2 && p.learnProgress.load() == 1.0f &&
-          learned.rmsDb < 0 && learned.peakDb >= learned.rmsDb, "ten seconds of real processed active signal creates a measured profile");
+          learned.rmsDb < 0 && learned.peakDb >= learned.rmsDb, "explicit FINISH creates a measured profile from the captured signal");
     p.releaseResources(); prepare(p, 96000.0, 257); silence(p, 257);
     check(sameProfile(learned, p.savedProfile()) && p.learnState.load() == 2, "completed profile survives reset and sample-rate change");
     juce::MemoryBlock state; p.getStateInformation(state);
@@ -486,12 +488,12 @@ void ui(GillKind kind, bool liveTune = false) {
         auto* gain = components.button("AUTO GAIN"); const float before = p.value("autogain"); if (gain) click(*gain);
         check(gain && p.value("autogain") != before, "actual AUTO GAIN mouse click updates parameter");
         auto* learn = components.button("LEARN"); if (learn) click(*learn); silence(p, 128);
-        check(waitForVisualState([&] { return learn && p.learnState.load() == 1 && learn->getButtonText() == "CANCEL"; }),
+        check(waitForVisualState([&] { return learn && p.learnState.load() == 1 && learn->getButtonText() == "FINISH"; }),
               "actual LEARN click starts analysis and exposes CANCEL");
         if (learn) click(*learn); silence(p, 128);
         check(waitForVisualState([&] { return learn && p.learnState.load() == 0 && learn->getButtonText() == "LEARN"; }),
               "actual CANCEL click stops unfinished analysis");
-        if (learn) click(*learn); feedVocal(p, 10.1); tick();
+        if (learn) click(*learn); feedVocal(p, 10.1); if(learn)click(*learn); silence(p,128); tick();
         check(p.learnState.load() == 2 && p.savedProfile().valid, "real LEARN button reaches READY from processed signal");
     }
     check(listener.begins == listener.ends && listener.balancedOrder && listener.begins > 0,

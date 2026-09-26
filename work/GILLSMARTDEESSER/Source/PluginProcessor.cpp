@@ -29,10 +29,10 @@ void GillSmartDeEsserProcessor::prepareToPlay(double rate,int){
     supported.store(std::isfinite(rate)&&rate>=16000&&rate<=384000);const double fs=gillsmart::validSampleRate(rate);uiRate.store(fs);
     engine.setAmount(value("amount")*.01);engine.setProfile(value("frequency"),value("q"),value("threshold"),value("maxcut"));engine.prepare(fs);learner.prepare(fs);
     wetRamp.reset(fs,.008);wetRamp.setCurrentAndTargetValue(value("bypass")>.5?0:1);listenRamp.reset(fs,.008);listenRamp.setCurrentAndTargetValue(value("listen")>.5?1:0);
-    collecting=false;request.store(0);activeSeconds.store(0);learnState.store(value("profile")>.5?applied:idle);setLatencySamples(0);
+    collecting=waitingForPlay=haveLearnPosition=false;request.store(0);activeSeconds.store(0);elapsedSeconds.store(0);learnState.store(value("profile")>.5?applied:idle);setLatencySamples(0);
 }
-void GillSmartDeEsserProcessor::startLearning(){learnState.store(learning,std::memory_order_release);activeSeconds.store(0);request.store(1,std::memory_order_release);}
-void GillSmartDeEsserProcessor::finishLearning(){if(learnState.load()==learning)request.store(2,std::memory_order_release);}
+void GillSmartDeEsserProcessor::startLearning(){learnState.store(armed,std::memory_order_release);activeSeconds.store(0);elapsedSeconds.store(0);request.store(1,std::memory_order_release);}
+void GillSmartDeEsserProcessor::finishLearning(){const auto state=learnState.load();if(state==learning||state==armed)request.store(2,std::memory_order_release);}
 void GillSmartDeEsserProcessor::publish(const gillsmart::Profile& p)noexcept{
     candidateVersion.fetch_add(1,std::memory_order_acq_rel);
     const double values[]{p.frequency,p.q,p.threshold,p.maximum,p.amount,p.activeSeconds,p.voiceSeconds,p.sibilantSeconds};
@@ -49,7 +49,9 @@ bool GillSmartDeEsserProcessor::learnedCandidate(gillsmart::Profile& p)const noe
 bool GillSmartDeEsserProcessor::applyLearned(){
     gillsmart::Profile p;if(!learnedCandidate(p))return false;
     for(size_t i=0;i<undoValues.size();++i)undoValues[i]=value(profileIds[i]);
-    const double values[]{p.frequency,p.q,p.threshold,p.maximum,p.amount,1,p.activeSeconds,p.voiceSeconds,p.sibilantSeconds};
+    // Preserve the ranges of these existing host parameters for old automation.
+    // They are compatibility counters, not weights in the full-song analysis.
+    const double values[]{p.frequency,p.q,p.threshold,p.maximum,p.amount,1,std::min(30.,p.activeSeconds),std::min(30.,p.voiceSeconds),std::min(30.,p.sibilantSeconds)};
     for(size_t i=0;i<undoValues.size();++i)setValue(profileIds[i],static_cast<float>(values[i]));
     undoAvailable.store(true);learnState.store(applied);return true;
 }
@@ -58,9 +60,17 @@ template<class T> void GillSmartDeEsserProcessor::process(juce::AudioBuffer<T>& 
     juce::ScopedNoDenormals denormals;const int channels=std::min(2,buffer.getNumChannels()),samples=buffer.getNumSamples();if(channels<1)return;
     for(int c=channels;c<buffer.getNumChannels();++c)buffer.clear(c,0,samples);
     const int command=request.exchange(0,std::memory_order_acq_rel);
-    if(command==1){learner.reset();collecting=true;}else if(command==2){publish(collecting?learner.result():gillsmart::Profile{});collecting=false;}else if(command==3){collecting=false;}
+    if(command==1){learner.reset();collecting=false;waitingForPlay=true;haveLearnPosition=false;}
+    else if(command==2){if(collecting)publish(learner.result());else learnState.store(value("profile")>.5?applied:idle);collecting=waitingForPlay=haveLearnPosition=false;}
+    else if(command==3){collecting=waitingForPlay=haveLearnPosition=false;}
+    auto* head=getPlayHead();const auto position=head?head->getPosition():juce::Optional<juce::AudioPlayHead::PositionInfo>{};
+    const bool playing=!position||position->getIsPlaying();
+    const auto time=position?position->getTimeInSeconds():juce::Optional<double>{};
+    if(collecting&&(!playing||(time&&haveLearnPosition&&std::isfinite(*time)&&std::abs(*time-expectedLearnSeconds)>std::max(.002,2.0/uiRate.load())))){publish(learner.result());collecting=haveLearnPosition=false;}
+    if(waitingForPlay&&playing){waitingForPlay=false;collecting=true;learnState.store(learning);}
+    if(collecting&&time&&std::isfinite(*time)){expectedLearnSeconds=*time+samples/uiRate.load();haveLearnPosition=true;}
     if(!supported.load()){for(int c=0;c<channels;++c)for(int n=0;n<samples;++n)if(!std::isfinite(buffer.getSample(c,n)))buffer.setSample(c,n,T{});if(collecting){collecting=false;learnState.store(insufficient);}return;}
-    if(collecting){learner.process(buffer.getArrayOfReadPointers(),channels,samples);activeSeconds.store(static_cast<float>(learner.activeSeconds()));if(learner.shouldFinish()){publish(learner.result());collecting=false;}}
+    if(collecting){learner.process(buffer.getArrayOfReadPointers(),channels,samples);activeSeconds.store(static_cast<float>(learner.activeSeconds()));elapsedSeconds.store(static_cast<float>(learner.elapsedSeconds()));if(learner.shouldFinish(true)){publish(learner.result());collecting=haveLearnPosition=false;}}
     const auto parameter=[this](size_t i){return realtimeParameters[i]->load(std::memory_order_relaxed);};
     engine.setAmount(parameter(0)*.01);engine.setProfile(parameter(1),parameter(2),parameter(3),parameter(4));
     wetRamp.setTargetValue(hostBypass||parameter(5)>.5?0:1);listenRamp.setTargetValue(parameter(6)>.5?1:0);

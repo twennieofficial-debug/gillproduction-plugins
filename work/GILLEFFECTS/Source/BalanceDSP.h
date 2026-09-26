@@ -56,11 +56,12 @@ public:
         requestedTarget=std::clamp(target0to4,0,4);setGainTargets(!hasAudio);
         fineStage.setAmount(requestedAmount);
     }
-    void startLearning() noexcept {clearLearning();learnState=1;}
+    void startLearning(bool entireSong=false) noexcept {fullSong=entireSong;clearLearning();learnState=1;}
+    void finishLearning() noexcept {if(learnState!=1)return;if(activeSamples<fs*2.){learnState=profile.valid?2:0;return;}completeProfile();}
     void cancelLearning() noexcept {clearLearning();learnState=profile.valid?2:0;}
     int latencySamples() const noexcept {return 0;}
     int learningState() const noexcept {return learnState;}
-    float learningProgress() const noexcept {return learnState==2?1.f:(learnState==0?0.f:static_cast<float>(std::min(1.,activeSamples/(fs*10))));}
+    float learningProgress() const noexcept {return learnState==2?1.f:(learnState==0?0.f:static_cast<float>(std::min(1.,(fullSong?wallSamples:activeSamples)/(fs*(fullSong?300.:10.)))));}
     LearnBalanceProfile learnedProfile() const noexcept {return profile;}
     bool setLearnedProfile(const LearnBalanceProfile& p) noexcept {
         if(p.version!=1&&p.version!=2)return false;
@@ -187,7 +188,7 @@ private:
         std::uint32_t total=0;const auto half=(acceptedFrames+1)/2;
         for(std::size_t i=0;i<values.size();++i){total+=values[i];if(total>=half)return static_cast<double>(i)*.5-96;}return -96;
     }
-    void finishLearning()noexcept{
+    void completeProfile()noexcept{
         LearnBalanceProfile next;next.valid=true;next.sampleRate=fs;next.activeRmsDb=static_cast<float>(median(rmsHistogram));int validCount=0;
         for(std::size_t b=0;b<bandCount;++b){next.bandDb[b]=static_cast<float>(std::clamp(median(histogram[b]),-96.,0.));next.validBands[b]=available[b]&&measurableFrames[b]*2>=acceptedFrames&&next.bandDb[b]>-45&&next.activeRmsDb+next.bandDb[b]>-72;if(next.validBands[b])++validCount;}
         next.fine=fineAnalyzer.profile();next.version=next.fine.frames>=10?2:1;
@@ -201,12 +202,12 @@ private:
                 ++acceptedFrames;activeSamples+=frameSamples;++rmsHistogram[static_cast<std::size_t>(bin(rms))];
                 for(std::size_t b=0;b<bandCount;++b){const double relative=std::min(0.,db(frameBands[b]/std::max(1e-30,framePower)));++histogram[b][static_cast<std::size_t>(bin(relative))];if(available[b]&&relative>-45&&relative+rms>-72)++measurableFrames[b];}
             }
-            frameSamples=0;framePower=framePeak=0;frameBands={};if(activeSamples>=fs*10)finishLearning();
+            frameSamples=0;framePower=framePeak=0;frameBands={};if(!fullSong && activeSamples>=fs*10)finishLearning();
         }
-        if(learnState==1&&wallSamples>=fs*30)learnState=3;
+        if(learnState==1&&wallSamples>=fs*(fullSong?300.:30.)){if(fullSong)finishLearning();if(!fullSong||learnState!=2)learnState=3;}
     }
     double fs=48000,meterDecay=std::exp(-1/(48000*.2));int frameLength=960,rampLength=3840,frameSamples=0,learnState=0,quantumLeft=0;
-    float requestedAmount=60;int requestedTarget=2;bool hasAudio=false;
+    float requestedAmount=60;int requestedTarget=2;bool hasAudio=false,fullSong=false;
     LearnBalanceProfile profile;
     FineBalanceAnalyzer fineAnalyzer;
     FineBalanceStage fineStage;

@@ -102,12 +102,12 @@ int main() {
     { RescueDSP dsp; dsp.prepare(48000,127,1);dsp.requestLearn();auto x=signal(48000,173,1,3.2);
       for(auto&v:x)v=std::clamp(v,-.5f,.8f);
       for(int n=0;n<int(x.size());n+=127){float*a[]{x.data()+n};watched=true;dsp.process(a,1,std::min(127,int(x.size())-n));watched=false;}
-      check(!dsp.isLearning()&&dsp.learnRevision()==1,"LEARN completes after real three-second capture");
+      check(dsp.isLearning()&&dsp.learnRevision()==0,"whole-song LEARN remains active beyond three seconds");dsp.requestFinish();float stopSample=0;float*stopData[]{&stopSample};watched=true;dsp.process(stopData,1,1);watched=false;check(!dsp.isLearning()&&dsp.learnRevision()==1,"manual FINISH commits the captured clip statistics");
       check(std::abs(dsp.learnedPositiveDb()-20*std::log10(.8))<.01,"LEARN measures actual positive clip boundary",dsp.learnedPositiveDb());
       check(std::abs(dsp.learnedNegativeDb()-20*std::log10(.5))<.01,"LEARN measures separate negative clip boundary",dsp.learnedNegativeDb());
       dsp.reset();dsp.requestLearn();x.assign(153600,0);
       for(int n=0;n<int(x.size());n+=127){float*a[]{x.data()+n};dsp.process(a,1,std::min(127,int(x.size())-n));}
-      check(dsp.learnedPositiveDb()==-100&&dsp.learnedNegativeDb()==-100,"Silence produces no fabricated clip threshold");
+      dsp.requestFinish();dsp.process(stopData,1,1);check(dsp.learnedPositiveDb()==-100&&dsp.learnedNegativeDb()==-100,"Silence produces no fabricated clip threshold");
     }
     { auto x=signal(48000,137,0);x[1000]=std::numeric_limits<float>::infinity();x[2000]=std::numeric_limits<float>::quiet_NaN();
       const auto r=render(x,48000,p,false);bool good=true;for(float v:r.audio)good=good&&std::isfinite(v);check(good,"Nonfinite input cannot contaminate output");
@@ -128,6 +128,12 @@ int main() {
       for(int n=0;n<127;++n)a[n]=b[n]=float(.95*std::sin((block*127+n)*.07));float*channels[]{a.data(),b.data()};watched=true;dsp.setLiveMode(block%2==0);dsp.process(channels,2,127);watched=false;
       for(float v:a)good=good&&std::isfinite(v)&&std::abs(v)<4;
      }check(good,"Parameter and mode stress is finite and bounded");
+    }
+    {RescueDSP dsp;dsp.prepare(8000,127,1);dsp.requestLearn();std::array<float,127>samples{};
+     for(int start=0;start<2400400;start+=127){const int n=std::min(127,2400400-start);for(int i=0;i<n;++i){const double t=(start+i)/8000.;const float x=static_cast<float>(std::sin(2*3.14159265358979323846*173*t));samples[i]=std::clamp(x,t<3?-.5f:-.25f,t<3?.8f:.5f);}float*audio[]{samples.data()};watched=true;dsp.process(audio,1,n);watched=false;}
+     check(!dsp.isLearning()&&dsp.learnRevision()==1&&std::abs(dsp.learningSeconds()-300)<.001f,"full-song clip learning auto-finishes at exactly five minutes");
+     check(std::abs(dsp.learnedPositiveDb()-20*std::log10(.5))<.01&&std::abs(dsp.learnedNegativeDb()-20*std::log10(.25))<.01,"five-minute analysis follows the whole song instead of its first three seconds");
+     const float prior=dsp.learnedPositiveDb();dsp.startLearning();dsp.cancelLearning();check(dsp.learnedPositiveDb()==prior&&!dsp.isLearning(),"canceling an armed learn preserves its previous clip result");
     }
     check(allocations==0,"Audio processing performs no heap allocation",double(allocations));
     std::printf("RESULT %d checks %d failures\n",checks,failures);return failures?1:0;

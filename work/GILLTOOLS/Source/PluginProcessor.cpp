@@ -82,6 +82,10 @@ void GillToolsProcessor::setValue(const juce::String& id,float value,bool gestur
     }
 }
 void GillToolsProcessor::prepareToPlay(double rate,int block) {
+    rescueLearnTransport.reset();rescueLearnState=0;
+    const auto pendingRescueCommand=rescueLearnCommand.exchange(0);
+    if(rescue&&(pendingRescueCommand==3||rescueResultSuppressed.load()))learnSeen=rescue->learnRevision();
+    rescueResultSuppressed=false;
     supported=std::isfinite(rate)&&rate>=8000&&rate<=192000;rateView=supported?rate:48000;
     const bool live=!quality.isPro();const int channels=getTotalNumOutputChannels();
     if(harmony){harmony->setParameters(harmonyParameters(false));harmony->setLiveMode(live);harmony->prepare(rateView.load(),block,channels);setLatencySamples(harmony->latencySamples());}
@@ -90,6 +94,7 @@ void GillToolsProcessor::prepareToPlay(double rate,int block) {
     transition.prepare(rateView.load(),live?0:1);hadPosition=false;nextPosition=0;
 }
 void GillToolsProcessor::releaseResources() {
+    if(rescue)rescue->finishLearning();rescueLearnTransport.reset();rescueLearnState=0;rescueLearnCommand=0;
     if(harmony)harmony->reset();if(rescue)rescue->reset();if(reference)reference->reset();
 }
 double GillToolsProcessor::getTailLengthSeconds() const {
@@ -116,8 +121,10 @@ void GillToolsProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypas
         harmony->setLiveMode(live);harmony->setParameters(harmonyParameters(hostBypass));harmony->process(buffer.getArrayOfWritePointers(),channels,frames);
         latency=harmony->latencySamples();inputPeak=harmony->inputPeak();outputPeak=harmony->outputPeak();
     } else if(rescue) {
+        const auto command=rescueLearnCommand.exchange(0);if(command==3){rescue->cancelLearning();rescueLearnTransport.reset();learnSeen=rescue->learnRevision();rescueResultSuppressed=false;}
+        else rescueLearnTransport.before(command,getPlayHead(),frames,rateView.load(),*rescue);
         rescue->setLiveMode(live);rescue->setParameters(rescueParameters(hostBypass));rescue->process(buffer.getArrayOfWritePointers(),channels,frames);
-        latency=rescue->latencySamples();inputPeak=rescue->inputPeak();outputPeak=rescue->outputPeak();
+        rescueLearnState=rescueLearnTransport.state(*rescue);latency=rescue->latencySamples();inputPeak=rescue->inputPeak();outputPeak=rescue->outputPeak();
     } else if(reference) {
         gill::tools::ReferenceEngine::Parameters p;p.match=parameter(1)>.5f;p.trimDb=parameter(2);p.mono=parameter(3)>.5f;p.channelView=int(parameter(4));p.listenBand=int(parameter(5));p.follow=parameter(6)>.5f;p.bypass=hostBypass||parameter(8)>.5f;
         gill::tools::ReferenceEngine::Transport transport;transport.offline=isNonRealtime();
@@ -128,15 +135,16 @@ void GillToolsProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypas
         nextPosition=transport.positionSamples+(transport.playing?frames:0);hadPosition=transport.hasPosition;
         reference->setReferenceEnabled(parameter(0)>.5f);reference->process(buffer,transport,p);
     }
-    if(latency!=getLatencySamples())setLatencySamples(latency);
+    quality.requestLatencySamples(latency);
     if(!reference)transition.process(buffer.getArrayOfWritePointers(),channels,frames,live?0:1);
 }
 void GillToolsProcessor::timerCallback() {
     if(reference){const int slot=std::clamp(int(value("fileSlot")),0,2);if(slot!=lastSlot){lastSlot=slot;setValue("reference",0,false);reference->selectSlot(slot);}}
-    if(rescue){const auto revision=rescue->learnRevision();if(revision!=learnSeen){learnSeen=revision;
+    if(rescue&&!rescueResultSuppressed){const auto revision=rescue->learnRevision();if(revision!=learnSeen){
         const float positive=rescue->learnedPositiveDb(),negative=rescue->learnedNegativeDb();
         if(positive>=-24&&positive<=.01f)setValue("clipDb",std::min(0.f,positive));
         if(negative>=-24&&negative<=.01f)setValue("negativeClipDb",std::min(0.f,negative));
+        learnSeen=revision;
     }}
 }
 void GillToolsProcessor::loadReference(int slot,const juce::File& file) {
@@ -145,6 +153,7 @@ void GillToolsProcessor::loadReference(int slot,const juce::File& file) {
 }
 const juce::String GillToolsProcessor::getProgramName(int index) { return presets[static_cast<int>(kind)][std::clamp(index,0,5)]; }
 void GillToolsProcessor::selectPreset(int index,bool gesture) {
+    if(rescue)cancelRescueLearn();
     index=std::clamp(index,0,5);
     auto set=[&](const juce::String& id,float value){setValue(id,value,gesture);};
     set("bypass",0);
@@ -159,6 +168,12 @@ void GillToolsProcessor::selectPreset(int index,bool gesture) {
 }
 void GillToolsProcessor::getStateInformation(juce::MemoryBlock& bytes) {
     auto tree=apvts.copyState();tree.setProperty("schema",1,nullptr);tree.setProperty("program",program.load(),nullptr);
+    // Preserve a just-completed result even if the message-thread timer has
+    // not yet copied it to the host parameters when the DAW saves its project.
+    if(rescue&&!rescueResultSuppressed&&rescue->learnRevision()!=learnSeen){
+        const char* ids[]{"clipDb","negativeClipDb"};const float values[]{rescue->learnedPositiveDb(),rescue->learnedNegativeDb()};
+        for(int i=0;i<2;++i)if(values[i]>=-24&&values[i]<=.01f){auto child=tree.getChildWithProperty("id",ids[i]);if(child.isValid())child.setProperty("value",apvts.getParameter(ids[i])->getNormalisableRange().snapToLegalValue(std::min(0.f,values[i])),nullptr);}
+    }
     if(reference){for(auto child:tree)if(child["id"].toString()=="reference")child.setProperty("value",0,nullptr);tree.addChild(reference->getState(),-1,nullptr);}
     if(auto xml=tree.createXml())copyXmlToBinary(*xml,bytes);
 }
@@ -177,7 +192,7 @@ void GillToolsProcessor::setStateInformation(const void* data,int bytes) {
     }
     if(seen.size()!=int(raw.size()))return;
     if(referenceState.isValid()){reference->setState(referenceState);tree.removeChild(referenceState,nullptr);}
-    apvts.replaceState(tree);
+    if(rescue)cancelRescueLearn();apvts.replaceState(tree);
     // Hosts can send fractional normalized values even for switches. APVTS
     // caches the snapped value and can skip restoring an equal snapped value
     // while the underlying host parameter still holds the fractional input.

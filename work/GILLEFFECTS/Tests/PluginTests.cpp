@@ -301,8 +301,8 @@ bool sameProfile(const gill::LearnBalanceProfile& a,const gill::LearnBalanceProf
 void dryMigration(){for(auto kind:{GillKind::Space,GillKind::Echo}){GillEffectProcessor p(kind);product=p.getName().toStdString();set(p,"mix",37.2f);auto old=p.apvts.copyState();old.removeChild(old.getChildWithProperty("id","dry"),nullptr);old.setProperty("version",1,nullptr);set(p,"dry",0);stateFromTree(p,old);check(p.value("dry")==100&&std::abs(p.value("mix")-37.2f)<.001,"v1 state explicitly restores old DRY100 routing even after a wet-only session");set(p,"dry",0);bool all=true;for(int i=0;i<12;++i){p.selectPreset(i,false);all&=p.value("dry")==0;}check(all,"all factory presets retain user's wet-only DRY setting");juce::MemoryBlock state;p.getStateInformation(state);GillEffectProcessor restored(kind);restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));check(restored.value("dry")==0,"v2 state recalls wet-only routing");}}
 void learning() {
     GillEffectProcessor p(GillKind::Balance);product=p.getName().toStdString();prepare(p,8000);
-    p.requestLearning(true);silence(p,4000);check(p.learnState==1&&p.learnProgress==0&&!p.savedProfile().valid,"learning command ignores silence and exposes actual progress");
-    feedVocal(p,10.1);const auto learned=p.savedProfile();check(learned.valid&&p.learnState==2&&p.learnProgress==1,"wrapper collects and publishes completed tonal statistics");
+    p.requestLearning(true);silence(p,4000);check(p.learnState==1&&p.learnProgress>0&&!p.savedProfile().valid,"learning command ignores silence and exposes actual progress");
+    feedVocal(p,10.1);check(p.learnState==1,"full-song capture passes old ten-second boundary");p.requestLearning(false);silence(p,128);const auto learned=p.savedProfile();check(learned.valid&&p.learnState==2&&p.learnProgress==1,"wrapper collects and publishes completed tonal statistics");
     juce::MemoryBlock state;p.getStateInformation(state);GillEffectProcessor restored(GillKind::Balance);restored.setStateInformation(state.getData(),static_cast<int>(state.getSize()));
     check(restored.learnState==2&&restored.learnProgress==1&&sameProfile(learned,restored.savedProfile()),"restored learned state is visibly READY even while transport is stopped");
     restored.releaseResources();
@@ -422,9 +422,9 @@ void ui(GillKind kind) {
     }
     if(kind==GillKind::Balance) {
         auto* target=components.combo("TARGET");bool correct=target&&target->getNumItems()==5;if(target)for(int i=1;i<=5;++i){target->setSelectedId(i,juce::sendNotificationSync);++uiEdits;correct=correct&&p.value("target")==i-1;}check(correct,"all five actual tonal targets change real DSP choice");
-        auto* learn=components.button("LEARN");if(learn)click(*learn);silence(p,128);check(waitForVisualState([&]{return learn&&p.learnState==1&&learn->getButtonText()=="CANCEL";}),"actual LEARN click begins analysis and exposes CANCEL");
+        auto* learn=components.button("LEARN");if(learn)click(*learn);silence(p,128);check(waitForVisualState([&]{return learn&&p.learnState==1&&learn->getButtonText()=="FINISH";}),"actual LEARN click begins analysis and exposes CANCEL");
         if(learn)click(*learn);silence(p,128);check(waitForVisualState([&]{return learn&&p.learnState==0&&learn->getButtonText()=="LEARN";}),"actual CANCEL click stops incomplete learning");
-        if(learn)click(*learn);feedVocal(p,10.1);tick();check(p.savedProfile().valid&&p.learnState==2,"actual LEARN button reaches READY from audio");set(p,"amount",60);set(p,"target",2);
+        if(learn)click(*learn);feedVocal(p,10.1);if(learn)click(*learn);silence(p,128);tick();check(p.savedProfile().valid&&p.learnState==2,"actual LEARN button reaches READY from audio");set(p,"amount",60);set(p,"target",2);
     }
     auto* bypass=components.button("BYPASS");if(bypass)click(*bypass);check(bypass&&p.value("bypass")==1,"actual BYPASS click changes native host parameter");if(bypass)click(*bypass);
     check(listener.begins==listener.ends&&listener.balancedOrder&&listener.begins>0,"all actual UI gestures are balanced and never nested");p.removeListener(&listener);

@@ -10,15 +10,15 @@
 namespace gill::creative {
 static_assert(std::atomic<float>::is_always_lock_free&&std::atomic<double>::is_always_lock_free,"64-bit GILL audio requires lock-free numeric atomics");
 constexpr double pi=3.14159265358979323846;
-constexpr int maxMarkers=32, wavePoints=128, maxFrames=6000;
+constexpr int maxMarkers=512, wavePoints=512, maxFrames=30000;
 inline float finite(float x) noexcept{return std::isfinite(x)?std::clamp(x,-16.f,16.f):0.f;}
 inline float db(float x) noexcept{return 20.f*std::log10(std::max(1.e-9f,x));}
 enum class Kind{Phrase,Director,Reply};
 struct Marker{float startBeat=0,endBeat=0,startSec=0,endSec=0,strength=.5f;};
 struct Plan{
-    int count=0,capture=-1;unsigned captureEpoch=0;bool commit=false;float durationBeats=0,durationSeconds=0;double originPPQ=0;float bpm=120;
+    int count=0,capture=-1;unsigned captureEpoch=0,sourceRevision=0;bool commit=false;float durationBeats=0,durationSeconds=0;double originPPQ=0,originSeconds=0;bool timeAnchor=false;float bpm=120;
     std::array<Marker,maxMarkers> markers{};std::array<float,wavePoints> waveform{};
-    bool valid()const noexcept{return count>0&&count<=maxMarkers&&std::isfinite(originPPQ)&&durationBeats>0&&durationBeats<2000&&durationSeconds>0&&durationSeconds<=60.1f;}
+    bool valid()const noexcept{return count>0&&count<=maxMarkers&&std::isfinite(originPPQ)&&durationBeats>0&&durationBeats<=2001&&durationSeconds>0&&durationSeconds<=300.1f;}
 };
 // Atomic fields avoid C++ data races even when the bounded seqlock read retries.
 // There is exactly one producer for each mailbox. UI/state producers are
@@ -26,7 +26,7 @@ struct Plan{
 class PlanMailbox{
 public:
     void store(const Plan&p)noexcept{
-        version.fetch_add(1,std::memory_order_acq_rel);count=p.count;capture=p.capture;captureEpoch=p.captureEpoch;commit=p.commit;origin=p.originPPQ;
+        version.fetch_add(1,std::memory_order_acq_rel);count=p.count;capture=p.capture;captureEpoch=p.captureEpoch;sourceRevision=p.sourceRevision;commit=p.commit;origin=p.originPPQ;originSeconds=p.originSeconds;timeAnchor=p.timeAnchor;
         duration=p.durationBeats;seconds=p.durationSeconds;bpm=p.bpm;
         for(int i=0;i<maxMarkers;++i){const auto&m=p.markers[i];fields[i*5]=m.startBeat;fields[i*5+1]=m.endBeat;fields[i*5+2]=m.startSec;fields[i*5+3]=m.endSec;fields[i*5+4]=m.strength;}
         for(int i=0;i<wavePoints;++i)wave[i]=p.waveform[i];version.fetch_add(1,std::memory_order_release);
@@ -34,18 +34,18 @@ public:
     unsigned serial()const noexcept{return version.load(std::memory_order_acquire);}
     bool read(Plan&p,unsigned*revision=nullptr)const noexcept{
         for(int attempt=0;attempt<3;++attempt){const auto before=version.load(std::memory_order_acquire);if(before&1)continue;
-            Plan q;q.count=count.load();q.capture=capture.load();q.captureEpoch=captureEpoch.load();q.commit=commit.load();q.originPPQ=origin.load();q.durationBeats=duration.load();q.durationSeconds=seconds.load();q.bpm=bpm.load();
+            Plan q;q.count=count.load();q.capture=capture.load();q.captureEpoch=captureEpoch.load();q.sourceRevision=sourceRevision.load();q.commit=commit.load();q.originPPQ=origin.load();q.originSeconds=originSeconds.load();q.timeAnchor=timeAnchor.load();q.durationBeats=duration.load();q.durationSeconds=seconds.load();q.bpm=bpm.load();
             for(int i=0;i<maxMarkers;++i)q.markers[i]={fields[i*5].load(),fields[i*5+1].load(),fields[i*5+2].load(),fields[i*5+3].load(),fields[i*5+4].load()};
             for(int i=0;i<wavePoints;++i)q.waveform[i]=wave[i].load();
             if(before==version.load(std::memory_order_acquire)){p=q;if(revision)*revision=before;return true;}
         }return false;
     }
 private:
-    std::atomic<unsigned>version{0},captureEpoch{0};std::atomic<bool>commit{false};std::atomic<int>count{0},capture{-1};std::atomic<double>origin{0};
+    std::atomic<unsigned>version{0},captureEpoch{0},sourceRevision{0};std::atomic<bool>commit{false};std::atomic<int>count{0},capture{-1};std::atomic<double>origin{0},originSeconds{0};std::atomic<bool>timeAnchor{false};
     std::atomic<float>duration{0},seconds{0},bpm{120};std::array<std::atomic<float>,maxMarkers*5>fields{};std::array<std::atomic<float>,wavePoints>wave{};
 };
-struct Controls{float amount=.55f,length=1.6f,tone=.55f,width=1,mix=.25f,dry=1,sensitivity=-40;int variant=0;bool pro=true,bypass=false;};
-struct Transport{double ppq=0,bpm=120;bool hasPPQ=false,playing=true;};
+struct Controls{float amount=.55f,length=1.6f,tone=.55f,width=1,mix=.25f,dry=1,sensitivity=-40;int variant=0;bool pro=true,bypass=false,effectsOnly=false;};
+struct Transport{double ppq=0,bpm=120,seconds=0;bool hasPPQ=false,playing=true,hasSeconds=false;};
 
 class Reverb{
     std::array<std::vector<float>,8> lines;std::array<int,8>pos{};std::array<float,8>lp{},feedback{};
@@ -71,16 +71,19 @@ class Engine{
         float process(float x)noexcept{const double y=b0*x+s1;s1=b1*x-a1*y+s2;s2=b2*x-a2*y;return static_cast<float>(y);}
     };
 public:
+    struct CaptureSink { virtual ~CaptureSink()=default;virtual unsigned begin(double)noexcept=0;virtual void sample(float,float)noexcept=0;virtual void finish(bool)noexcept=0; };
+    void setCaptureSink(CaptureSink* value)noexcept { sink=value; }
     explicit Engine(Kind type):kind(type){}
     void prepare(double rate){
-        fs=std::isfinite(rate)&&rate>=8000&&rate<=384000?rate:48000;captureRate=std::min(48000.,fs);frameLength=std::max(32,static_cast<int>(fs*.01));
+        if(!frames)frames=std::make_unique<Frame[]>(maxFrames);fs=std::isfinite(rate)&&rate>=8000&&rate<=384000?rate:48000;captureRate=std::min(48000.,fs);frameLength=std::max(32,static_cast<int>(fs*.01));
         constexpr double q[]{.509795579,.601344886,.899976223,2.56291545};for(auto&channel:antiAlias)for(int i=0;i<4;++i)channel[i].prepare(fs,std::min(20000.,fs*.4),q[i]);
-        if(kind==Kind::Reply)for(auto&b:banks)if(!b.data){b.capacity=48000*60;b.data=std::make_unique<std::atomic<float>[]>(static_cast<size_t>(b.capacity)*2);b.role=0;b.used=0;b.rate=captureRate;}
+        if(kind==Kind::Reply)for(auto&b:banks)if(!b.data){b.capacity=48000*300;b.data=std::make_unique<std::atomic<float>[]>(static_cast<size_t>(b.capacity)*2);b.role=0;b.used=0;b.rate=captureRate;}
         delay[0].assign(static_cast<size_t>(fs*2.1)+4,0);delay[1].assign(delay[0].size(),0);reverb.prepare(fs);resetAudio();
         if(learning)abortLearn();if(!prepared){state=0;progress=0;candidate=Plan{};active=Plan{};undo=Plan{};published.store(candidate);applied=false;captureBank=-1;activeBank=-1;command=0;seenIncoming=0;prepared=true;}
         totalSamples=0;freePPQ=0;lastHostExpected=0;hadHost=false;wasPlaying=false;
     }
     void resetAudio()noexcept{reverb.reset();for(auto&d:delay)std::fill(d.begin(),d.end(),0.f);delayPos=0;voices={};detectorLP=0;detectorPrev=0;envelope=0;lowL=lowR=0;wetSmooth=0;lastBeat=-1.e9;}
+    void finishCaptureOutsideProcess()noexcept{armed=false;finishLearn();}
     void request(int c)noexcept{command.store(c,std::memory_order_release);}
     // Called only on a non-audio producer thread.
     void postPlan(const Plan&p,bool shouldCommit){Plan old;if(incoming.read(old)&&old.capture>=0&&old.capture<3&&old.capture!=p.capture&&banks[old.capture].epoch.load()==old.captureEpoch){int expected=4;banks[old.capture].role.compare_exchange_strong(expected,0);}auto next=p;next.commit=shouldCommit;incoming.store(next);}
@@ -103,41 +106,60 @@ public:
             b.epoch.fetch_add(1);for(int n=0;n<frames*2;++n)b.data[n].store(finite(interleaved[n]),std::memory_order_relaxed);b.used=frames;b.rate=rate;return i;}}
         return-1;
     }
+    // Import durable WAV assets without a second song-sized scratch buffer.
+    // This API is called only by a non-audio producer, under modelProducer.
+    template<class Reader> int importSource(std::int64_t samples,double sourceRate,Reader&& read){
+        if(kind!=Kind::Reply||samples<2||sourceRate<8000||sourceRate>384000||samples/sourceRate>300.01)return-1;
+        const double destinationRate=std::min(48000.,sourceRate);const int length=static_cast<int>(std::floor(samples*destinationRate/sourceRate));
+        int slot=-1;for(int pass=0;pass<2&&slot<0;++pass)for(int i=0;i<3;++i){int expected=pass==0?0:2;if(length<=banks[i].capacity&&banks[i].role.compare_exchange_strong(expected,4)){slot=i;break;}}
+        if(slot<0)return -1;auto& bank=banks[slot];bank.epoch.fetch_add(1);bank.rate=destinationRate;bank.used=0;
+        std::array<std::array<AntiAlias,4>,2>filters;constexpr double q[]{.509795579,.601344886,.899976223,2.56291545};for(auto&channel:filters)for(int i=0;i<4;++i)channel[i].prepare(sourceRate,std::min(20000.,sourceRate*.4),q[i]);
+        std::array<float,4096>l{},r{};double phase=0;float previousL=0,previousR=0;int at=0;const double ratio=destinationRate/sourceRate;
+        for(std::int64_t offset=0;offset<samples;offset+=4096){const int n=static_cast<int>(std::min<std::int64_t>(4096,samples-offset));if(!read(l.data(),r.data(),offset,n)){bank.role=0;return-1;}
+            for(int j=0;j<n;++j){float a=finite(l[j]),b=finite(r[j]);if(sourceRate>destinationRate)for(int i=0;i<4;++i){a=filters[0][i].process(a);b=filters[1][i].process(b);}phase+=ratio;if(phase>=1&&at<length){phase-=1;const float f=static_cast<float>(phase/ratio);bank.data[at*2]=a*(1-f)+previousL*f;bank.data[at*2+1]=b*(1-f)+previousR*f;++at;}previousL=a;previousR=b;}}
+        bank.used=at;return slot;
+    }
     void process(float*left,float*right,const float*sideL,const float*sideR,int count,const Controls&c,const Transport&t)noexcept{
         if(count<=0||!left)return;
-        const double bpm=std::isfinite(t.bpm)?std::clamp(t.bpm,20.,400.):120.,step=bpm/(60*fs);
-        double blockBeat=t.hasPPQ&&std::isfinite(t.ppq)?t.ppq:freePPQ;
-        const bool jumped=t.hasPPQ&&hadHost&&(std::abs(blockBeat-lastHostExpected)>.04||t.playing!=wasPlaying);
-        if(jumped){resetAudio();if(learning){abortLearn();state=4;}}
-        hadHost=t.hasPPQ;wasPlaying=t.playing;lastHostExpected=blockBeat+(t.playing?count*step:0);
+        const double bpm=std::isfinite(t.bpm)?std::clamp(t.bpm,20.,400.):120.;double step=bpm/(60*fs);
+        double blockBeat=t.hasPPQ&&std::isfinite(t.ppq)?t.ppq:(t.hasSeconds?t.seconds*bpm/60:freePPQ);
+        const bool stopped=hadHost&&wasPlaying&&!t.playing;
+        const bool jumped=(t.hasPPQ||t.hasSeconds)&&hadHost&&wasPlaying&&t.playing&&std::abs(blockBeat-lastHostExpected)>.04;
+        // STOP finalizes the take. A transport seek finalizes the contiguous
+        // segment instead of joining unrelated positions or discarding audio.
+        if(stopped||jumped){if(learning)finishLearn();resetAudio();}
+        hadHost=t.hasPPQ||t.hasSeconds;wasPlaying=t.playing;lastHostExpected=blockBeat+(t.playing?count*step:0);
         const int cmd=command.exchange(0,std::memory_order_acq_rel);
-        if(cmd==1)startLearn(blockBeat,bpm);else if(cmd==2)finishLearn();else if(cmd==3)applyCandidate();else if(cmd==4)undoApply();
+        if(cmd==1){armed=true;state=5;}else if(cmd==2){armed=false;if(state==5)state=0;finishLearn();}else if(cmd==3)applyCandidate();else if(cmd==4)undoApply();
         else if(cmd==5){preview=validPlan(candidate);previewBeat=candidate.originPPQ;resetAudio();}else if(cmd==6){preview=false;resetAudio();}
-        else if(cmd==7){abortLearn();active=Plan{};candidate=Plan{};undo=Plan{};applied=false;activeBank=-1;for(auto&bank:banks){int previous=bank.role.load();if(previous!=4)bank.role.compare_exchange_strong(previous,0);}published.store(candidate);publishedActive.store(active);seenIncoming=incoming.serial();resetAudio();}
+        else if(cmd==7){armed=false;abortLearn();active=Plan{};candidate=Plan{};undo=Plan{};applied=false;activeBank=-1;for(auto&bank:banks){int previous=bank.role.load();if(previous!=4)bank.role.compare_exchange_strong(previous,0);}published.store(candidate);publishedActive.store(active);seenIncoming=incoming.serial();resetAudio();}
+        if(armed&&t.playing){armed=false;startLearn(blockBeat,bpm);candidate.originSeconds=t.hasSeconds?t.seconds:blockBeat*60/bpm;candidate.timeAnchor=t.hasSeconds;}
         const auto revision=incoming.serial();
         if(revision!=seenIncoming){Plan p;unsigned readRevision=0;if(incoming.read(p,&readRevision)&&validPlan(p)){seenIncoming=readRevision;bool available=kind!=Kind::Reply;if(p.capture>=0&&p.capture<3&&banks[p.capture].epoch.load()==p.captureEpoch){auto&bank=banks[p.capture];int expected=4;const bool claimed=bank.role.compare_exchange_strong(expected,2);if(bank.epoch.load()!=p.captureEpoch){if(claimed){expected=2;bank.role.compare_exchange_strong(expected,4);}}else{const int role=bank.role.load();available=role==2||role==3;}}if(available){if(learning)abortLearn();candidate=p;published.store(candidate);state=2;if(p.commit)applyCandidate();}}}
         const auto&plan=preview?candidate:active;
-        if(preview){blockBeat=previewBeat;}else if(!t.hasPPQ&&!applied.load()&&candidate.valid())freePPQ=candidate.originPPQ;
+        if(!preview&&plan.valid()&&plan.timeAnchor&&t.hasSeconds){blockBeat=plan.originPPQ+(t.seconds-plan.originSeconds)*plan.bpm/60.;step=plan.bpm/(60.*fs);}
+        if(preview){blockBeat=previewBeat;step=candidate.bpm/(60.*fs);}else if(!t.hasPPQ&&!applied.load()&&candidate.valid())freePPQ=candidate.originPPQ;
         // A seek/apply starts at the new position; never fire every past reply
         // simultaneously merely because the trigger cursor was reset.
         if(lastBeat<-1.e8)lastBeat=blockBeat-step*.5;
-        float maximum=0,outputMaximum=0;const float follow=static_cast<float>(1-std::exp(-1/(fs*.012)));
+        int scanIndex=0;float maximum=0,outputMaximum=0;const float follow=static_cast<float>(1-std::exp(-1/(fs*.012)));
         const float threshold=std::pow(10.f,c.sensitivity/20.f);const float lowCoefficient=static_cast<float>(1-std::exp(-2*pi*1500/fs));
         for(int n=0;n<count;++n){
             const float l=finite(left[n]),r=right?finite(right[n]):l,mono=.5f*(l+r);maximum=std::max(maximum,std::max(std::abs(l),std::abs(r)));
             const double beat=blockBeat+n*step;detectorLP+=lowCoefficient*(mono-detectorLP);envelope+=follow*(std::abs(mono)-envelope);
             const float side=sideL?.5f*(std::abs(finite(sideL[n]))+std::abs(finite(sideR?sideR[n]:sideL[n]))):0;
-            if(learning)analyse(l,r,mono,side,beat,bpm,threshold);
+            if(learning&&t.playing)analyse(l,r,mono,side,candidate.originPPQ+totalSamples/fs*candidate.bpm/60.,candidate.bpm,threshold);
+            const double relativeBeat=beat-plan.originPPQ;while(scanIndex<plan.count&&plan.markers[scanIndex].endBeat<relativeBeat-4)++scanIndex;
             const float voice=std::clamp((std::abs(detectorLP)+envelope*.4f)/(envelope+1.e-6f),0.f,1.f);
             float local=.35f;int markerIndex=-1;
             if(plan.valid()){local=0;const double rel=beat-plan.originPPQ;
-                for(int i=0;i<plan.count;++i){const auto&m=plan.markers[i];if(rel>=m.startBeat&&rel<=m.endBeat){local=m.strength;markerIndex=i;}}
+                for(int i=scanIndex;i<plan.count;++i){const auto&m=plan.markers[i];if(m.startBeat>rel)break;if(rel>=m.startBeat&&rel<=m.endBeat){local=m.strength;markerIndex=i;}}
                 playPosition=static_cast<float>(std::clamp(rel/std::max(.01f,plan.durationBeats),0.,1.));
             }
             float wl=0,wr=0;
             if(kind==Kind::Phrase){
                 float send=voice*.08f;if(plan.valid()){send=0;const double rel=beat-plan.originPPQ;
-                    const float window=.22f+.55f*c.amount;for(int i=0;i<plan.count;++i){const auto&m=plan.markers[i];if(rel>=m.endBeat-window&&rel<=m.endBeat+.06f){const float ramp=std::clamp(static_cast<float>((rel-(m.endBeat-window))/window),0.f,1.f);send=std::max(send,m.strength*(.25f+.75f*ramp)*voice);}}}
+                    const float window=.22f+.55f*c.amount;for(int i=scanIndex;i<plan.count;++i){const auto&m=plan.markers[i];if(m.startBeat>rel+window)break;if(rel>=m.endBeat-window&&rel<=m.endBeat+.06f){const float ramp=std::clamp(static_cast<float>((rel-(m.endBeat-window))/window),0.f,1.f);send=std::max(send,m.strength*(.25f+.75f*ramp)*voice);}}}
                 const float softness=c.pro?std::clamp((voice-.25f)/.75f,0.f,1.f):voice;auto wet=reverb.process(mono*send*softness*(.5f+2*c.amount)*(c.variant==2?1.15f:1),c.length*(c.variant==1?1.3f:c.variant==2?.72f:1),c.tone,c.pro);wl=wet[0];wr=wet[1];
             }else if(kind==Kind::Director){
                 float activity=plan.valid()?local:.55f;
@@ -152,12 +174,12 @@ public:
                 const double div=c.variant==2?1./3:(c.variant==1?.75:.5);const int delaySamples=std::clamp(static_cast<int>(fs*60/bpm*div),1,static_cast<int>(delay[0].size())-1);
                 int read=delayPos-delaySamples;if(read<0)read+=static_cast<int>(delay[0].size());const float dl=delay[0][read],dr=delay[1][read];
                 delay[0][delayPos]=finite(a*.17f*intensity+dr*.28f);delay[1][delayPos]=finite(b*.17f*intensity+dl*.28f);
-                wl=a+wet[0]*(.25f+gap*.55f)+dl*gap;wr=b+wet[1]*(.25f+gap*.55f)+dr*gap;
+                wl=(c.effectsOnly?0:a)+wet[0]*(.25f+gap*.55f)+dl*gap;wr=(c.effectsOnly?0:b)+wet[1]*(.25f+gap*.55f)+dr*gap;
                 if(++delayPos>=static_cast<int>(delay[0].size()))delayPos=0;
             }else{
                 const bool running=preview||!t.hasPPQ||t.playing;
                 if(plan.valid()&&plan.capture>=0&&plan.capture<3&&banks[plan.capture].epoch.load()==plan.captureEpoch&&running){const double rel=beat-plan.originPPQ;
-                    for(int i=0;i<plan.count;++i){const auto&m=plan.markers[i];if((i*37+17)%100>=static_cast<int>(c.amount*100))continue;
+                    for(int i=scanIndex;i<plan.count;++i){const auto&m=plan.markers[i];if(m.endBeat>rel)break;if((i*37+17)%100>=static_cast<int>(c.amount*100))continue;
                         const double grid=c.variant==2?1./3:.25,first=std::ceil((m.endBeat+.08)/grid)*grid;
                         for(int repeat=0;repeat<=c.variant;++repeat){const double at=plan.originPPQ+first+repeat*grid;if(lastBeat<at&&beat>=at){
                             const float seconds=std::min(c.length,std::max(.025f,m.endSec-m.startSec));const float from=std::max(m.startSec,m.endSec-seconds);
@@ -186,7 +208,7 @@ public:
         previewDisplay=preview;freePPQ=blockBeat+count*step;inputPeak=maximum;outputPeak=outputMaximum;
     }
     static bool validPlan(const Plan&p)noexcept{
-        if(!p.valid()||!std::isfinite(p.bpm)||p.bpm<20||p.bpm>400)return false;float prev=-1;
+        if(!p.valid()||!std::isfinite(p.originSeconds)||!std::isfinite(p.bpm)||p.bpm<20||p.bpm>400)return false;float prev=-1;
         for(int i=0;i<p.count;++i){const auto&m=p.markers[i];if(!std::isfinite(m.startBeat)||!std::isfinite(m.endBeat)||!std::isfinite(m.startSec)||!std::isfinite(m.endSec)||!std::isfinite(m.strength)||m.startBeat<0||m.endBeat<=m.startBeat||m.endBeat>p.durationBeats+.1f||m.startBeat<prev||m.startSec<0||m.endSec<=m.startSec||m.endSec>p.durationSeconds+.02f||m.strength<0||m.strength>1)return false;prev=m.startBeat;}return true;
     }
     std::atomic<float>inputPeak{0},outputPeak{0};
@@ -204,9 +226,9 @@ private:
         if(kind==Kind::Reply){for(int i=0;i<3;++i){int expected=2;banks[i].role.compare_exchange_strong(expected,0);}for(int i=0;i<3;++i){int expected=0;if(banks[i].role.compare_exchange_strong(expected,1)){captureBank=i;banks[i].epoch.fetch_add(1);banks[i].used=0;banks[i].rate=captureRate;break;}}
             if(captureBank<0){state=4;return;}}
         learning=true;state=1;progress=0;capturedSeconds=0;frameCount=0;frameSamples=0;sumSquare=sumLow=sideSquare=0;crossings=0;totalSamples=0;capturePhase=0;previousCaptureL=previousCaptureR=0;phraseOpen=false;phraseBegin=lastVoicedBeat=0;phraseStartSec=lastVoicedSec=0;gapFrames=0;phraseStrength=0;framePrevious=0;sideSeen=false;for(auto&channel:antiAlias)for(auto&filter:channel)filter.s1=filter.s2=0;
-        published.store(candidate);
+        if(sink)candidate.sourceRevision=sink->begin(fs);published.store(candidate);
     }
-    void abortLearn()noexcept{learning=false;if(captureBank>=0&&banks[captureBank].role==1)banks[captureBank].role=0;captureBank=-1;progress=0;state=0;}
+    void abortLearn()noexcept{if(learning&&sink)sink->finish(false);learning=false;if(captureBank>=0&&banks[captureBank].role==1)banks[captureBank].role=0;captureBank=-1;progress=0;state=0;}
     void closePhrase()noexcept{
         if(!phraseOpen)return;phraseOpen=false;if(lastVoicedSec-phraseStartSec<.075f||candidate.count>=maxMarkers)return;
         candidate.markers[candidate.count++]={phraseBegin,std::max(phraseBegin+.01f,lastVoicedBeat),phraseStartSec,std::max(phraseStartSec+.01f,lastVoicedSec),std::clamp(phraseStrength,0.15f,1.f)};
@@ -216,7 +238,7 @@ private:
         for(int i=0;i<wavePoints;++i){const int from=i*frameCount/wavePoints,to=std::max(from+1,(i+1)*frameCount/wavePoints);float peak=0;for(int j=from;j<std::min(frameCount,to);++j)peak=std::max(peak,frames[j].rms);candidate.waveform[i]=peak;}
         if(!validPlan(candidate)){candidate=Plan{};if(captureBank>=0)banks[captureBank].role=0;state=4;progress=0;}
         else{if(captureBank>=0)banks[captureBank].role.store(2,std::memory_order_release);state=2;progress=1;}
-        published.store(candidate);
+        if(sink)sink->finish(validPlan(candidate));published.store(candidate);
     }
     bool claimBank(const Plan&p)noexcept{
         if(kind!=Kind::Reply)return true;
@@ -238,7 +260,8 @@ private:
         std::swap(active,undo);if(activeBank>=0&&activeBank!=active.capture)banks[activeBank].role=2;activeBank=active.capture;candidate=active;published.store(candidate);publishedActive.store(active);applied=true;state=3;resetAudio();
     }
     void analyse(float l,float r,float mono,float side,double beat,double bpm,float threshold)noexcept{
-        if(totalSamples>=static_cast<std::int64_t>(fs*60)){finishLearn();return;}lastAnalysedBeat=beat;
+        if(totalSamples>=static_cast<std::int64_t>(fs*300)){finishLearn();return;}lastAnalysedBeat=beat;
+        if(sink)sink->sample(l,r);
         if(kind==Kind::Reply&&captureBank>=0){float a=l,b=r;if(fs>captureRate)for(int i=0;i<4;++i){a=antiAlias[0][i].process(a);b=antiAlias[1][i].process(b);}const double ratio=captureRate/fs;capturePhase+=ratio;if(capturePhase>=1){capturePhase-=1;const float fraction=static_cast<float>(capturePhase/ratio);auto&bank=banks[captureBank];int at=bank.used.load(std::memory_order_relaxed);if(at<bank.capacity){bank.data[at*2].store(a*(1-fraction)+previousCaptureL*fraction,std::memory_order_relaxed);bank.data[at*2+1].store(b*(1-fraction)+previousCaptureR*fraction,std::memory_order_relaxed);bank.used.store(at+1,std::memory_order_release);}}previousCaptureL=a;previousCaptureR=b;}
         ++totalSamples;sumSquare+=mono*mono;sumLow+=detectorLP*detectorLP;sideSquare+=side*side;if((mono>=0)!=(framePrevious>=0))++crossings;framePrevious=mono;
         if(++frameSamples<frameLength)return;
@@ -249,14 +272,15 @@ private:
         if(rms>threshold&&voiced>.23f){if(!phraseOpen){phraseOpen=true;phraseBegin=std::max(0.f,relative-static_cast<float>(bpm/6000));phraseStartSec=std::max(0.f,sec-.01f);phraseStrength=0;}
             lastVoicedBeat=relative;lastVoicedSec=sec;gapFrames=0;const float pressure=std::clamp((db(rms)+45)/33,0.f,1.f);const float masking=std::clamp(sc/(rms+.001f),0.f,2.f);phraseStrength=std::max(phraseStrength,std::clamp(.25f+.65f*pressure-.08f*masking,.15f,1.f));
         }else if(phraseOpen&&++gapFrames>=16)closePhrase();
-        capturedSeconds=sec;progress=std::min(1.f,sec/60);frameSamples=0;sumSquare=sumLow=sideSquare=0;crossings=0;
+        capturedSeconds=sec;progress=std::min(1.f,sec/300);frameSamples=0;sumSquare=sumLow=sideSquare=0;crossings=0;
     }
     Kind kind;double fs=48000,captureRate=48000,freePPQ=0,lastHostExpected=0,lastBeat=-1.e9,previewBeat=0,lastAnalysedBeat=0,capturePhase=0;
-    bool prepared=false,hadHost=false,wasPlaying=false,learning=false,preview=false,phraseOpen=false;int frameLength=480,frameSamples=0,frameCount=0,crossings=0,gapFrames=0,captureBank=-1,activeBank=-1,delayPos=0;
+    CaptureSink* sink=nullptr;
+    bool prepared=false,hadHost=false,wasPlaying=false,learning=false,armed=false,preview=false,phraseOpen=false;int frameLength=480,frameSamples=0,frameCount=0,crossings=0,gapFrames=0,captureBank=-1,activeBank=-1,delayPos=0;
     std::int64_t totalSamples=0;double sumSquare=0,sumLow=0,sideSquare=0;float framePrevious=0,phraseBegin=0,lastVoicedBeat=0,phraseStartSec=0,lastVoicedSec=0,phraseStrength=0;
     float detectorLP=0,detectorPrev=0,envelope=0,lowL=0,lowR=0,wetSmooth=0,drySmooth=1,bypassSmooth=0,previousCaptureL=0,previousCaptureR=0;
     Plan candidate,active,undo;PlanMailbox published,publishedActive,incoming;unsigned seenIncoming=0;
     std::atomic<int>command{0},state{0};std::atomic<float>progress{0},capturedSeconds{0},playPosition{0},vocalConfidence{0};std::atomic<bool>applied{false},sideSeen{false},previewDisplay{false};
-    std::array<CaptureBank,3>banks;std::array<std::array<AntiAlias,4>,2>antiAlias;std::array<Frame,maxFrames>frames{};std::array<Voice,6>voices{};std::array<std::vector<float>,2>delay;Reverb reverb;
+    std::array<CaptureBank,3>banks;std::array<std::array<AntiAlias,4>,2>antiAlias;std::unique_ptr<Frame[]>frames;std::array<Voice,6>voices{};std::array<std::vector<float>,2>delay;Reverb reverb;
 };
 }

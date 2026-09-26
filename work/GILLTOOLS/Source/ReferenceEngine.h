@@ -11,8 +11,10 @@ namespace gill::tools {
 // process(). LIVE/PRO share this causal monitor path and the same loudness basis.
 // Files: WAV/AIFF/FLAC, <=30 minutes, <=2 GiB, one active reader. Three fixed
 // stereo playback banks hold 1.5 MiB total; songs are streamed, not embedded.
-// MATCH freezes K-weighted RMS after 3 active seconds (no LUFS-conformance
-// claim), attenuates the louder side, and restarts when MATCH is re-enabled.
+// MATCH begins provisionally after 3 active seconds and refines the same pass
+// until host STOP/seek or 300 seconds. The selected reference region is analysed
+// for up to 300 seconds. This is K-weighted RMS, not an integrated-LUFS meter.
+// Only the louder side is attenuated; re-enable MATCH to measure another pass.
 // Snapshot matchGainDb is the actual REF gain including explicit user trim;
 // mixGainDb separately reports any attenuation of the user's MIX.
 class ReferenceEngine final {
@@ -37,7 +39,9 @@ public:
         int activeSlot = 0;
         juce::String fileName, status = "EMPTY";
         bool loaded = false, loudnessValid = false, referenceActive = false;
+        bool mixMeasuring = false, mixComplete = false;
         double durationSeconds = 0, positionSeconds = 0;
+        double mixAnalysisSeconds = 0, referenceAnalysisSeconds = 0;
         double loopStartSeconds = 0, loopEndSeconds = 0;
         float rmsMix = 0, rmsRef = 0, matchGainDb = 0, mixGainDb = 0;
         std::uint64_t underruns = 0;

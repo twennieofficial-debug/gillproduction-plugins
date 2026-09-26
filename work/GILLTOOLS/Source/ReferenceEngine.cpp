@@ -40,7 +40,7 @@ struct Biquad {
     void weighting(double rate,bool high) noexcept {
         // The same BS.1770 48-kHz K-weighting sections as GILLNEXT/Loudness.h,
         // mapped to the host rate by an inverse/forward bilinear transform.
-        // The surrounding frozen-RMS/gate logic is not an integrated-LUFS meter.
+        // The surrounding cumulative-RMS/gate logic is not an integrated-LUFS meter.
         const std::array<double,5> c=high?std::array<double,5>{1,-2,1,-1.99004745483398,.99007225036621}
             :std::array<double,5>{1.53512485958697,-2.69169618940638,1.19839281085285,-1.69065929318241,.73248077421585};
         const double a=1-rate/48000,b=1+rate/48000;
@@ -51,10 +51,11 @@ struct Biquad {
 };
 struct WeightedMeter {
     Biquad shelf[2], high[2];
-    double sum=0; std::uint64_t count=0, minimum=144000;
-    void prepare(double rate) noexcept { minimum=static_cast<std::uint64_t>(std::ceil(rate*3)); sum=0; count=0; for(int c=0;c<2;++c){shelf[c].weighting(rate,false);high[c].weighting(rate,true);shelf[c].reset();high[c].reset();} }
+    double sum=0; std::uint64_t count=0, elapsed=0, minimum=144000, maximum=14400000;
+    void prepare(double rate) noexcept { minimum=static_cast<std::uint64_t>(std::ceil(rate*3));maximum=static_cast<std::uint64_t>(std::ceil(rate*300));sum=0;count=elapsed=0;for(int c=0;c<2;++c){shelf[c].weighting(rate,false);high[c].weighting(rate,true);shelf[c].reset();high[c].reset();} }
     void add(float left,float right) noexcept {
-        if(count>=minimum) return;
+        if(elapsed>=maximum) return;
+        ++elapsed;
         const double l=high[0].tick(shelf[0].tick(left)), r=high[1].tick(shelf[1].tick(right));
         const double energy=(l*l+r*r)*.5;
         // Silence does not manufacture a stable match. The threshold is fixed
@@ -62,6 +63,7 @@ struct WeightedMeter {
         if(energy>1.0e-9 && std::isfinite(energy)){sum+=energy;++count;}
     }
     bool valid()const noexcept{return count>=minimum && sum>0;}
+    bool complete()const noexcept{return elapsed>=maximum;}
     double rms()const noexcept{return count?std::sqrt(sum/static_cast<double>(count)):0;}
 };
 }
@@ -85,7 +87,8 @@ struct ReferenceEngine::Impl {
     std::atomic<std::int64_t> wantedFrame{0};
     std::atomic<float> mixRms{0}, refRms{0}, matchDb{0}, mixDb{0};
     std::atomic<bool> refMeterValid{false}, bothMetersValid{false}, activeDisplay{false};
-    std::atomic<double> positionDisplay{0};
+    std::atomic<double> positionDisplay{0},mixSeconds{0},refSeconds{0};
+    std::atomic<bool> mixMeasuring{false},mixComplete{false};
     std::atomic<std::uint64_t> underruns{0};
     std::thread worker;
     juce::AudioFormatManager formats;
@@ -101,7 +104,7 @@ struct ReferenceEngine::Impl {
     std::uint64_t audioEpoch=0, audioMeterRevision=0;
     std::int64_t freeFrame=0;
     float fade=0, mixGain=1, referenceGain=1, lastRef[2]{};
-    bool missing=false, previousMatch=true;
+    bool missing=false, previousMatch=true, mixFrozen=false, previousPlaying=false;
     WeightedMeter mixMeter;
     Biquad viewHigh[2],viewLow[2];
     int previousBand=-1;
@@ -160,7 +163,7 @@ struct ReferenceEngine::Impl {
     void load(std::uint64_t epoch){
         int slot;SlotInfo requestedSlot;
         {std::lock_guard<std::mutex> lock(modelMutex);slot=selected;requestedSlot=slots[slot];for(auto& s:slots)s.loaded=false;}
-        reader.reset();decodedStart=-1;decodedCount=0;workerEpoch=epoch;refRms.store(0);refMeterValid.store(false);
+        reader.reset();decodedStart=-1;decodedCount=0;workerEpoch=epoch;refRms.store(0);refMeterValid.store(false);refSeconds.store(0);
         if(requestedSlot.path.isEmpty()){setStatus(epoch,slot,"EMPTY");return;}
         setStatus(epoch,slot,"LOADING");
         const juce::File file(requestedSlot.path);
@@ -180,8 +183,9 @@ struct ReferenceEngine::Impl {
         makeKernels();
         WeightedMeter referenceMeter;referenceMeter.prepare(sourceRate);
         const auto first=static_cast<std::int64_t>(startSeconds*sourceRate), end=static_cast<std::int64_t>(endSeconds*sourceRate);
-        const auto analysisEnd=std::min(end,first+static_cast<std::int64_t>(sourceRate*30));
-        for(auto i=first;i<analysisEnd&&!referenceMeter.valid();++i){
+        const auto analysisEnd=std::min(end,first+static_cast<std::int64_t>(sourceRate*300));
+        setStatus(epoch,slot,"ANALYSING REFERENCE");
+        for(auto i=first;i<analysisEnd;++i){
             if((i&4095)==0&&!current(epoch))return;
             referenceMeter.add(readNative(0,i),readNative(1,i));
         }
@@ -191,6 +195,7 @@ struct ReferenceEngine::Impl {
             s.loopStartSeconds=startSeconds;s.loopEndSeconds=endSeconds;s.status="BUFFERING";s.loaded=false;}
         duration.store(seconds);loopStart.store(startSeconds);loopEnd.store(endSeconds);
         refRms.store(static_cast<float>(referenceMeter.rms()));refMeterValid.store(referenceMeter.valid());
+        refSeconds.store(static_cast<double>(referenceMeter.elapsed)/sourceRate);
         loadedGeneration.store(epoch,std::memory_order_release);
     }
     void fill(Bank& bank,std::int64_t first,std::uint64_t epoch){
@@ -282,15 +287,16 @@ void ReferenceEngine::setReferenceEnabled(bool enabled)noexcept{
 void ReferenceEngine::reset()noexcept{
     impl->forceMix();impl->releaseAudioBank();impl->fade=0;impl->freeFrame=0;impl->wantedFrame.store(0);impl->missing=false;
     impl->mixGain=impl->referenceGain=1;impl->lastRef[0]=impl->lastRef[1]=0;impl->mixMeter.prepare(impl->rate.load());
+    impl->mixFrozen=false;impl->previousPlaying=false;impl->previousMatch=true;impl->mixMeasuring=false;impl->mixComplete=false;impl->mixSeconds=0;
     impl->mixRms.store(0);impl->bothMetersValid.store(false);impl->activeDisplay.store(false);impl->previousBand=-1;
 }
 void ReferenceEngine::process(juce::AudioBuffer<float>& audio,const Transport& transport,const Parameters& parameters)noexcept{
     auto& s=*impl;const int channels=audio.getNumChannels(),count=audio.getNumSamples();if(channels<1||count<1)return;
     const double fs=s.rate.load();const auto epoch=s.generation.load(std::memory_order_acquire);
     const auto revision=s.meterRevision.load();
-    if(s.audioEpoch!=epoch||s.audioMeterRevision!=revision){s.releaseAudioBank();s.audioEpoch=epoch;s.audioMeterRevision=revision;s.mixMeter.prepare(fs);s.bothMetersValid.store(false);}
+    if(s.audioEpoch!=epoch||s.audioMeterRevision!=revision){s.releaseAudioBank();s.audioEpoch=epoch;s.audioMeterRevision=revision;s.mixMeter.prepare(fs);s.mixFrozen=false;s.previousPlaying=false;s.bothMetersValid.store(false);}
     if(transport.discontinuity)s.releaseAudioBank();
-    if(parameters.match&&!s.previousMatch){s.mixMeter.prepare(fs);s.bothMetersValid.store(false);}
+    if(parameters.match&&!s.previousMatch){s.mixMeter.prepare(fs);s.mixFrozen=false;s.previousPlaying=false;s.bothMetersValid.store(false);}
     s.previousMatch=parameters.match;
     auto frame=parameters.follow&&transport.hasPosition?std::max<std::int64_t>(0,transport.positionSamples):s.freeFrame;
     frame=std::min<std::int64_t>(frame,std::numeric_limits<std::int64_t>::max()-count-framesPerBank*4ll);
@@ -298,6 +304,13 @@ void ReferenceEngine::process(juce::AudioBuffer<float>& audio,const Transport& t
     const bool loaded=s.loadedGeneration.load(std::memory_order_acquire)==epoch;
     const bool requested=s.armedGeneration.load(std::memory_order_acquire)==epoch;
     const bool bypass=parameters.bypass||transport.offline;
+    // Measure one contiguous playback pass. Stopped monitoring, offline export
+    // and a second playback must not overwrite the completed comparison.
+    if(!transport.offline){
+        if(s.mixMeter.elapsed>0&&((s.previousPlaying&&!transport.playing)||transport.discontinuity))s.mixFrozen=true;
+        s.previousPlaying=transport.playing;
+    }
+    const bool measure=parameters.match&&loaded&&transport.playing&&!bypass&&!s.mixFrozen;
     if(transport.offline){s.fade=0;s.mixGain=1;s.referenceGain=1;s.lastRef[0]=s.lastRef[1]=0;}
     const bool wantRef=requested&&loaded&&transport.playing&&!bypass;
     const int band=juce::jlimit(0,3,parameters.listenBand);
@@ -309,7 +322,7 @@ void ReferenceEngine::process(juce::AudioBuffer<float>& audio,const Transport& t
     float* left=audio.getWritePointer(0);float* right=channels>1?audio.getWritePointer(1):nullptr;
     for(int i=0;i<count;++i){
         float l=finiteSample(left[i]),r=right?finiteSample(right[i]):l;
-        s.mixMeter.add(l,r);
+        if(measure)s.mixMeter.add(l,r);
         const bool matchReady=loaded&&s.refMeterValid.load()&&s.mixMeter.valid();
         float targetMix=1,targetRef=trimGain;
         if(parameters.match&&matchReady&&!bypass){const double m=s.mixMeter.rms(),f=s.refRms.load();const double common=std::min(m,f);
@@ -338,6 +351,8 @@ void ReferenceEngine::process(juce::AudioBuffer<float>& audio,const Transport& t
     if(transport.playing)s.freeFrame=frame+count;
     s.wantedFrame.store(frame+(transport.playing?count:0),std::memory_order_release);
     s.mixRms.store(static_cast<float>(s.mixMeter.rms()));s.bothMetersValid.store(loaded&&s.refMeterValid.load()&&s.mixMeter.valid());
+    s.mixSeconds.store(static_cast<double>(s.mixMeter.elapsed)/fs);s.mixComplete.store(s.mixFrozen||s.mixMeter.complete());
+    s.mixMeasuring.store(measure&&!s.mixMeter.complete());
     s.matchDb.store(static_cast<float>(safeDb(s.referenceGain)));s.mixDb.store(static_cast<float>(safeDb(s.mixGain)));
     s.activeDisplay.store(s.fade>0);
     const double length=s.loopEnd.load()-s.loopStart.load();s.positionDisplay.store(length>0?s.loopStart.load()+std::fmod(static_cast<double>(frame)/fs,length):0);
@@ -346,7 +361,9 @@ ReferenceEngine::Snapshot ReferenceEngine::snapshot()const{
     Snapshot result;{std::lock_guard<std::mutex> lock(impl->modelMutex);result.slots=impl->slots;result.activeSlot=impl->selected;const auto& s=impl->slots[impl->selected];
         result.fileName=s.fileName;result.status=s.status;result.loaded=s.loaded;result.durationSeconds=s.durationSeconds;result.loopStartSeconds=s.loopStartSeconds;result.loopEndSeconds=s.loopEndSeconds;}
     result.positionSeconds=impl->positionDisplay.load();result.rmsMix=impl->mixRms.load();result.rmsRef=impl->refRms.load();result.matchGainDb=impl->matchDb.load();result.mixGainDb=impl->mixDb.load();
-    result.loudnessValid=impl->bothMetersValid.load();result.referenceActive=impl->activeDisplay.load();result.underruns=impl->underruns.load();return result;
+    result.loudnessValid=impl->bothMetersValid.load();result.referenceActive=impl->activeDisplay.load();result.underruns=impl->underruns.load();
+    result.mixMeasuring=impl->mixMeasuring.load();result.mixComplete=impl->mixComplete.load();
+    result.mixAnalysisSeconds=impl->mixSeconds.load();result.referenceAnalysisSeconds=impl->refSeconds.load();return result;
 }
 juce::ValueTree ReferenceEngine::getState()const{
     std::lock_guard<std::mutex> lock(impl->modelMutex);juce::ValueTree tree("GILLREFERENCE_ENGINE");tree.setProperty("schema",1,nullptr);tree.setProperty("slot",impl->selected,nullptr);

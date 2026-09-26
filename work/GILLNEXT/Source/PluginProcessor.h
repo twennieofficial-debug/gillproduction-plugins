@@ -27,7 +27,7 @@ public:
  std::array<float,256> waveform(int lane)const; // lane0 GUIDE, lane1 DOUBLE/aligned
  void capture(int lane); // toggles capture, 0 GUIDE external sidechain, 1 DOUBLE main
  void alignTakes();void undoAlignment();void clearCaptures();
- void startLearn();void applyLearn();void revertLearn();void resetMeters();
+ void startLearn();void stopLearn();void applyLearn();void revertLearn();void resetMeters();
  void resetForm();juce::String statusText()const;
  const NextKind kind;const std::vector<gillnext::ParamSpec> definitions;const std::vector<gillnext::Preset> programs;
  juce::AudioProcessorValueTreeState apvts;
@@ -39,7 +39,7 @@ public:
  std::atomic<int>captureState{0}; // 0 stopped, 1 GUIDE, 2 DOUBLE
  std::atomic<float>guideSeconds{0},doubleSeconds{0},alignConfidence{0};
  std::atomic<int>alignState{0}; // 0 waiting,1 captured,2 analysing,3 ready,4 error
- std::atomic<int>learnState{0}; // 0 idle,1 learning,2 suggestion ready,3 applied
+ std::atomic<int>learnState{0}; // 0 idle,1 learning,2 suggestion ready,3 applied,4 armed,5 insufficient audio
  std::atomic<float>learnProgress{0},learnDrive{0},learnLow{0},learnMid{0},learnHigh{0},learnComp{0};
  std::atomic<float>momentaryLufs{-100},integratedLufs{-100},truePeakDb{-100},compressorReduction{0},limiterReduction{0};
 private:

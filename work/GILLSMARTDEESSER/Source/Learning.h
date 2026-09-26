@@ -43,6 +43,7 @@ public:
         if(!data||channels<1||samples<1||!data[0])return;
         channels=std::clamp(channels,1,2);
         for(int n=0;n<samples;++n){
+            if(elapsedSeconds()>=300.0)break;
             for(int c=0;c<channels;++c){
                 const double raw=data[c]?static_cast<double>(data[c][n]):0;
                 const double x=std::isfinite(raw)?std::clamp(raw,-16.,16.):0;
@@ -56,7 +57,7 @@ public:
     }
     double activeSeconds() const noexcept{return activeFrames*frameLength/fs;}
     double elapsedSeconds() const noexcept{return frames*frameLength/fs;}
-    bool shouldFinish() const noexcept{return activeSeconds()>=8 || elapsedSeconds()>=30;}
+    bool shouldFinish(bool fullSong=false) const noexcept{return fullSong?elapsedSeconds()>=300.0:(activeSeconds()>=8 || elapsedSeconds()>=30);}
     Profile result() const noexcept {
         Profile p;p.activeSeconds=activeSeconds();p.voiceSeconds=voiceFrames*frameLength/fs;p.sibilantSeconds=sibilantFrames*frameLength/fs;
         if(p.activeSeconds<4 || p.voiceSeconds<2.5 || p.sibilantSeconds<.18)return p;

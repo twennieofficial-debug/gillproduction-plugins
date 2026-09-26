@@ -41,7 +41,7 @@ void GillVocalProcessor::updateParameters(){
     else if(kind==GillKind::Heat)heat.setParameters(parameter(0),parameter(1),parameter(2),juce::roundToInt(parameter(3)),parameter(4),parameter(5));
     else tune.setParameters(juce::roundToInt(parameter(0)),juce::roundToInt(parameter(1)),parameter(2),parameter(3),parameter(4));
 }
-void GillVocalProcessor::prepareToPlay(double fs,int block){
+void GillVocalProcessor::prepareToPlay(double fs,int block){songLearn.reset();
     const bool supported=std::isfinite(fs)&&fs>=8000&&fs<=384000;rateSupported.store(supported);
     const double actualFs=std::isfinite(fs)&&fs>0?fs:48000.;if(!supported)fs=48000;
     uiRate.store(actualFs);const int channels=juce::jlimit(1,2,getTotalNumOutputChannels());
@@ -58,7 +58,7 @@ void GillVocalProcessor::prepareToPlay(double fs,int block){
     setLatencySamples(latency);tail.store(static_cast<double>(latency)/actualFs+.25);
 qualityTransition.prepare(actualFs,qualityClient.mode());    inputPeak=0;outputPeak=0;reduction=0;pitchHz=0;targetHz=0;pitchConfidence=0;
 }
-void GillVocalProcessor::releaseResources(){flow.reset();heat.reset();tune.reset();inputPeak=0;outputPeak=0;reduction=0;learnCommand=0;}
+void GillVocalProcessor::releaseResources(){songLearn.reset();flow.reset();heat.reset();tune.reset();inputPeak=0;outputPeak=0;reduction=0;learnCommand=0;}
 void GillVocalProcessor::exchangeProfile(){
     const juce::SpinLock::ScopedTryLockType lock(profileLock);if(!lock.isLocked())return;
     if(profilePending){flow.setLearnedProfile(profile);profilePending=false;}
@@ -73,7 +73,7 @@ void GillVocalProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypas
     latency=kind==GillKind::Heat?heat.latencySamples():kind==GillKind::Tune?tune.latencySamples():0;
     qualityClient.requestLatencySamples(latency);tail.store(double(latency)/uiRate.load()+.25);
     updateParameters();
-    if(kind==GillKind::Flow){exchangeProfile();const int command=learnCommand.exchange(0);if(command==1)flow.startLearning();else if(command==2)flow.cancelLearning();}
+    if(kind==GillKind::Flow){exchangeProfile();songLearn.before(learnCommand.exchange(0),getPlayHead(),count,uiRate.load(),flow);}
     const auto bypassIndex=kind==GillKind::Flow?3u:kind==GillKind::Heat?6u:5u;
     bypassFade.setTargetValue(hostBypass||!rateSupported.load()||parameter(bypassIndex)>.5f?1.f:0.f);
     constexpr int chunk=128;std::array<std::array<float,chunk>,2> dry{};
@@ -94,7 +94,7 @@ void GillVocalProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypas
 
     qualityTransition.process(buffer.getArrayOfWritePointers(),channels,count,blockQuality,kind!=GillKind::Flow);
     const float decay=static_cast<float>(std::exp(-count/(uiRate.load()*.12)));inputPeak.store(std::max(peakIn,inputPeak.load()*decay));outputPeak.store(std::max(peakOut,outputPeak.load()*decay));
-    if(kind==GillKind::Flow){exchangeProfile();reduction=flow.gainReductionDb();learnProgress=flow.learningProgress();learnState=flow.learningState();}
+    if(kind==GillKind::Flow){exchangeProfile();reduction=flow.gainReductionDb();learnProgress=flow.learningProgress();learnState=songLearn.state(flow);}
     else if(kind==GillKind::Tune){pitchHz=tune.detectedHz();targetHz=tune.targetHz();pitchConfidence=tune.confidence();}
 }
 void GillVocalProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer& m){m.clear();process(b,false);}

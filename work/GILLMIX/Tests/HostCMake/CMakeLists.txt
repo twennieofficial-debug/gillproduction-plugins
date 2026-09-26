@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.22)
-project(GillMixRealHost VERSION 0.7.0 LANGUAGES C CXX)
+project(GillMixRealHost VERSION 0.10.0 LANGUAGES C CXX)
 # Keep each Mach-O image's JUCE implementation private, including custom
 # static runtimes and Objective-C++ units. VST3 entry points stay explicit exports.
 if(APPLE)

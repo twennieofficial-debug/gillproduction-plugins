@@ -12,7 +12,7 @@ At 48 kHz, actual added latency is 1,280 samples (26.67 ms) in LIVE and 3,377 sa
 
 ## GILLREFERENCE
 
-Place on the master for monitoring. LOAD your own WAV, AIFF or FLAC in one of three slots, choose a comparison loop, then play the song. MIX / REF switches the monitored signal with a fade. MATCH learns three active seconds of K-weighted RMS and attenuates the louder side; this is a practical level comparison, not an integrated-LUFS compliance meter. Toggle MATCH off and on to learn again. MATCH TRIM permits a ±6 dB adjustment to the reference.
+Place on the master for monitoring. LOAD your own WAV, AIFF or FLAC in one of three slots, choose a comparison loop, then play the song. MIX / REF switches the monitored signal with a fade. The worker analyses the entire selected reference region, up to 300 seconds. MATCH begins a provisional comparison after three active seconds, then keeps refining across the current song pass until host STOP, a seek or 300 seconds. It attenuates the louder side with smoothed gain; this is K-weighted RMS comparison, not an integrated-LUFS compliance meter. The status distinguishes MEASURING from MATCH READY. Completed measurements remain fixed on subsequent playback. Toggle MATCH off and on to learn another pass. MATCH TRIM permits a ±6 dB adjustment to the reference.
 
 FULL, VOICE, LOW and AIR listening bands and MONO/MID/SIDE checks apply equally to both sources. FOLLOW uses the host timeline; disabling it permits progression independent of seeks. Changing files, loops or recalled state returns reference monitoring to MIX. Files remain on disk; projects store paths and identification, not complete songs. Restore a moved or missing file with LOAD. Supported files are limited to 30 minutes and 2 GiB.
 
@@ -20,7 +20,7 @@ LIVE and PRO add zero samples. The processor forces unaltered MIX during host-de
 
 ## GILLRESCUE
 
-Estimates short peaks flattened by hard clipping. Play a clipped passage and press LEARN LEVEL to estimate separate positive and negative clip boundaries. REPAIR blends the estimated correction; MAX REPAIR bounds its strength. OUTPUT supplies headroom. LISTEN REPAIRS auditions only the changed portion. The display compares aligned samples before output trim.
+Estimates short peaks flattened by hard clipping. Press LEARN LEVEL, then play the song to estimate separate positive and negative clip boundaries over the full pass, up to five minutes. Press FINISH or stop the host to complete a shorter pass; a seek also finishes the contiguous analysis. The learner waits for playback when armed while stopped. It retains the previous clipping result if an armed pass is canceled and applies newly measured boundaries only when actual repeated flat peaks support them. REPAIR blends the estimated correction; MAX REPAIR bounds its strength. OUTPUT supplies headroom. LISTEN REPAIRS auditions only the changed portion. The display compares aligned samples before output trim.
 
 Only short repeated hard-clipping plateaus are changed. Clean samples are retained; ambiguous boundaries or plateaus longer than the processing budget are left alone. Six presets range from mild correction to a more aggressive hot recording and difference monitoring. This cannot reliably recover lost original detail, soft saturation, or an extensively damaged recording. Re-recording remains the most faithful option when available.
 

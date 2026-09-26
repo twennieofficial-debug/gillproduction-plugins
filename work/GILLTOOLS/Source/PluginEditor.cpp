@@ -23,7 +23,7 @@ public:
     }
     void drawLinearSlider(juce::Graphics& g,int x,int y,int w,int h,float position,float,float,juce::Slider::SliderStyle style,juce::Slider&)override{
         const bool vertical=style==juce::Slider::LinearVertical;
-        if(vertical){const float cx=x+w*.5f;gill::material::panel(g,{cx-5,float(y),10,float(h)},dark,5,true);g.setColour(accent);g.fillRoundedRectangle(cx-2,position,4,std::max(0.f,float(y+h)-position),2);gill::material::panel(g,{cx-18,position-10,36,20},cream,4);g.setColour(ink);g.drawHorizontalLine(int(position),cx-12,cx+12);}
+        if(vertical){const float cx=x+w*.5f;gill::material::panel(g,{cx-5,float(y),10,float(h)},dark,5,true);g.setColour(accent);g.fillRoundedRectangle(cx-2,position,4,std::max(0.f,float(y+h)-position),2);gill::material::fader(g,{cx-18,position-10,36,20},true,cream,ink);}
         else{const float cy=y+h*.5f;gill::material::panel(g,{float(x),cy-4,float(w),8},dark,4,true);g.setColour(accent);g.fillRoundedRectangle(float(x),cy-2,std::max(0.f,position-x),4,2);gill::material::disc(g,juce::Rectangle<float>(15,15).withCentre({position,cy}));}
     }
     juce::Colour accent=sage;
@@ -86,11 +86,11 @@ struct GillToolsEditor::Impl:private juce::Timer {
             for(auto* slider:{&loopStart,&loopEnd}){slider->setSliderStyle(juce::Slider::LinearHorizontal);slider->setTextBoxStyle(juce::Slider::TextBoxRight,false,66,20);slider->setRange(0,600,.01);slider->setTextValueSuffix(" S");owner.addAndMakeVisible(slider);}
             loopStart.setName("LOOP START");loopEnd.setName("LOOP END");loopStart.onValueChange=loopEnd.onValueChange=[this]{if(!syncing){p.setValue("reference",0,false);p.reference->setLoop(loopStart.getValue(),loopEnd.getValue());}};
             toggles[0]->setTooltip("REF IST EIN ABHOERSIGNAL. VOR EINEM ECHTZEIT-EXPORT AUF MIX ZURUECKSCHALTEN.");
-            toggles[1]->setTooltip("FRIERT DREI AKTIVE SEKUNDEN GEWICHTETEN RMS EIN. DIE LAUTERE SEITE WIRD ABGESENKT. ZUM NEULERNEN MATCH AUS- UND EINSCHALTEN.");
+            toggles[1]->setTooltip("MISST DEN SONG BIS STOP ODER 5 MINUTEN. NACH 3 AKTIVEN SEKUNDEN BEGINNT EIN VORLAEUFIGER MATCH. DIE LAUTERE SEITE WIRD ABGESENKT. ZUM NEULERNEN MATCH AUS- UND EINSCHALTEN.");
         }else{
             addDial("repair","REPAIR"," %");addDial("output","OUTPUT"," DB");addDial("clipDb","CLIP +"," DB");addDial("negativeClipDb","CLIP -"," DB");addDial("maxRepair","MAX REPAIR"," DB");addToggle("delta","LISTEN REPAIRS");
-            learn.setName("LEARN LEVEL");learn.setComponentID("learn");owner.addAndMakeVisible(learn);learn.onClick=[this]{p.rescue->requestLearn();};
-            learn.setTooltip("DREI SEKUNDEN ABSPIELEN. NUR WIEDERHOLTE HARTE CLIP-PLATEAUS ERGEBEN EINE NEUE POSITIVE/NEGATIVE CLIPGRENZE.");
+            learn.setName("LEARN LEVEL");learn.setComponentID("learn");owner.addAndMakeVisible(learn);learn.onClick=[this]{const auto state=p.rescueLearnState.load();p.requestRescueLearn(state==1||state==4);};
+            learn.setTooltip("LEARN ARMS CAPTURE. PLAY THE WHOLE SONG (UP TO 5 MIN), THEN FINISH OR STOP THE HOST. ONLY REPEATED HARD-CLIP PLATEAUS SET NEW CLIP LIMITS.");
             dials[0]->slider.setTooltip("VORSICHTIGE SCHAETZUNG KURZER ABGESCHNITTENER SPITZEN. VERLORENE ORIGINALDETAILS SIND NICHT SICHER REKONSTRUIERBAR.");
         }
         timerCallback();startTimerHz(24);
@@ -102,7 +102,7 @@ struct GillToolsEditor::Impl:private juce::Timer {
     void dialBounds(int index,int x,int y,int w,int h){dials[index]->label.setBounds(x,y,w,18);dials[index]->slider.setBounds(x,y+18,w,h-18);}
     void resized(){
         quality.setBounds(width-199,17,116,30);bypass.setBounds(width-77,17,62,30);
-        previous.setBounds(18,height-39,29,25);preset.setBounds(51,height-39,width-102,25);next.setBounds(width-47,height-39,29,25);status.setBounds(24,height-64,width-48,20);
+        previous.setBounds(18,height-39,29,25);preset.setBounds(51,height-39,width-102,25);next.setBounds(width-47,height-39,29,25);status.setBounds(24,height-58,width-48,17);
         if(p.harmony){
             combos[0]->setBounds(419,111,99,27);combos[1]->setBounds(419,143,99,28);toggles[0]->setBounds(419,187,99,30);
             dialBounds(0,419,224,99,96);dialBounds(1,419,323,99,55);
@@ -156,12 +156,13 @@ struct GillToolsEditor::Impl:private juce::Timer {
             status.setText("ONE VOICE  /  "+juce::String(1000.*p.getLatencySamples()/p.rateView.load(),1)+" MS",juce::dontSendNotification);
         }else if(p.reference){referenceView=p.reference->snapshot();
             toggles[0]->setButtonText(referenceView.referenceActive?"REF PLAYING":p.value("reference")>.5f?"REF ARMED":"MIX / REF");
-            status.setText(referenceView.status+"  /  "+juce::String(referenceView.positionSeconds,1)+" S  /  "+juce::String(referenceView.durationSeconds,1)+" S",juce::dontSendNotification);
+            const auto matchStatus=p.value("match")<.5f?juce::String("MATCH OFF"):referenceView.mixMeasuring?juce::String("MEASURING ")+juce::String(referenceView.mixAnalysisSeconds,0)+" / 300 S":referenceView.mixComplete?(referenceView.loudnessValid?juce::String("MATCH READY"):juce::String("NEED 3 ACTIVE SECONDS")):juce::String("PLAY TO MEASURE");
+            status.setText(referenceView.status+" / "+matchStatus+" / REF "+juce::String(referenceView.referenceAnalysisSeconds,0)+" S",juce::dontSendNotification);
             const double maximum=std::max(.01,referenceView.durationSeconds);loopStart.setRange(0,maximum,.01);loopEnd.setRange(0,maximum,.01);
             if(!loopStart.isMouseButtonDown())loopStart.setValue(referenceView.loopStartSeconds,juce::dontSendNotification);if(!loopEnd.isMouseButtonDown())loopEnd.setValue(referenceView.loopEndSeconds,juce::dontSendNotification);
             loopStart.setEnabled(referenceView.loaded);loopEnd.setEnabled(referenceView.loaded);
-        }else{rescueView=p.rescue->scope();juce::String label=p.rescue->isLearning()?"LEARNING / PLAY YOUR TAKE":p.rescue->learnRevision()>0&&p.rescue->learnedPositiveDb()<-24&&p.rescue->learnedNegativeDb()<-24?"NO CLIP FOUND":"READY";
-            status.setText(label+"  /  "+juce::String(p.rescue->rejected())+" SKIPPED  /  "+juce::String(1000.*p.getLatencySamples()/p.rateView.load(),1)+" MS",juce::dontSendNotification);learn.setEnabled(!p.rescue->isLearning());
+        }else{rescueView=p.rescue->scope();juce::String label=p.rescueLearnState==4?"ARMED / PRESS PLAY":p.rescue->isLearning()?"LEARNING / "+juce::String(p.rescue->learningSeconds(),1)+" S":p.rescue->learnRevision()>0&&p.rescue->learnedPositiveDb()<-24&&p.rescue->learnedNegativeDb()<-24?"NO CLIP FOUND":"READY";
+            status.setText(label+"  /  "+juce::String(p.rescue->rejected())+" SKIPPED  /  "+juce::String(1000.*p.getLatencySamples()/p.rateView.load(),1)+" MS",juce::dontSendNotification);learn.setButtonText(p.rescueLearnState==1||p.rescueLearnState==4?"FINISH":"LEARN LEVEL");learn.setEnabled(true);
         }
         syncing=false;owner.repaint();
     }

@@ -5,6 +5,7 @@
 #include "RescueDSP.h"
 #include "../../GILLCommon/QualityBus.h"
 #include "../../GILLCommon/ModeTransition.h"
+#include "../../GILLCommon/SongLearnTransport.h"
 
 enum class ToolsKind { Harmony, Reference, Rescue };
 class GillToolsProcessor final : public juce::AudioProcessor, private juce::Timer {
@@ -35,6 +36,9 @@ public:
     void setValue(const juce::String&,float,bool gesture=true);
     float value(const juce::String&) const;
     void loadReference(int,const juce::File&);
+    void requestRescueLearn(bool finish=false){rescueLearnCommand.store(finish?2:1);}
+    void cancelRescueLearn(){rescueResultSuppressed=true;rescueLearnCommand=3;rescueLearnState=0;}
+    std::atomic<int> rescueLearnState{0};
     static juce::AudioProcessorValueTreeState::ParameterLayout layout(ToolsKind);
     const ToolsKind kind;
     juce::AudioProcessorValueTreeState apvts;
@@ -54,7 +58,8 @@ private:
     std::vector<std::atomic<float>*> raw;
     std::atomic<int> program {0};
     gill::ModeTransition transition;
-    unsigned learnSeen=0;
+    std::atomic<unsigned> learnSeen{0};std::atomic<bool>rescueResultSuppressed{false};
+    std::atomic<int> rescueLearnCommand{0};gill::SongLearnTransport rescueLearnTransport;
     int lastSlot=0;
     std::int64_t nextPosition=0;
     bool hadPosition=false;

@@ -52,7 +52,7 @@ void GillEffectProcessor::updateParameters(bool queryHost){
         echo.setParameters(actual,parameter(1),parameter(2),parameter(3),parameter(4),juce::roundToInt(parameter(5)),parameter(11));
     }else balance.setParameters(parameter(0),juce::roundToInt(parameter(1)));
 }
-void GillEffectProcessor::prepareToPlay(double fs,int block){
+void GillEffectProcessor::prepareToPlay(double fs,int block){songLearn.reset();
     const bool supported=std::isfinite(fs)&&fs>=8000&&fs<=384000;rateSupported=supported;
     const double actualFs=std::isfinite(fs)&&fs>0?fs:48000.;if(!supported)fs=48000;
     air.setLiveMode(false);
@@ -67,11 +67,11 @@ void GillEffectProcessor::prepareToPlay(double fs,int block){
 qualityTransition.prepare(actualFs,qualityClient.mode());    inputPeak=0;outputPeak=0;
     if(kind==GillKind::Balance)learnCommand=0;
 }
-void GillEffectProcessor::releaseResources(){air.reset();space.reset();echo.reset();balance.reset();inputPeak=0;outputPeak=0;learnCommand=0;if(kind==GillKind::Balance)exchangeProfile();}
+void GillEffectProcessor::releaseResources(){songLearn.reset();air.reset();space.reset();echo.reset();balance.reset();inputPeak=0;outputPeak=0;learnCommand=0;if(kind==GillKind::Balance)exchangeProfile();}
 void GillEffectProcessor::exchangeProfile(){const juce::SpinLock::ScopedTryLockType lock(profileLock);if(!lock.isLocked())return;
     if(profilePending){balance.setLearnedProfile(profile);profilePending=false;}profile=balance.learnedProfile();
     view={balance.currentGainsDb(),balance.preBandLevelsDb(),balance.postBandLevelsDb(),balance.activeBands(),balance.fineView()};
-    learnState=balance.learningState();learnProgress=balance.learningProgress();
+    learnState=songLearn.state(balance);learnProgress=balance.learningProgress();
 }
 gill::LearnBalanceProfile GillEffectProcessor::savedProfile()const{const juce::SpinLock::ScopedLockType lock(profileLock);return profile;}
 BalanceView GillEffectProcessor::balanceView()const{const juce::SpinLock::ScopedLockType lock(profileLock);return view;}
@@ -79,7 +79,7 @@ void GillEffectProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypa
     juce::ScopedNoDenormals denormals;const int channels=std::min(2,buffer.getNumChannels()),count=buffer.getNumSamples();if(channels<=0||count<=0)return;
     for(int c=getTotalNumInputChannels();c<buffer.getNumChannels();++c)buffer.clear(c,0,count);
     air.setLiveMode(blockQuality==0);latency=kind==GillKind::Air?air.latencySamples():0;qualityClient.requestLatencySamples(latency);
-    updateParameters(true);if(kind==GillKind::Balance){exchangeProfile();const int command=learnCommand.exchange(0);if(command==1)balance.startLearning();else if(command==2)balance.cancelLearning();}
+    updateParameters(true);if(kind==GillKind::Balance){exchangeProfile();songLearn.before(learnCommand.exchange(0),getPlayHead(),count,uiRate.load(),balance);}
     bypassFade.setTargetValue(hostBypass||!rateSupported.load()||parameter(bypassIndex)>.5f?1.f:0.f);
     constexpr int chunk=128;std::array<std::array<float,chunk>,2> dry{};float peakIn=0,peakOut=0;
     for(int start=0;start<count;start+=chunk){const int n=std::min(chunk,count-start);std::array<float*,2> ptr{};for(int c=0;c<channels;++c)ptr[c]=buffer.getWritePointer(c,start);

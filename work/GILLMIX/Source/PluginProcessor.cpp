@@ -18,7 +18,7 @@ bool GillMixProcessor::isBusesLayoutSupported(const BusesLayout&l)const{const au
 void GillMixProcessor::prepareToPlay(double rate,int){audio.prepare(rate,gainParameter&&!(bypassRaw&&bypassRaw->load()>.5f)?gainParameter->value.db():0);setLatencySamples(0);}
 float GillMixProcessor::parameter(const char*id)const noexcept{auto*p=apvts.getRawParameterValue(id);return p?p->load(std::memory_order_relaxed):0;}
 void GillMixProcessor::setParameter(const char*id,float v){if(auto*p=apvts.getParameter(id)){p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(v));p->endChangeGesture();}}
-template<class T>void GillMixProcessor::process(juce::AudioBuffer<T>&buffer,bool bypass){AudioContext c{};if(auto*head=getPlayHead())if(auto pos=head->getPosition()){if(auto n=pos->getTimeInSamples()){c.position=*n;c.positionValid=true;}c.playing=pos->getIsPlaying();}audio.process(buffer.getArrayOfWritePointers(),buffer.getNumChannels(),buffer.getNumSamples(),gainParameter?gainParameter->value.db():0,bypass||(bypassRaw&&bypassRaw->load(std::memory_order_relaxed)>.5f),c,kind==GillMixKind::link,quality.isPro());}
+template<class T>void GillMixProcessor::process(juce::AudioBuffer<T>&buffer,bool bypass){AudioContext c{};if(auto*head=getPlayHead())if(auto pos=head->getPosition()){if(auto n=pos->getTimeInSamples()){c.position=*n;c.positionValid=true;}c.playing=pos->getIsPlaying();}if(isNonRealtime())c.playing=false;audio.process(buffer.getArrayOfWritePointers(),buffer.getNumChannels(),buffer.getNumSamples(),gainParameter?gainParameter->value.db():0,bypass||(bypassRaw&&bypassRaw->load(std::memory_order_relaxed)>.5f),c,kind==GillMixKind::link,quality.isPro());}
 void GillMixProcessor::processBlock(juce::AudioBuffer<float>&b,juce::MidiBuffer&){process(b,false);}void GillMixProcessor::processBlock(juce::AudioBuffer<double>&b,juce::MidiBuffer&){process(b,false);}void GillMixProcessor::processBlockBypassed(juce::AudioBuffer<float>&b,juce::MidiBuffer&){process(b,true);}void GillMixProcessor::processBlockBypassed(juce::AudioBuffer<double>&b,juce::MidiBuffer&){process(b,true);}
 LocalState GillMixProcessor::localSnapshot()const{const std::lock_guard<std::mutex>lock(modelMutex);auto s=local;s.gain=gainParameter?gainParameter->value.snapshot():0;return s;}
 void GillMixProcessor::setLocalName(const juce::String&name){const std::lock_guard<std::mutex>lock(modelMutex);char next[96]{};nameCopy(next,name);if(std::strcmp(next,local.name)!=0){std::memcpy(local.name,next,96);++local.metadataRevision;}}
@@ -53,7 +53,7 @@ void GillMixProcessor::refreshTracks(){const auto d=bus.discover();if(d.status!=
  }}
 void GillMixProcessor::connectSelected(){std::array<Address,maxLinks>addresses{};int n=0;for(const auto&t:tracks)if(t.selected){if(n>=maxLinks){status="MAXIMUM 64 LINKS";return;}addresses[static_cast<size_t>(n++)]=t.row.address;}status=statusText(bus.connect(addresses.data(),n));refreshTracks();}
 void GillMixProcessor::startLearn(){if(kind!=GillMixKind::master||txPhase)return;analysisCount=proposalCount=0;learnedTime=0;refreshTracks();for(const auto&t:tracks)if(t.row.owner==bus.runtimeId()&&t.row.reachable&&!t.row.duplicate&&analysisCount<maxLinks){auto&a=analysis[static_cast<size_t>(analysisCount++)];a=Analysis{};a.runtime=t.row.address.runtime;a.baseGain=t.row.local.gain;a.baseMetadata=t.row.local.metadataRevision;a.cursor=bus.telemetryCursor(a.runtime);}
- if(!analysisCount){status="CONNECT LINKS FIRST";return;}learnId=bus.beginLearn();learning=learnId!=0;learnStarted=nowMs();status=learning?"PLAY MAIN + BEAT / LEARNING":"CONNECTION BUSY";
+ if(!analysisCount){status="CONNECT LINKS FIRST";return;}learnId=bus.beginLearn();learning=learnId!=0;learnStarted=nowMs();status=learning?"ARMED / PLAY ENTIRE SONG / UP TO 5 MIN":"CONNECTION BUSY";
 }
 void GillMixProcessor::stopLearn(){if(!learning)return;learning=false;bus.stopLearn();finishProposal();}
 void GillMixProcessor::finishProposal(){
@@ -88,7 +88,14 @@ void GillMixProcessor::service(){
  if(kind==GillMixKind::link){if(poll.connected){const std::lock_guard<std::mutex>lock(modelMutex);local.session=poll.session;local.controller=poll.controller;}audio.requestLearn(poll.connected?poll.learn:0);status=poll.connected?"CONNECTED":statusText(poll.status);if(poll.command.transaction)handleCommand(poll.command);if(gainParameter)gainParameter->publish();return;}
  if(poll.status==Status::ambiguous){learning=false;txPhase=proposalCount=undoCount=0;status="DUPLICATE SESSION / NEW SESSION";refreshTracks();return;}
  if(status=="DUPLICATE SESSION / NEW SESSION")status="READY / CONNECT SELECTED";
- if(learning){for(int i=0;i<analysisCount;++i){auto&a=analysis[static_cast<size_t>(i)];bool lost=false;const int count=bus.readTelemetry(a.runtime,a.cursor,frames.data(),64,lost);if(lost)a.learned.aligned=false;for(int j=0;j<count;++j)if(frames[static_cast<size_t>(j)].learn==learnId)a.learned.add(frames[static_cast<size_t>(j)]);learnedTime=std::max(learnedTime,a.learned.seconds());}if(learnedTime>=19.9||nowMs()-learnStarted>22000)stopLearn();}
+ if(learning){bool transportEnded=false;for(int i=0;i<analysisCount;++i){auto&a=analysis[static_cast<size_t>(i)];bool lost=false;const int count=bus.readTelemetry(a.runtime,a.cursor,frames.data(),64,lost);if(lost)a.learned.aligned=false;bool endedThisTrack=false;
+   for(int j=0;j<count;++j){const auto&f=frames[static_cast<size_t>(j)];if(f.learn!=learnId||endedThisTrack)continue;
+     if((f.flags&2u)==0){if(a.learned.count){transportEnded=true;endedThisTrack=true;}continue;}
+     if(a.learned.count&&f.segment!=a.learned.segment){transportEnded=true;endedThisTrack=true;continue;}
+     a.learned.add(f);
+   }learnedTime=std::max(learnedTime,a.learned.seconds());}
+   if(learnedTime>=300-.001||transportEnded)stopLearn();else status=learnedTime>0?"LEARNING "+juce::String(learnedTime,1)+" S / 300 S  -  STOP TO FINISH":"ARMED / START SONG PLAYBACK";
+ }
  refreshTracks();serviceTransaction();
 }
 const juce::String GillMixProcessor::getProgramName(int i){return kind==GillMixKind::master?presets[std::clamp(i,0,4)]:"LOCAL LEVEL";}

@@ -71,7 +71,7 @@ void GillMasterProcessor::process(juce::AudioBuffer<float>&buffer,bool hostBypas
     if(!supported){for(int c=0;c<channels;++c)for(int i=0;i<frames;++i)if(!std::isfinite(buffer.getSample(c,i)))buffer.setSample(c,i,0);return;}
     const int mode=quality.isPro()?1:0;updateParameters();if(ceiling)ceiling->setLiveMode(mode==0);if(weight)weight->setPro(mode!=0);
     const int latency=ceiling?ceiling->latencySamples():weight?weight->latencySamples():0;
-    if(lastMode!=mode){for(auto&d:dryDelay)d.fill(0);delayPosition=0;lastMode=mode;if(finalPeak)finalPeak->reset();finalMaximum=0;}if(latency!=getLatencySamples())setLatencySamples(latency);
+    if(lastMode!=mode){for(auto&d:dryDelay)d.fill(0);delayPosition=0;lastMode=mode;if(finalPeak)finalPeak->reset();finalMaximum=0;}quality.requestLatencySamples(latency);
     if(resetMeterRequested.exchange(false)){if(loudness)loudness->reset();if(finalPeak)finalPeak->reset();finalMaximum=0;}
     const auto n=specs.size();const bool bypass=hostBypass||param(n+(int(kind)<6?2:0))>.5f;
     if(int(kind)<6){mix.set(param(n+1)*.01);outputGain.set(math::gain(param(n)));}bypassBlend.set(bypass?1:0);

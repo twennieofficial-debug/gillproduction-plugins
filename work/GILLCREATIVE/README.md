@@ -1,109 +1,119 @@
-# GILLCREATIVE 0.6.0
+# GILLCREATIVE 0.10.0
 
-Three native JUCE VST3 effects for Windows x64 and macOS (Intel/Apple Silicon).
-The CMake macOS default is Universal arm64+x86_64, minimum deployment target 11.0.
-Sources build against the bundle's pinned JUCE 8.0.12. These are original signal
-processing implementations; no proprietary competitor code or cloud service is used.
+Three native VST3 effects for Windows x64 and macOS Intel/Apple Silicon, built
+with the bundle's pinned JUCE 8.0.12. The processing is original and local. No
+competitor code, cloud service, word recognition or generated speech is used.
 
-## Products
+## Whole-song workflow
 
-- **GILLPHRASE** — learns voiced passages and the ends of phrases, then raises a
-  reverb send around those ends on subsequent playback. The detector uses energy,
-  low-frequency content and zero-crossing rate; it does not understand words.
-  FOCUS, BLOOM and WIDE offer different tail treatments. Drag marker endpoints
-  and strength, or enter START/END BEAT and MARKER LEVEL in the inspector.
-- **GILLDIRECTOR** — learns vocal passages and their relative emphasis, with an
-  optional mono/stereo BEAT GUIDE sidechain. Three audible trajectories drive its
-  own compression, tonal tilt, stereo processing, reverb and tempo delay rack.
-  FRONT follows emphasis, LIFT gradually opens the learned passage, and MOTION
-  introduces beat-related variation. It does not control other plug-ins.
-- **GILLREPLY** — records up to 60 seconds of the incoming stereo vocal, finds
-  voiced passages and replays source chops in rhythmic gaps. SINGLE, DOUBLE and
-  TRIPLE are deterministic arrangements; DENSITY controls event selection.
-  SOURCE IN/OUT edit the original source window of the selected marker; CHOP
-  caps its audible length. No words or synthetic speech are invented.
+1. Put the plugin on the vocal track, move to the intended recording start and
+   click LEARN. It arms while the host is stopped; press Play to record.
+2. Play the complete song, up to **five minutes**. Host Stop or the plugin's STOP
+   keeps the take. A transport seek finalizes the contiguous segment already
+   recorded. It never joins different timeline locations into one recording.
+3. Review the detected passages. Scroll the mouse wheel over the timeline to
+   zoom around the pointer; double-click for the full song. Drag an endpoint to
+   change timing and effect strength. The inspector gives precise boundaries.
+4. Adjust the controls and a variant. APPLY activates the map for ordinary host
+   playback; UNDO restores the preceding applied map. Starting another capture
+   starts a new undo history. PREVIEW auditions the candidate timeline; PHRASE
+   and DIRECTOR need the original vocal playing, while REPLY uses its chops.
+5. RENDER FX makes a WAV containing only the effects, with no dry vocal. RENDER
+   MIX makes the complete current dry/wet result. Rendering runs in a background
+   worker using PRO quality, includes the effect tail, and attenuates only if
+   necessary to keep sample peaks below -0.18 dBFS. This is not true-peak mastering.
+6. Drag **DRAG WAV** into the DAW playlist at the capture start. The sidecar text
+   records that start in seconds and PPQ beats. The file is capture-relative;
+   dragging does not automatically position the clip in the host.
 
-## Learn and playback
+Up to 512 signal-based phrase markers are retained. Silence is not presented as
+a successful analysis. The display is an amplitude envelope, not a transcript.
+Lower DETECT for a quiet vocal. Background music, breath and noisy consonants can
+still need manual marker correction.
 
-Play the intended vocal passage and press LEARN. STOP ends analysis; capture also
-stops at 60 seconds. Silent or unsuitable material produces a visible failure,
-not an invented profile. Up to 32 phrase markers are retained. The waveform is
-an envelope summary, not a spectrogram or word transcript. Inspect the three
-variants, edit the timeline and press APPLY. UNDO restores the preceding applied
-plan; starting a new take clears the previous undo history.
+## Products and controls
 
-Learned marker times follow the original host PPQ position. Replay the same song
-section to hear them in context. Tempo changes keep beat positions; the captured
-source audio itself is not time-stretched. Transport seeks clear old effect tails
-and reply voices. A seek during recording cancels the discontinuous take. Without
-host PPQ, the engine has an internal 120-BPM playback clock. PREVIEW starts the
-candidate plan from its beginning; PHRASE and DIRECTOR still require the original
-vocal to be played, while REPLY can audition the recorded chops over silence.
+- **GILLPHRASE** raises a reverb send around phrase endings. THROW controls send
+  intensity and end-window length. TAIL, TONE, WIDTH, WET and DRY adjust the
+  reverb. FOCUS, BLOOM and WIDE provide three tail treatments.
+- **GILLDIRECTOR** maps vocal passages and their relative emphasis. Optional
+  BEAT GUIDE sidechain information influences learned strengths. Its own rack
+  combines compression, tonal tilt, stereo treatment, reverb and tempo delay.
+  FRONT follows emphasis, LIFT gradually opens the arrangement, and MOTION adds
+  rhythmic variation. RENDER FX exports only reverb/delay contributions; RENDER
+  MIX includes the processed vocal. It does not automate other plugins or infer
+  semantic verse/chorus labels.
+- **GILLREPLY** captures the voice and schedules source chops in gaps. SINGLE,
+  DOUBLE and TRIPLE are deterministic rhythmic arrangements. DENSITY chooses
+  events; SOURCE IN/OUT sets each original source window, and CHOP caps its
+  audible length. No words or voices are synthesized.
 
-Wet and dry controls are independent on PHRASE/REPLY. DIRECTOR crossfades to its
-complete processed rack with WET; DRY scales the unprocessed contribution.
-BYPASS fades to unprocessed unity. All sound parameters are host-automatable;
-learned plans, source trims and the committed REPLY capture are stored in the
-plugin state. The saved capture is embedded float PCM (up to 48 kHz stereo), so
-long takes increase project size. Incoming higher sample rates use anti-alias
-filtering and downsampling for captured replay; the live dry path remains at the
-host rate, as do all other live effects. No temporary audio file, network, account or external speech model is
-required.
+All products retain six factory presets, their original plugin IDs and ten
+existing parameter IDs. Parameters remain host-automatable. A marker level of
+zero disables its contribution. PHRASE/REPLY have independent WET and DRY.
+DIRECTOR's WET crossfades the complete rack; DRY scales the unprocessed part.
+BYPASS reaches unprocessed unity.
 
-## Capture memory
+With absolute host song time, the map remains anchored to captured seconds even
+after a tempo change. Otherwise host PPQ is used. Reply audio is not time-stretched.
+Seeks reset old tails/voices. An internal clock is available without host time.
 
-Only REPLY retains PCM. Its three fixed capture banks separate the active take,
-recording/review take and state import. Each bank holds at most 60 seconds of
-stereo 32-bit samples at 48 kHz. Capture is downsampled above 48 kHz with anti-alias
-filtering; rates below 48 kHz retain their native rate. The reservation is fixed.
+## Durable audio and recall
 
-| Product | PCM at a 48 kHz host rate | PCM at a 192 kHz host rate |
-| --- | ---: | ---: |
-| GILLPHRASE | 0 bytes | 0 bytes |
-| GILLDIRECTOR | 0 bytes | 0 bytes |
-| GILLREPLY | 69,120,000 bytes / 65.92 MiB | 69,120,000 bytes / 65.92 MiB |
+Sources and exports remain in `Documents/Jill Plugins/Audio/<PRODUCT>/Sources`
+and `.../Exports`. Source WAV is stereo 32-bit float at the native host rate.
+The callback writes only to a preallocated SPSC ring; a worker writes files.
+Disk/write failures or queue overflow disable the affected capture instead of
+presenting a truncated take as complete. The optional `GILL_CREATIVE_AUDIO_ROOT`
+environment variable changes storage root; tests use it to isolate their audio.
 
-Every product also reserves 72,000 bytes for 6,000 analysis frames (10 ms each),
-small marker/mailbox structures, and sample-rate-dependent effect buffers. These
-are separate from the PCM figures above. LEARN always ends after at most 60
-seconds. Project serialization may temporarily allocate additional memory on
-the non-audio thread; a complete 60-second REPLY capture adds roughly 30 MiB of
-encoded audio to the saved state.
+New project states store markers and the durable source path. Keep those sources
+with the project when moving computers. Missing files produce a visible error
+requiring LEARN again; parameters still restore. Old schema-1 states with
+embedded REPLY audio still load. Saving immediately after stopping, while the
+writer is finishing, can temporarily use the legacy embedded fallback for REPLY.
 
-## LIVE / PRO
+## Memory and latency
 
-`gillQuality` is the shared LIVE=0 / PRO=1 APVTS choice and uses GILLCommon.
-Both modes are causal and report **0 extra processing latency**. Intentional
-reverb predelay, echo timing and scheduled replies are musical effects, not PDC
-latency. PRO adds a second reflection network on PHRASE/DIRECTOR and longer splice
-fades on REPLY. A quality change smoothly blends the reflection contribution.
+PHRASE/DIRECTOR have an approximately 8 MiB ring plus small DSP/analysis buffers;
+whole-song PCM goes to disk. REPLY also reserves three bounded float banks for
+active/candidate/import takes: 345,600,000 bytes (329.59 MiB) total. Replay storage
+is at most 48 kHz with anti-alias filtering above that rate; live dry audio and
+WAV sources retain native rate. A background REPLY render uses another bank set.
+A five-minute 48 kHz stereo source WAV uses about 115 MB; higher rates use more.
 
-## Development and checks
+LIVE and PRO implement and report **zero extra processing latency**. Reverb
+delays and scheduled replies are effect timing. PRO adds the second reflection
+network for PHRASE/DIRECTOR and longer splice fades for REPLY. Reflection quality
+changes are smoothly blended. Editors are 720x460 logical pixels (PHRASE/REPLY)
+and 760x480 (DIRECTOR), proportionally resizable with shaded ceramic controls.
 
-Build artifacts belong outside the source tree. The local Windows helper uses
-`E:/GILLPRODUCTION/Development06/Creative` and reuses the pinned neutral JUCE
-runtime. A normal clean CMake build compiles JUCE on macOS.
+## Build and tests
 
-- `Creative_DSP`: silence rejection, voiced phrase boundaries, real audible
-  effects and replies, all reply variants, density, malformed markers, transport
-  seeks, 60-second capture limits, 192-to-48-kHz capture, concurrent state imports,
-  sample rates, block lengths, non-finite input and audio allocation watch.
-- `CREATIVE_INTEGRATION`: all six presets per product, mono/stereo layouts,
-  zero reported latency, LIVE/PRO, bypass, parameter/state roundtrips, embedded
-  capture recall before preparation and after sample-rate changes, repeated
-  recalls, actual controls and timeline gestures, compact UI screenshots.
+`build-update10.cmd` builds into `E:/GILLPRODUCTION/Development10/CREATIVE`.
+Normal CMake compiles pinned JUCE from source. macOS defaults to Universal
+arm64+x86_64 and minimum macOS 11.
 
-Default editors: PHRASE/REPLY 720x460, DIRECTOR 760x480 logical pixels. No audio
-thread locks, filesystem calls or allocations are used in the processing path.
-State serialization and UI producers may allocate and synchronize outside it.
+- `Creative_DSP`: all three five-minute limits, final-phrase processing, 300
+  phrases, transport arm/stop/seek, variants, density, marker validation,
+  anti-alias capture, concurrent imports, sample rates/blocks and allocation watch.
+- `CREATIVE_INTEGRATION`: presets/state, source recall, UI gestures, mono/stereo,
+  LIVE/PRO, latency, bypass, exact float-WAV capture, wet/full rendering, output
+  headroom, durable source recall and native compact screenshots.
+- `CREATIVE_FULL_SONG`: real 48 kHz/300-second processor capture, exact
+  14,400,000-frame source, 300 markers, time anchor, wet rendering with twelve
+  seconds of tail, audible final phrase and complete project recall.
 
-The detector may confuse breath, noise, unusual articulation or background music
-with a vocal event. Pre-listening and source-trim correction remain necessary.
-This version does not claim perfect semantic editing or replace a listening pass.
+Processing performs no heap allocation, filesystem calls or mutex locking. State
+loading/serialization and UI/background workers may allocate, read files and
+synchronize outside the callback. Saving immediately after STOP waits for the
+source writer to finish its WAV header (bounded at five seconds if disk access
+stalls), so a completed analysis does not normally save before its durable audio.
+Tests establish measured behavior, not perfect
+editing for every recording without listening and adjustment.
 
 ## License
 
-GILLCREATIVE is provided under GNU AGPL-3.0 as contained in LICENSE, consistent
-with the GILL bundle's JUCE distribution. The pinned JUCE source and its license
-must accompany redistribution. The wood/GP artwork is the existing GILL bundle
-asset (`core_reference.png`); no third-party plugin skin is copied.
+The bundle's AGPL-3.0 license and pinned JUCE licensing apply; retain LICENSE and
+JUCE sources when redistributing. Wood/GP art is the existing bundle asset. No
+third-party plugin skin is copied.

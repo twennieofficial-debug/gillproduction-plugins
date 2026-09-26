@@ -9,7 +9,7 @@ if(CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum supported macOS")
     endif()
 endif()
-project(GILLNEXT VERSION 0.8.0 LANGUAGES C CXX)
+project(GILLNEXT VERSION 0.10.0 LANGUAGES C CXX)
 # Keep each Mach-O image's JUCE implementation private, including custom
 # static runtimes and Objective-C++ units. VST3 entry points stay explicit exports.
 if(APPLE)
@@ -121,3 +121,8 @@ endforeach()
 
 add_executable(GillLiveQualityDspTests ../GILLCommon/LiveTests.cpp)
 add_test(NAME LIVE_QUALITY_DSP COMMAND GillLiveQualityDspTests)
+
+add_executable(GillFinishSongTests Tests/FinishSongTests.cpp)
+target_link_libraries(GillFinishSongTests PRIVATE GillNextShared GillNextAssets)
+add_test(NAME FINISH_SONG COMMAND GillFinishSongTests)
+

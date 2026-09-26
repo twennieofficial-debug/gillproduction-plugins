@@ -1,0 +1,13 @@
+#include "../Source/PluginProcessor.h"
+#include <cstdio>
+struct SongHead:juce::AudioPlayHead{std::int64_t sample=0;double rate=8000;bool playing=false;juce::Optional<PositionInfo>getPosition()const override{PositionInfo p;p.setTimeInSamples(sample);p.setTimeInSeconds(sample/rate);p.setIsPlaying(playing);return p;}};
+int main(){juce::ScopedJuceInitialiser_GUI gui;int checks=0,failed=0;auto check=[&](bool b,const char*t){++checks;if(!b)++failed;std::printf("%s %s\n",b?"PASS":"FAIL",t);};
+ GillNextProcessor p(NextKind::Finish);SongHead head;p.setPlayHead(&head);p.setValue("gillQuality",0,false);p.setPlayConfigDetails(2,2,8000,512);p.prepareToPlay(8000,512);juce::AudioBuffer<float>b(2,512);juce::MidiBuffer m;
+ auto run=[&](double seconds,float frequency=220,float level=.12f){const auto end=head.sample+std::int64_t(seconds*head.rate);while(head.sample<end){const int n=int(std::min<std::int64_t>(512,end-head.sample));b.setSize(2,n,false,false,true);for(int i=0;i<n;++i){const auto v=level*float(std::sin(2*juce::MathConstants<double>::pi*frequency*(head.sample+i)/head.rate));b.setSample(0,i,v);b.setSample(1,i,v);}p.processBlock(b,m);head.sample+=n;}};
+ p.startLearn();run(2);check(p.learnState==4&&p.learnProgress==0,"LEARN remains armed while transport stopped");head.playing=true;head.sample=0;run(20);check(p.learnState==1&&p.learnProgress>.06f,"Full-song analysis does not stop at twelve seconds");run(180);check(p.learnState==1,"Analysis continues past three minutes");run(100,1900);check(p.learnState==2&&p.learnProgress==1,"Exactly five minutes produces a bounded complete suggestion");check(std::isfinite(p.learnDrive.load())&&std::abs(p.learnLow.load())<=1.5f&&std::abs(p.learnHigh.load())<=1.5f,"Five-minute suggestions remain finite and within adjustment limits");p.applyLearn();check(p.learnState==3,"Completed five-minute suggestion applies");p.revertLearn();check(p.learnState==2,"Suggestion remains revertible");
+ p.startLearn();head.sample=0;run(3);head.playing=false;run(.1);check(p.learnState==2,"Transport stop finishes a shorter complete pass");
+ p.startLearn();head.playing=true;head.sample=0;run(2);head.sample+=8000;run(.1);check(p.learnState==2,"Seek finishes the current pass rather than joining unrelated positions");
+ p.startLearn();head.sample=0;run(1,220,0);p.stopLearn();run(.1,220,0);check(p.learnState==5,"All-silence pass cannot suggest a huge mastering boost");
+ p.setPlayHead(nullptr);p.startLearn();run(2);p.stopLearn();run(.1);check(p.learnState==2,"Hosts without transport support explicit LEARN / FINISH");
+ std::printf("RESULT %d checks %d failures\n",checks,failed);return failed?1:0;
+}

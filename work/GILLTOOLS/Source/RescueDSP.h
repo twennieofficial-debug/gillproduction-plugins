@@ -63,6 +63,7 @@ public:
         inputPeak_.store(0);
         outputPeak_.store(0);
         learnSamples_ = 0;
+        elapsedView_=0;learnRequest_=0;
         learning_ = false;
         clearLearn();
         for(auto& x:scopeBefore_)x.store(0);for(auto& x:scopeAfter_)x.store(0);scopeHead_.store(0);scopeCounter_=0;
@@ -81,7 +82,13 @@ public:
     int latencySamples() const noexcept { return live_ ? liveLatency_ : proLatency_; }
     int maximumLatencySamples() const noexcept { return proLatency_; }
     void setParameters(const RescueParameters& parameters) noexcept { parameters_ = parameters; }
-    void requestLearn() noexcept { learnRequest_.store(true, std::memory_order_release); }
+    void requestLearn() noexcept { learnRequest_.store(1, std::memory_order_release); }
+    void requestFinish() noexcept { learnRequest_.store(2, std::memory_order_release); }
+    void startLearning(bool = true) noexcept {clearLearn();learning_=true;learnSamples_=0;elapsedView_=0;learningView_=true;}
+    void finishLearning() noexcept {if(learning_)finishLearn();}
+    void cancelLearning() noexcept {learning_=false;learnSamples_=0;elapsedView_=0;learningView_=false;clearLearn();}
+    int learningState() const noexcept {return learning_?1:learnRevision_.load()>0?(learnedPositive_.load()<-24&&learnedNegative_.load()<-24?3:2):0;}
+    float learningSeconds() const noexcept {return elapsedView_.load(std::memory_order_relaxed);}
     bool isLearning() const noexcept { return learningView_.load(std::memory_order_relaxed); }
     float learnedPositiveDb() const noexcept { return learnedPositive_.load(std::memory_order_relaxed); }
     float learnedNegativeDb() const noexcept { return learnedNegative_.load(std::memory_order_relaxed); }
@@ -96,9 +103,8 @@ public:
         const int active = std::min(channels_, channels);
         if (active <= 0) return;
         for (int c = 0; c < active; ++c) if (!audio[c]) return;
-        if (learnRequest_.exchange(false, std::memory_order_acq_rel)) {
-            clearLearn(); learning_ = true; learnSamples_ = 0; learningView_.store(true);
-        }
+        const int learnCommand=learnRequest_.exchange(0,std::memory_order_acq_rel);
+        if(learnCommand==1)startLearning();else if(learnCommand==2)finishLearning();
         const double repairTarget = std::clamp(clean(parameters_.repair) * .01, 0.0, 1.0);
         const double outputTarget = gain(std::clamp(clean(parameters_.outputDb), -18.0, 0.0));
         const double positive = gain(std::clamp(clean(parameters_.clipDb), -24.0, 0.0));
@@ -132,10 +138,11 @@ public:
                 inPeak = std::max(inPeak, std::abs(static_cast<double>(input)));
                 outPeak = std::max(outPeak, std::abs(result));
             }
-            if (learning_ && ++learnSamples_ >= static_cast<std::int64_t>(rate_ * 3.0)) finishLearn();
+            if (learning_ && ++learnSamples_ >= static_cast<std::int64_t>(rate_ * 300.0)) finishLearn();
         }
         inputPeak_.store(static_cast<float>(inPeak), std::memory_order_relaxed);
         outputPeak_.store(static_cast<float>(outPeak), std::memory_order_relaxed);
+        elapsedView_.store(static_cast<float>(learnSamples_/rate_),std::memory_order_relaxed);
     }
 
 private:
@@ -230,8 +237,6 @@ private:
     }
     void clearLearn() noexcept {
         for (auto& side : learned_) for (auto& bin : side) bin = {};
-        learnedPositive_.store(-100);
-        learnedNegative_.store(-100);
         learningView_.store(false);
     }
     void recordLearn(double level, bool positive) noexcept {
@@ -267,7 +272,8 @@ private:
     int channels_ = 2, liveLatency_ = 192, proLatency_ = 576, capacity_ = 0;
     std::int64_t clock_ = 0, learnSamples_ = 0;
     bool live_ = false, learning_ = false;
-    std::atomic<bool> learnRequest_ {false}, learningView_ {false};
+    std::atomic<int> learnRequest_ {0};std::atomic<bool> learningView_ {false};
+    std::atomic<float> elapsedView_ {0};
     std::atomic<unsigned> repairs_ {0}, rejected_ {0}, learnRevision_ {0};
     std::atomic<float> inputPeak_ {0}, outputPeak_ {0}, learnedPositive_ {-100}, learnedNegative_ {-100};
 };

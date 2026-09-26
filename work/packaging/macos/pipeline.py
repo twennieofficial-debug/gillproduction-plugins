@@ -32,8 +32,8 @@ GROUPS = sorted({p["group"] for p in PRODUCTS})
 PRODUCT_COUNT = len(PRODUCTS)
 JUCE_COMMIT = "29396c22c93392d6738e021b83196283d6e4d850"
 MIN_MACOS = "11.0"
-RELEASE = "09"
-SUITE_VERSION = "0.9.0"
+RELEASE = "10"
+SUITE_VERSION = "0.10.0"
 QUALITY_SAMPLE_RATES = (44100, 48000, 96000, 192000)
 PLUGINVAL_URL = "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip"
 PLUGINVAL_SHA256 = "3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f"
@@ -166,7 +166,7 @@ def source_check(source):
                        (path.suffix.lower() in (".wav", ".flac") or path.name in ("ORIGIN-AND-LICENSE.md", "provenance.json", "prepare_fixtures.py")) and
                        not path.name.startswith(("processed_", "DECLICK-clean", "DECLICK-mouth-restored", "DECLICK-restored",
                                                  "DECRACKLE-clean", "DECRACKLE-mouth-restored", "DECRACKLE-restored")))
-            mix_host_cmake = (group == "GILLMIX" and path == root / "Tests/HostCMake/CMakeLists.txt") or (group == "GILLMASTER" and path.name == "CMakeLists.txt")
+            mix_host_cmake = (group == "GILLMIX" and path == root / "Tests/HostCMake/CMakeLists.txt") or (group in {"GILLMASTER", "GILLRISE"} and path.name == "CMakeLists.txt")
             if path.is_file() and (code or fixture or mix_host_cmake):
                 selected[path.relative_to(source).as_posix()] = sha(path)
     juce = source / "dependencies" / "JUCE"
@@ -323,7 +323,7 @@ def verify_quality_result(result, rate, bundle_paths=None):
             require((live, pro) == (0, math.ceil(rate*.003)+32), "QualityHost Ceiling PDC differs")
         if name == "GILLWEIGHT":
             require((live, pro) == (0, 32), "QualityHost Weight PDC differs")
-        if name in ("GILLLOW", "GILLGLUE", "GILLWIDTH", "GILLPUNCH", "GILLDELTA", "GILLDELIVER", "GILLMIX", "GILLLINK", "GILLREFERENCE"):
+        if name in ("GILLLOW", "GILLGLUE", "GILLWIDTH", "GILLPUNCH", "GILLDELTA", "GILLDELIVER", "GILLRISE", "GILLASSIST", "GILLMIX", "GILLLINK", "GILLREFERENCE"):
             require(live == pro == 0, f"QualityHost monitor/gain path must have zero latency in both modes: {name}")
         if name in ("GILLTUNE", "GILLTUNE LIVE"):
             require(live == math.ceil(rate * .016), f"QualityHost Tune LIVE latency differs: {name}")
@@ -829,7 +829,7 @@ def package(args):
     shutil.copytree(universal / "plugins", plugin_dir, symlinks=True)
     docs = payload / "Library/Application Support/GILLPRODUCTION"
     docs.mkdir(parents=True)
-    for name in ("MAC-INSTALLATION.txt", "products.json", "GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-09-ANLEITUNG.md"):
+    for name in ("MAC-INSTALLATION.txt", "products.json", "GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-10-ANLEITUNG.md"):
         shutil.copy2(HERE / name, docs / name)
     source = Path(args.source).resolve()
     for group in GROUPS:
@@ -900,7 +900,7 @@ def package(args):
     disk.mkdir()
     shutil.copy2(pkg, disk / pkg.name)
     shutil.copy2(HERE / "MAC-INSTALLATION.txt", disk / "ZUERST-LESEN.txt")
-    for name in ("GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-09-ANLEITUNG.md"):
+    for name in ("GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-10-ANLEITUNG.md"):
         shutil.copy2(HERE / name, disk / name)
     shutil.copy2(source_archive, disk / "GILL-QUELLCODE.zip")
     if not args.notarize:

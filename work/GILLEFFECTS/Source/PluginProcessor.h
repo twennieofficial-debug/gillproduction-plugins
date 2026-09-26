@@ -1,4 +1,5 @@
 #pragma once
+#include "../../GILLCommon/SongLearnTransport.h"
 #include "../../GILLCommon/ModeTransition.h"
 #include "../../GILLCommon/QualityBus.h"
 #include <juce_audio_utils/juce_audio_utils.h>
@@ -55,6 +56,7 @@ public:
     std::atomic<double> uiRate{48000};
     std::atomic<bool> rateSupported{true},hostTempoAvailable{false},delayLimited{false};
 private:
+    gill::SongLearnTransport songLearn;
     gill::ModeTransition qualityTransition;
     void process(juce::AudioBuffer<float>&,bool);
     void updateParameters(bool queryHost=false);

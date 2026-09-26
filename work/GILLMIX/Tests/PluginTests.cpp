@@ -10,7 +10,7 @@ extern "C" void gillInitialiseMacTestApplication();
 namespace gillMixAllocationAudit{thread_local bool enabled=false;thread_local unsigned allocations=0;}
 void*operator new(size_t n){if(gillMixAllocationAudit::enabled)++gillMixAllocationAudit::allocations;if(void*p=std::malloc(n?n:1))return p;throw std::bad_alloc();}void*operator new[](size_t n){return::operator new(n);}void operator delete(void*p)noexcept{std::free(p);}void operator delete[](void*p)noexcept{std::free(p);}void operator delete(void*p,size_t)noexcept{std::free(p);}void operator delete[](void*p,size_t)noexcept{std::free(p);}
 int checks=0,failures=0;void check(bool b,const char*m){++checks;if(!b){++failures;std::cerr<<"FAIL "<<m<<'\n';}}
-struct PlayHead:juce::AudioPlayHead{int64_t at=0;juce::Optional<PositionInfo>getPosition()const override{PositionInfo p;p.setTimeInSamples(at);p.setTimeInSeconds(at/48000.);p.setIsPlaying(true);return p;}};
+struct PlayHead:juce::AudioPlayHead{int64_t at=0;double rate=48000;bool playing=true;juce::Optional<PositionInfo>getPosition()const override{PositionInfo p;p.setTimeInSamples(at);p.setTimeInSeconds(at/rate);p.setIsPlaying(playing);return p;}};
 int main(){
 #if defined(__APPLE__)
  gillInitialiseMacTestApplication();
@@ -41,6 +41,17 @@ int main(){
  master->chooseTrack(links[2]->localSnapshot().persistent,false);master->service();master->startLearn();service();
  for(int block=0;block<1900;++block){play.at=int64_t(block)*256;for(int voice=0;voice<3;++voice){for(int c=0;c<2;++c)for(int n=0;n<256;++n)buffer.setSample(c,n,(voice==1?.1f:.05f)*static_cast<float>(std::sin((play.at+n)*2*3.141592653589793*220/48000)));links[static_cast<size_t>(voice)]->processBlock(buffer,midi);}if(block%4==0)service();}
  service();master->stopLearn();check(master->canApply(),"selection-aware proposal remains available");master->apply();for(int i=0;i<12;++i)service();check(links[2]->gainParameter->value.db()==0,"connected but deselected DOUBLE is not changed by APPLY");check(links[1]->gainParameter->value.db()==-3,"selected connected BEAT still receives bounded proposal");master->undo();for(int i=0;i<12;++i)service();
+ // Five-minute pass uses real LINK callbacks and metadata transport, not a
+ // synthetic prefilled proposal. LIVE avoids unrelated periodicity CPU work.
+ play.rate=8000;play.at=0;play.playing=false;buffer.setSize(2,160);
+ for(auto&p:links){p->apvts.getParameter("gillQuality")->setValueNotifyingHost(0);p->prepareToPlay(8000,160);}master->prepareToPlay(8000,160);master->startLearn();service();
+ auto songBlock=[&](int block){play.at=int64_t(block)*160;for(int voice=0;voice<3;++voice){for(int c=0;c<2;++c)for(int n=0;n<160;++n)buffer.setSample(c,n,(voice==1?.1f:.05f)*float(std::sin((play.at+n)*2*3.141592653589793*220/8000)));links[static_cast<size_t>(voice)]->processBlock(buffer,midi);}service();};
+ for(int block=0;block<30;++block)songBlock(block);check(master->isLearning()&&master->learnedSeconds()==0,"LEARN waits for playback without counting stopped telemetry");play.playing=true;
+ for(auto&p:links)p->setNonRealtime(true);for(int block=30;block<60;++block)songBlock(block);check(master->isLearning()&&master->learnedSeconds()==0,"Offline host export does not consume an armed learning pass");for(auto&p:links)p->setNonRealtime(false);
+ for(int block=0;block<15000;++block){songBlock(block);if(block==1600)check(master->isLearning()&&master->learnedSeconds()>30,"Real controller remains learning after old twenty-second cutoff");}
+ service();check(!master->isLearning()&&master->learnedSeconds()>=299.98&&master->canApply(),"Real controller completes five-minute song with valid bounded proposal");
+ master->startLearn();service();for(int block=0;block<500;++block)songBlock(block);play.playing=false;for(int block=500;block<505;++block)songBlock(block);check(!master->isLearning()&&master->canApply(),"Transport stop automatically finishes a shorter aligned pass");
+ play.rate=48000;play.playing=true;buffer.setSize(2,256);for(auto&p:links)p->prepareToPlay(48000,256);master->prepareToPlay(48000,256);
  // Recall must invalidate an issued COMMIT even without a later master timer tick.
  master->manualGain(links[1]->bus.runtimeId(),-2);for(auto&p:links)p->service();master->service();
  juce::MemoryBlock masterState;master->getStateInformation(masterState);master->setStateInformation(masterState.getData(),static_cast<int>(masterState.getSize()));links[1]->service();check(links[1]->gainParameter->value.db()==0,"master recall revokes a pending COMMIT before next master tick");service();master->connectSelected();service();
@@ -52,10 +63,11 @@ int main(){
  master->service();master->connectSelected();service();links[0]->setLocalLock(true);service();const auto lockedGain=links[0]->gainParameter->value.snapshot();master->manualGain(links[0]->bus.runtimeId(),-4);for(int i=0;i<6;++i)service();check(links[0]->gainParameter->value.snapshot()==lockedGain,"LINK lock blocks remote manual gain without changing revision");links[0]->setLocalLock(false);service();
  // Persisted duplicate controllers cannot silently acquire the existing session.
  {auto duplicate=std::make_unique<GillMixProcessor>(GillMixKind::master);juce::MemoryBlock saved;master->getStateInformation(saved);duplicate->setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));duplicate->service();master->service();check(master->status.contains("DUPLICATE SESSION")&&duplicate->status.contains("DUPLICATE SESSION"),"duplicate controller identity is explicitly visible and disarmed");duplicate->newIdentity();duplicate->service();master->service();check(!master->status.contains("DUPLICATE SESSION"),"NEW SESSION resolves controller identity ambiguity without adopting links");}
- for(auto*p:{master.get(),links[0].get()}){juce::MemoryBlock saved;p->getStateInformation(saved);for(const char*id:{"bypass","gillQuality"})p->apvts.getParameter(id)->setValueNotifyingHost(.39821f);p->setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));check(p->apvts.getParameter("bypass")->getValue()==0&&p->apvts.getParameter("gillQuality")->getValue()==1,"valid recall restores actual fractional Boolean/choice host values, not only snapped APVTS cache");}
+ for(auto*p:{master.get(),links[0].get()}){const auto expectedBypass=p->apvts.getParameter("bypass")->getValue(),expectedQuality=p->apvts.getParameter("gillQuality")->getValue();juce::MemoryBlock saved;p->getStateInformation(saved);for(const char*id:{"bypass","gillQuality"})p->apvts.getParameter(id)->setValueNotifyingHost(.39821f);p->setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));check(p->apvts.getParameter("bypass")->getValue()==expectedBypass&&p->apvts.getParameter("gillQuality")->getValue()==expectedQuality,"valid recall restores actual fractional Boolean/choice host values, not only snapped APVTS cache");}
  for(auto*p:{master.get(),links[0].get()}){
   std::unique_ptr<juce::AudioProcessorEditor>editor(p->createEditor());const bool isMaster=p->kind==GillMixKind::master;check(editor->getWidth()==(isMaster?760:360)&&editor->getHeight()==(isMaster?480:210),"compact editor has intended logical dimensions");
   auto image=editor->createComponentSnapshot(editor->getLocalBounds());const auto file=juce::File::getCurrentWorkingDirectory().getChildFile(p->getName()+"-UI-"+juce::String(editor->getWidth())+"x"+juce::String(editor->getHeight())+".png");file.deleteFile();if(auto out=file.createOutputStream()){juce::PNGImageFormat png;check(png.writeImageToStream(image,*out),"real editor screenshot written");}else check(false,"screenshot output opened");
  }
  std::cout<<"RESULT "<<checks<<" checks, "<<failures<<" failures\n";return failures?1:0;
 }
+

@@ -39,6 +39,9 @@ int main(){
   LearnedTrack t;for(int i=0;i<500;++i){TelemetryFrame f{};f.rate=48000;f.samples=960;f.position=int64_t(i)*960;f.flags=3;f.energy=.01;f.levelDb=-20;f.voiced=1;t.add(f);}check(t.activeLevel()==-20&&t.seconds()==10,"active median and sample-position duration are exact");check(!audioHint(t).high,"audio-only semantic role suggestion never silently authorizes gain");
  }
  {
+  LearnedTrack song;for(int i=0;i<15000;++i){TelemetryFrame f{};f.rate=48000;f.samples=960;f.position=int64_t(i)*960;f.flags=3;f.energy=.01;f.levelDb=i<6000?-35.f:-18.f;f.voiced=1;song.add(f);}check(song.count==15000&&song.seconds()==300&&!song.overflow&&song.aligned,"learned statistics cover exactly five minutes");check(std::abs(song.activeLevel()+18)<.051f,"full-song median includes later sections instead of freezing after twenty seconds");TelemetryFrame extra{};song.add(extra);check(song.overflow&&song.count==15000,"five-minute analysis has a strict bounded capacity");check(sizeof(LearnedTrack)<4096,"five-minute statistics stay below four kilobytes per track");
+ }
+ {
   MixBus master(true),other(true),link(false);LocalState m{},o{},l{};m.persistent=newId();m.session=newId();o.persistent=newId();o.session=newId();l.persistent=newId();l.gain=gain.snapshot();std::strcpy(l.name,"MAIN");
   check(master.available()&&other.available()&&link.available(),"real native shared mapping available");master.service(m);other.service(o);link.service(l);
   auto d=master.discover();check(d.count==1&&!d.rows[0].owner,"discovery never connects or changes gain");Address addr{link.runtimeId(),l.epoch};check(master.connect(&addr,1)==Status::ok,"explicit runtime connect accepted");

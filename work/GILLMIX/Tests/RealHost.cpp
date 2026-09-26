@@ -67,7 +67,7 @@ public:
             check(descriptions.size() == 1, "one native VST3 factory"); if (descriptions.size() != 1) return false;
             item.description = *descriptions[0];
             check(item.description.name == (i ? "GILLLINK" : "GILLMIX"), "expected factory identity");
-            check(item.description.version == "0.7.0", "actual factory version 0.7.0");
+            check(item.description.version == "0.10.0", "actual factory version 0.10.0");
             juce::String error; item.processor = format.createInstanceFromDescription(item.description, sampleRate, 256, error);
             check(item.processor != nullptr, "native VST3 instance: " + error); if (!item.processor) return false;
             for (auto* p : item.processor->getParameters()) { if (p->getName(128) == "TRACK LEVEL") item.gain = p; if (p->getName(128) == "QUALITY") item.quality = p; }

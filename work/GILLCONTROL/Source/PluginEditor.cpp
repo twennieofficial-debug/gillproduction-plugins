@@ -1,6 +1,16 @@
 #include "PluginEditor.h"
+#include "../../GILLCommon/MaterialUi.h"
+
+void GillControlLookAndFeel::drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                                                 const juce::Colour&, bool over, bool down) {
+    auto face=button.getToggleState()?juce::Colour(0xffeadcc7):juce::Colour(0xff3b3027);
+    if(over)face=face.brighter(.08f);
+    if(down)face=face.darker(.12f);
+    gill::material::panel(g,button.getLocalBounds().toFloat().reduced(3),face,7,down);
+}
 
 GillControlEditor::GillControlEditor(GillControlProcessor& p) : AudioProcessorEditor(p), processor(p) {
+    setLookAndFeel(&look);
     addAndMakeVisible(live); addAndMakeVisible(pro); addAndMakeVisible(status);
     live.onClick = [this] { processor.selectGlobal(0); timerCallback(); };
     pro.onClick = [this] { processor.selectGlobal(1); timerCallback(); };

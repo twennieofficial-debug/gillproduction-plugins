@@ -1,4 +1,4 @@
-GILLPRODUCTION – UPDATE 09 / 47 PLUGINS FÜR MAC
+GILLPRODUCTION – UPDATE 10 / 49 PLUGINS FÜR MAC
 
 1. Dein Projekt speichern und FL Studio schließen.
 2. Die DMG-Datei öffnen und „GILL-PLUGINS…pkg“ doppelt anklicken.
@@ -10,8 +10,9 @@ GILLPRODUCTION – UPDATE 09 / 47 PLUGINS FÜR MAC
 Installationsort:
 /Library/Audio/Plug-Ins/VST3/GILLPRODUCTION
 
-Alle 47 VST3-Plugins sind gemeinsam enthalten. Die 39 vorhandenen behalten ihre
-bisherigen Versionen; acht neue Master-Plugins verwenden 0.9.0. Es wird keine zusätzliche
+Alle 49 VST3-Plugins sind gemeinsam enthalten und verwenden Version 0.10.0.
+Die Kennungen der 47 bisherigen Plugins bleiben erhalten; GILLRISE und
+GILLASSIST kommen neu hinzu. Es wird keine zusätzliche
 Downloader-App installiert. Nach dem Download funktioniert die Installation
 offline. Deine Projekte, Audioeinstellungen und Aufnahmen werden nicht verändert.
 Die gleiche Installer-Datei unterstützt Apple Silicon und Intel.
@@ -28,11 +29,26 @@ Für die Gesamtlatenz kommen Audiointerface- und FL-Studio-Puffer hinzu.
 
 Für GILLMIX: GILLLINK als letzten Insert auf jede gewünschte Quellspur setzen,
 FL-Spurfader zunächst auf 0 dB. Gewünschte Links auswählen, CONNECT SELECTED,
-Rollen kontrollieren, LEARN abspielen, Vorschlag mit APPLY übernehmen.
+Rollen kontrollieren, LEARN drücken und den gewünschten Songbereich bis zu
+fünf Minuten abspielen; anschließend den Vorschlag mit APPLY übernehmen.
+STOP beendet den Durchlauf früher, ein Transportsprung beendet den bisherigen
+zusammenhängenden Abschnitt. Die Lautstärke verändert sich in den LINK-Plugins,
+nicht durch automatisches Verschieben der FL-Mixerfader.
 GILLCEILING PRO benötigt bei 48 kHz 176 Samples, GILLWEIGHT PRO 32 Samples.
-Die acht neuen Master-Plugins haben in LIVE keine zusätzliche Audioverzögerung.
-Weitere Bedienung und Presets stehen in GILL-UPDATE-09-ANLEITUNG.md;
-GILL-PLUGINS-UEBERSICHT.txt erklärt alle 47 Plugins in Stichpunkten.
+Die acht Master-Plugins aus Update 09 haben in LIVE keine zusätzliche Audioverzögerung.
+Auch GILLRISE und GILLASSIST melden in beiden Modi null zusätzliche Audiosamples;
+Aufnahme, Analyse und Export benötigen trotzdem Rechenzeit.
+
+GILLRISE: ARM aktivieren, die erste Vocal-Silbe aufnehmen lassen, NORMAL oder
+TREMOLO und den Klang einstellen. Nach dem Rendern die WAV in die Playlist
+ziehen; ihr Ende am gewünschten Vocal-Einsatz ausrichten.
+GILLASSIST: TRANSFER starten und bis zu fünf Minuten abspielen oder eine Datei
+importieren, danach Pegelbereiche bearbeiten und eine WAV exportieren.
+Gerenderte Dateien zusammen mit dem Projekt aufbewahren. GILLALIGN bleibt
+auf einzelne Takes bis 20 Sekunden ausgelegt.
+
+Weitere Bedienung und Presets stehen in GILL-UPDATE-10-ANLEITUNG.md;
+GILL-PLUGINS-UEBERSICHT.txt erklärt alle 49 Plugins in Stichpunkten.
 
 Die vollständigen Quellen und Lizenztexte liegen in der DMG bei.
 Zusätzliche Lizenztexte liegen nach Installation unter

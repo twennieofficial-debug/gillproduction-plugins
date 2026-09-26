@@ -10,7 +10,7 @@
 namespace gill::mix07 {
 static_assert(std::atomic<uint64_t>::is_always_lock_free && std::atomic<float>::is_always_lock_free,
               "MIX/LINK audio requires native lock-free numeric atomics");
-constexpr int maxLinks = 64, maxLearnFrames = 1000;
+constexpr int maxLinks = 64, maxLearnFrames = 15000;
 enum class Role : uint32_t { automatic, main, doubleVoice, adlib, beat };
 inline const char* roleName(Role r) noexcept {
     constexpr const char* names[]{"AUTO", "MAIN", "DOUBLE", "ADLIB", "BEAT"};
@@ -160,7 +160,9 @@ private:
 };
 
 struct LearnedTrack {
-    std::array<float,maxLearnFrames> levels{};
+    // Bounded 0.1 dB histogram preserves a robust active-frame median over
+    // 300 seconds without allocating 60 KB per track or sorting on each read.
+    std::array<uint16_t,1441> levelHistogram{};
     int count=0,active=0,voiced=0,starts=0;bool lastActive=false,overflow=false,aligned=true;
     double low=0,high=0,side=0,energy=0;uint64_t dropped=0,segment=0;
     int64_t begin=std::numeric_limits<int64_t>::max(),end=std::numeric_limits<int64_t>::min();uint32_t rate=0;
@@ -173,12 +175,13 @@ struct LearnedTrack {
         if((f.flags&3u)!=3u||(f.flags&4u)!=0)aligned=false;
         rate=f.rate;segment=f.segment;dropped=f.dropped;begin=std::min(begin,f.position);end=std::max(end,f.position+f.samples);
         const bool isActive=f.levelDb>-55;lastActive=isActive?(++active,voiced+=f.voiced>.5f,starts+=!lastActive,true):false;
-        levels[count++]=isActive?f.levelDb:-120;low+=f.lowEnergy;high+=f.highEnergy;side+=f.sideEnergy;energy+=f.energy;
+        if(isActive)++levelHistogram[static_cast<size_t>(std::clamp(int(std::lround((std::clamp(f.levelDb,-120.f,24.f)+120.f)*10)),0,1440))];
+        ++count;low+=f.lowEnergy;high+=f.highEnergy;side+=f.sideEnergy;energy+=f.energy;
     }
     float activeLevel() const noexcept {
-        if(!active)return -120;auto sorted=levels;std::sort(sorted.begin(),sorted.begin()+count);
-        // Median of active 20-ms frames avoids silence and isolated spikes.
-        return sorted[static_cast<size_t>(count-active+active/2)];
+        if(!active)return -120;int accumulated=0;
+        for(int bin=0;bin<int(levelHistogram.size());++bin){accumulated+=levelHistogram[static_cast<size_t>(bin)];if(accumulated>active/2)return bin*.1f-120.f;}
+        return -120;
     }
     double seconds()const noexcept{return count&&rate?static_cast<double>(end-begin)/rate:0;}
 };

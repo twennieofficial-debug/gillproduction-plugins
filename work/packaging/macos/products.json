@@ -3,7 +3,7 @@
     "group": "GILLEQ",
     "target": "GILLEQ",
     "name": "GILLEQ",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Geq1",
     "bundle_id": "com.gillproduction.gilleq",
     "default_size": [
@@ -15,7 +15,7 @@
     "group": "GILLDEESSER",
     "target": "GILLDEESSER",
     "name": "GILL-DE-ESSER",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gds1",
     "bundle_id": "com.gillproduction.gilldeesser",
     "default_size": [
@@ -27,7 +27,7 @@
     "group": "GILLDEREVERB",
     "target": "GILLDEREVERB",
     "name": "GILLDEREVERB",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gdr1",
     "bundle_id": "com.gillproduction.gilldereverb",
     "default_size": [
@@ -39,7 +39,7 @@
     "group": "GILLRESTORATION",
     "target": "GILLDECLICK",
     "name": "GILLDECLICK",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gdc1",
     "bundle_id": "com.gillproduction.gilldeclick",
     "default_size": [
@@ -51,7 +51,7 @@
     "group": "GILLRESTORATION",
     "target": "GILLDECRACKLE",
     "name": "GILLDECRACKLE",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gcr1",
     "bundle_id": "com.gillproduction.gilldecrackle",
     "default_size": [
@@ -63,7 +63,7 @@
     "group": "GILLVOCAL",
     "target": "GILLTUNE",
     "name": "GILLTUNE",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gtu1",
     "bundle_id": "com.gillproduction.gilltune",
     "default_size": [
@@ -75,7 +75,7 @@
     "group": "GILLVOCAL",
     "target": "GILLTUNELIVE",
     "name": "GILLTUNE LIVE",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gtl1",
     "bundle_id": "com.gillproduction.gilltunelive",
     "default_size": [
@@ -87,7 +87,7 @@
     "group": "GILLVOCAL",
     "target": "GILLHEAT",
     "name": "GILLHEAT",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Ght1",
     "bundle_id": "com.gillproduction.gillheat",
     "default_size": [
@@ -99,7 +99,7 @@
     "group": "GILLVOCAL",
     "target": "GILLFLOW",
     "name": "GILLFLOW",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gfl1",
     "bundle_id": "com.gillproduction.gillflow",
     "default_size": [
@@ -111,7 +111,7 @@
     "group": "GILLEFFECTS",
     "target": "GILLAIR",
     "name": "GILLAIR",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gar1",
     "bundle_id": "com.gillproduction.gillair",
     "default_size": [
@@ -123,7 +123,7 @@
     "group": "GILLEFFECTS",
     "target": "GILLSPACE",
     "name": "GILLSPACE",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gsp1",
     "bundle_id": "com.gillproduction.gillspace",
     "default_size": [
@@ -135,7 +135,7 @@
     "group": "GILLEFFECTS",
     "target": "GILLECHO",
     "name": "GILLECHO",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gec1",
     "bundle_id": "com.gillproduction.gillecho",
     "default_size": [
@@ -147,7 +147,7 @@
     "group": "GILLEFFECTS",
     "target": "GILLBALANCE",
     "name": "GILLBALANCE",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gba1",
     "bundle_id": "com.gillproduction.gillbalance",
     "default_size": [
@@ -159,7 +159,7 @@
     "group": "GILLFINISH",
     "target": "GILLSILK",
     "name": "GILLSILK",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gsk1",
     "bundle_id": "com.gillproduction.gillsilk",
     "default_size": [
@@ -171,7 +171,7 @@
     "group": "GILLFINISH",
     "target": "GILLSPARK",
     "name": "GILLSPARK",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gpk1",
     "bundle_id": "com.gillproduction.gillspark",
     "default_size": [
@@ -183,7 +183,7 @@
     "group": "GILLFINISH",
     "target": "GILLSTRIP",
     "name": "GILLSTRIP",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gst1",
     "bundle_id": "com.gillproduction.gillstrip",
     "default_size": [
@@ -195,7 +195,7 @@
     "group": "GILLFINISH",
     "target": "GILLGOLD",
     "name": "GILLGOLD",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Ggd1",
     "bundle_id": "com.gillproduction.gillgold",
     "default_size": [
@@ -207,7 +207,7 @@
     "group": "GILLFINISH",
     "target": "GILLDIVE",
     "name": "GILLDIVE",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gdv1",
     "bundle_id": "com.gillproduction.gilldive",
     "default_size": [
@@ -219,7 +219,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLVOX",
     "name": "GILLVOX",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gvx1",
     "bundle_id": "com.gillproduction.gillvox",
     "default_size": [
@@ -231,7 +231,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLOPTA",
     "name": "GILLOPTA",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gop1",
     "bundle_id": "com.gillproduction.gillopta",
     "default_size": [
@@ -243,7 +243,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLBUSS",
     "name": "GILLBUSS",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gbs1",
     "bundle_id": "com.gillproduction.gillbuss",
     "default_size": [
@@ -255,7 +255,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLQUAD",
     "name": "GILLQUAD",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gqd1",
     "bundle_id": "com.gillproduction.gillquad",
     "default_size": [
@@ -267,7 +267,7 @@
     "group": "GILLDYNAMICS",
     "target": "GILLSTAGE",
     "name": "GILLSTAGE",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gsg1",
     "bundle_id": "com.gillproduction.gillstage",
     "default_size": [
@@ -279,7 +279,7 @@
     "group": "GILLNEXT",
     "target": "GILLRIDE",
     "name": "GILLRIDE",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gri1",
     "bundle_id": "com.gillproduction.gillride",
     "default_size": [
@@ -291,7 +291,7 @@
     "group": "GILLNEXT",
     "target": "GILLCLEAN",
     "name": "GILLCLEAN",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gcl1",
     "bundle_id": "com.gillproduction.gillclean",
     "default_size": [
@@ -303,7 +303,7 @@
     "group": "GILLNEXT",
     "target": "GILLPOCKET",
     "name": "GILLPOCKET",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gpt1",
     "bundle_id": "com.gillproduction.gillpocket",
     "default_size": [
@@ -315,7 +315,7 @@
     "group": "GILLNEXT",
     "target": "GILLALIGN",
     "name": "GILLALIGN",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gal1",
     "bundle_id": "com.gillproduction.gillalign",
     "default_size": [
@@ -327,7 +327,7 @@
     "group": "GILLNEXT",
     "target": "GILLFORM",
     "name": "GILLFORM",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gfm1",
     "bundle_id": "com.gillproduction.gillform",
     "default_size": [
@@ -339,7 +339,7 @@
     "group": "GILLNEXT",
     "target": "GILLFINISH",
     "name": "GILLFINISH",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gfn1",
     "bundle_id": "com.gillproduction.gillfinish",
     "default_size": [
@@ -351,7 +351,7 @@
     "group": "GILLCONTROL",
     "target": "GILLCONTROL",
     "name": "GILLCONTROL",
-    "version": "0.8.0",
+    "version": "0.10.0",
     "code": "Gct6",
     "bundle_id": "com.gillproduction.gillcontrol",
     "default_size": [
@@ -363,7 +363,7 @@
     "group": "GILLCREATIVE",
     "target": "GILLPHRASE",
     "name": "GILLPHRASE",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gph1",
     "bundle_id": "com.gillproduction.gillphrase",
     "default_size": [
@@ -375,7 +375,7 @@
     "group": "GILLCREATIVE",
     "target": "GILLDIRECTOR",
     "name": "GILLDIRECTOR",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gdi1",
     "bundle_id": "com.gillproduction.gilldirector",
     "default_size": [
@@ -387,7 +387,7 @@
     "group": "GILLCREATIVE",
     "target": "GILLREPLY",
     "name": "GILLREPLY",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Grp1",
     "bundle_id": "com.gillproduction.gillreply",
     "default_size": [
@@ -399,7 +399,7 @@
     "group": "GILLSMARTDEESSER",
     "target": "GILLSMARTDEESSER",
     "name": "GILLSMARTDEESSER",
-    "version": "0.6.0",
+    "version": "0.10.0",
     "code": "Gsd1",
     "bundle_id": "com.gillproduction.gillsmartdeesser",
     "default_size": [
@@ -412,7 +412,7 @@
     "bundle_id": "com.gillproduction.gillmix",
     "group": "GILLMIX",
     "name": "GILLMIX",
-    "version": "0.7.0",
+    "version": "0.10.0",
     "code": "Gmx1",
     "default_size": [
       760,
@@ -424,7 +424,7 @@
     "bundle_id": "com.gillproduction.gilllink",
     "group": "GILLMIX",
     "name": "GILLLINK",
-    "version": "0.7.0",
+    "version": "0.10.0",
     "code": "Gln1",
     "default_size": [
       360,
@@ -436,7 +436,7 @@
     "bundle_id": "com.gillproduction.gillharmony",
     "group": "GILLTOOLS",
     "name": "GILLHARMONY",
-    "version": "0.7.0",
+    "version": "0.10.0",
     "code": "Gha1",
     "default_size": [
       540,
@@ -448,7 +448,7 @@
     "bundle_id": "com.gillproduction.gillreference",
     "group": "GILLTOOLS",
     "name": "GILLREFERENCE",
-    "version": "0.7.0",
+    "version": "0.10.0",
     "code": "Gre1",
     "default_size": [
       660,
@@ -460,7 +460,7 @@
     "bundle_id": "com.gillproduction.gillrescue",
     "group": "GILLTOOLS",
     "name": "GILLRESCUE",
-    "version": "0.7.0",
+    "version": "0.10.0",
     "code": "Grc1",
     "default_size": [
       540,
@@ -472,7 +472,7 @@
     "name": "GILLCEILING",
     "code": "Gce1",
     "group": "GILLMASTER",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "bundle_id": "com.gillproduction.gillceiling",
     "default_size": [
       760,
@@ -484,7 +484,7 @@
     "name": "GILLLOW",
     "code": "Glo1",
     "group": "GILLMASTER",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "bundle_id": "com.gillproduction.gilllow",
     "default_size": [
       620,
@@ -496,7 +496,7 @@
     "name": "GILLGLUE",
     "code": "Ggl1",
     "group": "GILLMASTER",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "bundle_id": "com.gillproduction.gillglue",
     "default_size": [
       420,
@@ -508,7 +508,7 @@
     "name": "GILLWIDTH",
     "code": "Gwi1",
     "group": "GILLMASTER",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "bundle_id": "com.gillproduction.gillwidth",
     "default_size": [
       680,
@@ -520,7 +520,7 @@
     "name": "GILLPUNCH",
     "code": "Gpu1",
     "group": "GILLMASTER",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "bundle_id": "com.gillproduction.gillpunch",
     "default_size": [
       680,
@@ -532,7 +532,7 @@
     "name": "GILLWEIGHT",
     "code": "Gwe1",
     "group": "GILLMASTER",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "bundle_id": "com.gillproduction.gillweight",
     "default_size": [
       400,
@@ -544,7 +544,7 @@
     "name": "GILLDELTA",
     "code": "Gdt1",
     "group": "GILLMASTER",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "bundle_id": "com.gillproduction.gilldelta",
     "default_size": [
       700,
@@ -556,11 +556,35 @@
     "name": "GILLDELIVER",
     "code": "Gdl1",
     "group": "GILLMASTER",
-    "version": "0.9.0",
+    "version": "0.10.0",
     "bundle_id": "com.gillproduction.gilldeliver",
     "default_size": [
       440,
       560
+    ]
+  },
+  {
+    "group": "GILLRISE",
+    "target": "GILLRISE",
+    "name": "GILLRISE",
+    "version": "0.10.0",
+    "code": "Grs1",
+    "bundle_id": "com.gillproduction.gillrise",
+    "default_size": [
+      660,
+      465
+    ]
+  },
+  {
+    "group": "GILLASSIST",
+    "target": "GILLASSIST",
+    "name": "GILLASSIST",
+    "version": "0.10.0",
+    "code": "Gas1",
+    "bundle_id": "com.gillproduction.gillassist",
+    "default_size": [
+      820,
+      520
     ]
   }
 ]

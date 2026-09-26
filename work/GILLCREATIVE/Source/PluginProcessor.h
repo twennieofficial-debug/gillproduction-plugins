@@ -1,6 +1,7 @@
 #pragma once
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "CreativeDSP.h"
+#include "CreativeRender.h"
 #include "../../GILLCommon/QualityBus.h"
 #include <mutex>
 using CreativeKind=gill::creative::Kind;
@@ -25,9 +26,12 @@ public:
     float value(const juce::String&)const;void setValue(const juce::String&,float,bool gesture=true);
     void startLearn(){engine.request(1);}void stopLearn(){engine.request(2);}void applyLearn(){engine.request(3);}void undoLearn(){engine.request(4);}
     void audition(bool enable){engine.request(enable?5:6);}void editPlan(const gill::creative::Plan&,bool commit=true);
+    bool renderEffects(bool effectsOnly=true);
+    bool canRender()const {const auto p=plan();return p.valid()&&archive.ready(p.sourceRevision)&&!renderer.busy();}
     gill::creative::Plan plan()const{return engine.snapshot();}
     static juce::AudioProcessorValueTreeState::ParameterLayout layout(CreativeKind);
     const CreativeKind kind;juce::AudioProcessorValueTreeState apvts;gill::QualityClient quality{*this,apvts};gill::creative::Engine engine;
+    CreativeCaptureArchive archive;CreativeRender renderer;
     std::atomic<bool>rateSupported{true};std::atomic<double>sampleRateView{48000};std::atomic<float>tempo{120};
 private:
     void process(juce::AudioBuffer<float>&,bool);

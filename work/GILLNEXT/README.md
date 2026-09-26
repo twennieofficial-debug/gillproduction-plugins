@@ -15,3 +15,16 @@ GILLFINISH: Tone-EQ, Stereo/Bass-Mono, Bus-Kompression, Drive, optionaler Softcl
 GILLCLEAN: Spektrale Heuristiken für Rauschen, Plosive und Atemanteile. Nicht jede Störung lässt sich ohne Veränderung der Stimme entfernen. LISTEN macht die entfernten Anteile separat hörbar.
 
 Tests und gemessene Grenzen stehen in Tests/*.md. Referenzprodukte wurden funktional betrachtet; kein fremder proprietärer Plugin-Code wurde übernommen.
+
+## Update 10: complete-song FINISH analysis
+
+GILLFINISH LEARN now arms until playback, follows the whole song for up to 300
+seconds, and finishes on transport stop, a seek/loop, or a manual FINISH click.
+The clock includes musical pauses. It no longer commits after twelve seconds.
+With no host transport information, use LEARN then FINISH explicitly. Analysis
+uses bounded loudness/tone statistics, not a stored copy of the complete song.
+Empty or insufficiently audible passes are rejected. APPLY and REVERT remain
+explicit, and all existing parameter IDs and saved processing settings remain
+compatible. Learned suggestions are conservative mastering starting points,
+not a promise of a perfect master. The new FINISH_SONG suite covers a real
+five-minute pass, arming, stop/seek, manual finish, silence and apply/revert.

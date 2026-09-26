@@ -43,13 +43,26 @@ public:
         if(hasAudio){amount.set(requestedAmount*.01,smoothingSamples);style.set(requestedMode,smoothingSamples);autoBlend.set(autoGain?1:0,smoothingSamples);}
         else{amount.reset(requestedAmount*.01);style.reset(requestedMode);autoBlend.reset(autoGain?1:0);}
     }
-    void startLearning() noexcept {clearLearning();learnState=1;}
+    void startLearning(bool entireSong=false) noexcept {fullSong=entireSong;clearLearning();learnState=1;}
+    void finishLearning() noexcept {
+        if(learnState!=1)return;
+        if(activeSamples<fs*2.){learnState=profile.valid?2:0;return;}
+        LearnProfile next;next.version=2;next.valid=true;
+                next.rmsDb=static_cast<float>(std::clamp(percentile(rmsHistogram,.5),-72.,6.));
+                next.peakDb=static_cast<float>(std::clamp(std::max(static_cast<double>(next.rmsDb),percentile(peakHistogram,.8)),-72.,18.));next.crestDb=next.peakDb-next.rmsDb;
+                next.dynamicRangeDb=static_cast<float>(std::clamp(percentile(rmsHistogram,.9)-percentile(rmsHistogram,.2),0.,48.));
+                next.motionDb=static_cast<float>(std::clamp(percentile(motionHistogram,.85),0.,48.));
+                next.thresholdDb=std::clamp(next.rmsDb+3.f-.15f*next.dynamicRangeDb,-66.f,-3.f);
+                next.attackMs=std::clamp(28.f-1.2f*next.crestDb-.9f*next.motionDb,6.f,30.f);
+                next.releaseMs=std::clamp(180.f-6.f*next.motionDb+4.f*next.dynamicRangeDb,70.f,280.f);
+                profile=next;updateLearnedDynamics();learnState=2;
+    }
     void cancelLearning() noexcept {clearLearning();learnState=profile.valid?2:0;}
     int latencySamples() const noexcept {return 0;}
     float gainReductionDb() const noexcept {return static_cast<float>(lastReduction);}
     float makeupGainDb() const noexcept {return static_cast<float>(makeupDb*autoBlend.value*std::min(1.,amount.value*10));}
     int learningState() const noexcept {return learnState;}
-    float learningProgress() const noexcept {return learnState==2?1.f:(learnState==0?0.f:static_cast<float>(std::min(1.,activeSamples/(fs*10.))));}
+    float learningProgress() const noexcept {return learnState==2?1.f:(learnState==0?0.f:static_cast<float>(std::min(1.,(fullSong?wallSamples:activeSamples)/(fs*(fullSong?300.:10.)))));}
     LearnProfile learnedProfile() const noexcept {return profile;}
     bool setLearnedProfile(const LearnProfile& imported) noexcept {
         if(imported.version!=1&&imported.version!=2)return false;
@@ -126,22 +139,14 @@ private:
                 ++acceptedFrames;activeSamples+=frameSamples;
             }else previousFrameActive=false;
             frameSamples=0;framePower=framePeak=0;
-            if(activeSamples>=fs*10.){LearnProfile next;next.version=2;next.valid=true;
-                next.rmsDb=static_cast<float>(std::clamp(percentile(rmsHistogram,.5),-72.,6.));
-                next.peakDb=static_cast<float>(std::clamp(std::max(static_cast<double>(next.rmsDb),percentile(peakHistogram,.8)),-72.,18.));next.crestDb=next.peakDb-next.rmsDb;
-                next.dynamicRangeDb=static_cast<float>(std::clamp(percentile(rmsHistogram,.9)-percentile(rmsHistogram,.2),0.,48.));
-                next.motionDb=static_cast<float>(std::clamp(percentile(motionHistogram,.85),0.,48.));
-                next.thresholdDb=std::clamp(next.rmsDb+3.f-.15f*next.dynamicRangeDb,-66.f,-3.f);
-                next.attackMs=std::clamp(28.f-1.2f*next.crestDb-.9f*next.motionDb,6.f,30.f);
-                next.releaseMs=std::clamp(180.f-6.f*next.motionDb+4.f*next.dynamicRangeDb,70.f,280.f);
-                profile=next;updateLearnedDynamics();learnState=2;}
+            if(!fullSong && activeSamples>=fs*10.)finishLearning();
         }
         // A bounded attempt avoids a permanently spinning learner. Failed
         // attempts preserve any previously completed profile.
-        if(learnState==1&&wallSamples>=fs*30.)learnState=3;
+        if(learnState==1&&wallSamples>=fs*(fullSong?300.:30.)){if(fullSong)finishLearning();if(!fullSong||learnState!=2)learnState=3;}
     }
     double fs=48000;int smoothingSamples=960,frameLength=960,frameSamples=0,learnState=0;
-    double requestedAmount=55;int requestedMode=0;bool requestedAuto=true,hasAudio=false;
+    double requestedAmount=55;int requestedMode=0;bool requestedAuto=true,hasAudio=false,fullSong=false;
     Ramp amount{.55,.55,0,0},style{},autoBlend{1,1,0,0};
     double power=0,gr=0,lastReduction=0,threshold=-18,makeupDb=0,matchInput=0,matchOutput=0,learnedRatioScale=1;
     double rmsDecay=std::exp(-1/(48000*.008)),makeupPowerDecay=std::exp(-1/(48000*.500)),makeupDecay=std::exp(-1/(48000*.300)),thresholdDecay=std::exp(-1/(48000*.050));

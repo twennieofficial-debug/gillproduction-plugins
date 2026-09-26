@@ -23,14 +23,23 @@ void workflows(Kind kind){Engine e(kind);e.prepare(48000);Controls c;c.amount=1;
  e.request(4);run(e,48000,.01,c,false,true,18);check(!e.isApplied(),"undo first apply restores unlearned rack");
  auto edited=plan;edited.markers[0].strength=.13f;e.postPlan(edited,true);run(e,48000,.01,c,false,true,18.02);check(std::abs(e.snapshot().markers[0].strength-.13f)<1.e-6f&&e.isApplied(),"editable learned marker changes actual plan");
  auto invalid=plan;invalid.markers[0].endSec=std::numeric_limits<float>::quiet_NaN();check(!Engine::validPlan(invalid),"invalid saved/edited marker rejected");
- e.request(1);run(e,48000,.5,c);run(e,48000,.01,c,false,true,100);check(e.learningState()==4,"transport seek safely cancels a discontinuous capture");
+ e.request(1);run(e,48000,.5,c);run(e,48000,.01,c,false,true,100);check(e.learningState()==2&&e.snapshot().valid(),"transport seek finalizes the contiguous captured segment");
 }
 void boundedLearning(Kind kind){
- Engine e(kind);e.prepare(8000);Controls c;e.request(1);run(e,8000,60.05,c,true,true,0,511);const auto plan=e.snapshot();check(e.learningState()==2&&plan.valid()&&plan.durationSeconds<=60.001f&&plan.count==maxMarkers,"capture auto-stops at 60 seconds with a bounded marker count");
- if(kind==Kind::Reply){const auto*bank=e.capture(plan.capture);check(bank&&bank->used.load()==8000*60&&bank->capacity==48000*60,"recording respects native low rates inside the fixed 48 kHz bank");}
+ Engine e(kind);e.prepare(8000);Controls c;e.request(1);run(e,8000,300.05,c,true,true,0,511);const auto plan=e.snapshot();check(e.learningState()==2&&plan.valid()&&plan.durationSeconds<=300.001f&&plan.count==300,"capture auto-stops at five minutes and retains every one of 300 phrases");
+ if(kind==Kind::Reply){const auto*bank=e.capture(plan.capture);check(bank&&bank->used.load()==8000*300&&bank->capacity==48000*300,"recording respects native low rates inside the fixed 48 kHz bank");}
  else{bool noPCM=true;for(int i=0;i<3;++i)noPCM&=!e.capture(i)->data;check(noPCM,"PHRASE and DIRECTOR never reserve PCM capture banks");}
+ e.request(3);c.amount=1;c.mix=1;c.dry=0;const double last=run(e,8000,2,c,true,true,596);check(last>1.e-5&&std::isfinite(last),"learned effect remains active at the end of a five minute song",last);
  e.prepare(48000);e.request(1);std::array<float,256>l{},r{};for(int at=0;at<48000;at+=256){const int n=std::min(256,48000-at);for(int i=0;i<n;++i)l[i]=r[i]=.2f*static_cast<float>(std::sin(2*pi*7000*(at+i)/48000));Transport t;t.hasPPQ=true;t.ppq=at/24000.;watch=true;e.process(l.data(),r.data(),nullptr,nullptr,n,c,t);watch=false;}e.request(2);run(e,48000,.01,c,false,true,2);check(e.learningState()==4&&!e.snapshot().valid(),"isolated high-frequency consonant-like tone cannot become voiced phrases");
  if(kind==Kind::Reply){e.prepare(192000);e.request(1);run(e,192000,1,c);e.request(2);run(e,192000,.01,c,false,true,2);const auto capture=e.snapshot();const auto*bank=e.capture(capture.capture);check(capture.valid()&&bank&&bank->rate.load()==48000&&bank->used.load()==48000,"192 kHz host capture is anti-aliased into 48 kHz storage");}
+}
+void transportWorkflow(){
+ Engine e(Kind::Phrase);e.prepare(8000);Controls c;std::array<float,127>l{},r{};Transport t;t.hasPPQ=true;t.hasSeconds=true;t.playing=false;t.seconds=30;t.ppq=60;
+ e.request(1);watch=true;e.process(l.data(),r.data(),nullptr,nullptr,127,c,t);watch=false;check(e.learningState()==5&&e.duration()==0,"LEARN while stopped arms without consuming silence");
+ e.request(2);e.process(l.data(),r.data(),nullptr,nullptr,127,c,t);check(e.learningState()==0,"STOP cancels an armed capture");e.request(1);
+ t.playing=true;for(int at=0;at<16000;at+=127){const int n=std::min(127,16000-at);for(int i=0;i<n;++i)l[i]=r[i]=vocal((at+i)/8000.);t.seconds=30+at/8000.;t.ppq=60+at/4000.;watch=true;e.process(l.data(),r.data(),nullptr,nullptr,n,c,t);watch=false;}
+ t.playing=false;t.seconds=32;t.ppq=64;l.fill(0);r.fill(0);e.process(l.data(),r.data(),nullptr,nullptr,127,c,t);const auto plan=e.snapshot();check(plan.valid()&&plan.count==2&&plan.timeAnchor&&plan.originSeconds==30,"host STOP retains the complete take with its exact song-time anchor");
+ e.request(3);t.playing=true;t.bpm=180;double energy=0;for(int at=0;at<24000;at+=127){const int n=std::min(127,24000-at);t.seconds=30+at/8000.;t.ppq=90+at*3/8000.;for(int i=0;i<n;++i)l[i]=r[i]=vocal((at+i)/8000.);e.process(l.data(),r.data(),nullptr,nullptr,n,c,t);for(int i=0;i<n;++i)energy+=l[i]*l[i];}check(energy>1,"time-anchored plan follows song position across tempo changes",energy);
 }
 void concurrentCapture(){
  Engine e(Kind::Reply);e.prepare(48000);std::vector<float>pcm(9600);for(size_t i=0;i<pcm.size()/2;++i)pcm[i*2]=pcm[i*2+1]=vocal(i/48000.);
@@ -43,4 +52,4 @@ void concurrentCapture(){
 }
 int main(){for(auto kind:{Kind::Phrase,Kind::Director,Kind::Reply}){workflows(kind);boundedLearning(kind);for(double rate:{8000.,44100.,48000.,96000.,192000.}){Engine e(kind);e.prepare(rate);Controls c;for(int block:{1,16,64,127,256,512,1024,2048}){check(std::isfinite(run(e,rate,.025,c,true,true,0,block)),"supported rate and odd/even block lengths remain finite");}c.bypass=true;check(std::isfinite(run(e,rate,.1,c)),"bypass finite at each sample rate");}
  Engine e(kind);e.prepare(48000);float a[]={std::numeric_limits<float>::quiet_NaN(),std::numeric_limits<float>::infinity(),-.2f},b[]={0,0,.2f};Controls c;Transport t;watch=true;e.process(a,b,nullptr,nullptr,3,c,t);watch=false;check(std::isfinite(a[0])&&std::isfinite(a[1]),"non-finite input is contained");}
- concurrentCapture();check(allocations==0,"audio processing including learning and commands allocates no heap",allocations);std::ofstream report("creative-dsp-report.json");report<<"{\"checks\":"<<checks<<",\"failures\":"<<failures<<",\"audio_allocations\":"<<allocations<<"}";std::printf("RESULT %d checks %d failures\n",checks,failures);return failures?1:0;}
+ transportWorkflow();concurrentCapture();check(allocations==0,"audio processing including learning and commands allocates no heap",allocations);std::ofstream report("creative-dsp-report.json");report<<"{\"checks\":"<<checks<<",\"failures\":"<<failures<<",\"audio_allocations\":"<<allocations<<"}";std::printf("RESULT %d checks %d failures\n",checks,failures);return failures?1:0;}

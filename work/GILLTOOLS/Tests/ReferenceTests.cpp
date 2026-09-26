@@ -21,7 +21,7 @@ float tone(std::int64_t i,double rate,float amplitude){return amplitude*static_c
 void makeFile(const juce::File& file,double rate,float amplitude,int format=0,double frequency=997){
     juce::WavAudioFormat wav;juce::AiffAudioFormat aiff;juce::FlacAudioFormat flac;
     juce::AudioFormat* f=format==0?static_cast<juce::AudioFormat*>(&wav):format==1?static_cast<juce::AudioFormat*>(&aiff):static_cast<juce::AudioFormat*>(&flac);
-    auto stream=file.createOutputStream();check(stream&&stream->openedOk(),"fixture output stream");if(!stream)return;
+    auto stream=file.createOutputStream();check(stream&&stream->openedOk(),"fixture output stream");if(!stream)return;stream->setPosition(0);stream->truncate();
     auto writer=std::unique_ptr<juce::AudioFormatWriter>(f->createWriterFor(stream.get(),rate,2,24,{},0));
     check(writer!=nullptr,"fixture format writer");if(!writer)return;stream.release();
     juce::AudioBuffer<float> b(2,static_cast<int>(rate*4.5));
@@ -29,6 +29,13 @@ void makeFile(const juce::File& file,double rate,float amplitude,int format=0,do
     check(writer->writeFromAudioSampleBuffer(b,0,b.getNumSamples()),"fixture write");
 }
 bool ready(Engine& e){for(int i=0;i<500;++i){if(e.snapshot().loaded){juce::Thread::sleep(150);return true;}juce::Thread::sleep(10);}return false;}
+void makeChangingSong(const juce::File& file){
+    juce::WavAudioFormat wav;auto stream=file.createOutputStream();check(stream&&stream->openedOk(),"full-song reference stream");if(!stream)return;stream->setPosition(0);stream->truncate();
+    auto writer=std::unique_ptr<juce::AudioFormatWriter>(wav.createWriterFor(stream.get(),8000,2,24,{},0));check(writer!=nullptr,"full-song reference writer");if(!writer)return;stream.release();
+    juce::AudioBuffer<float>b(2,1024);bool written=true;
+    for(int at=0;at<2400000;at+=1024){const int n=std::min(1024,2400000-at);for(int i=0;i<n;++i){const auto v=tone(at+i,8000,at+i<24000?.1f:.5f);b.setSample(0,i,v);b.setSample(1,i,v);}written=writer->writeFromAudioSampleBuffer(b,0,n)&&written;}
+    check(written,"bounded streaming five-minute reference fixture");
+}
 double renderRms(Engine& engine,double rate,Engine::Parameters p,std::int64_t start,int samples,float input,bool paced=false){
     juce::AudioBuffer<float> b(2,256);double energy=0;int measured=0;bool finite=true;
     for(int offset=0;offset<samples;offset+=256){const int n=std::min(256,samples-offset);b.setSize(2,n,false,false,true);
@@ -77,9 +84,12 @@ int main(){
     {
         Engine e;e.prepare(48000,256);e.requestLoad(0,wav);check(ready(e),"match reference ready");
         Engine::Parameters p;p.match=true;renderRms(e,48000,p,0,static_cast<int>(48000*3.6),.5f);
-        const auto s=e.snapshot();check(s.loudnessValid,"three active seconds produce frozen weighted RMS match");
+        const auto s=e.snapshot();check(s.loudnessValid&&s.mixMeasuring&&!s.mixComplete,"three active seconds produce provisional weighted RMS match");
         check(std::abs(s.mixGainDb+6.0206)<.1&&std::abs(s.matchGainDb)<.001,"louder MIX attenuated by six dB, reference not boosted");
-        const float frozen=s.rmsMix;renderRms(e,48000,p,0,12000,.05f);check(std::abs(e.snapshot().rmsMix-frozen)<1e-7,"match profile freezes instead of following source level");
+        const float initial=s.rmsMix;renderRms(e,48000,p,172800,12000,.05f);check(e.snapshot().rmsMix<initial*.99f,"MATCH keeps refining beyond the first three seconds");
+        juce::AudioBuffer<float> stopped(2,256);stopped.clear();process(e,stopped,{false,true,false,false,184800},p);
+        const auto finished=e.snapshot();check(finished.mixComplete&&!finished.mixMeasuring&&finished.loudnessValid,"host STOP finalizes the full comparison pass");
+        renderRms(e,48000,p,0,12000,.9f);check(e.snapshot().rmsMix==finished.rmsMix,"next playback preserves the completed full-song match");
         e.setLoop(.5,1.5);check(ready(e),"loop reload remains bounded");check(std::abs(e.snapshot().loopStartSeconds-.5)<1e-9,"loop start retained");
         auto state=e.getState();auto malformed=state.createCopy();malformed.getChild(0).setProperty("start","not-a-number",nullptr);e.setState(malformed);
         check(std::abs(static_cast<double>(e.getState().getChild(0).getProperty("start"))-.5)<1e-9,"malformed loop rejected atomically");
@@ -123,9 +133,24 @@ int main(){
         check(!e.snapshot().loudnessValid&&std::abs(e.snapshot().matchGainDb)<.001,"silent MIX never produces fabricated match");
         renderRms(e,48000,p,0,172800,.5f);check(e.snapshot().loudnessValid,"MATCH accepts actual later active evidence");
         p.match=false;renderRms(e,48000,p,0,256,.5f);p.match=true;renderRms(e,48000,p,0,12000,.25f);
-        check(!e.snapshot().loudnessValid,"MATCH toggle explicitly resets frozen MIX measurement");
+        check(!e.snapshot().loudnessValid,"MATCH toggle explicitly resets MIX measurement");
         e.requestLoad(0,ultrasonic);check(ready(e),"ultrasonic resampling fixture ready");p.match=false;e.setReferenceEnabled(false);e.setReferenceEnabled(true);
         check(renderRms(e,48000,p,0,24000,0)<.00025,"downsampling rejects out-of-band30k tone instead of aliasing it");
+    }
+    {
+        const auto song=fixtures.getChildFile("five-minute-changing-reference.wav"),steady=fixtures.getChildFile("steady-8k.wav");makeChangingSong(song);makeFile(steady,8000,.5f);
+        Engine e;e.prepare(8000,256);e.requestLoad(0,steady);check(ready(e),"baseline 8k reference ready");const float baseline=e.snapshot().rmsRef;
+        e.requestLoad(0,song);check(ready(e),"complete five-minute reference analysed asynchronously");auto snap=e.snapshot();
+        check(std::abs(snap.referenceAnalysisSeconds-300)<1e-6,"reference analysis covers exactly 300 seconds");
+        check(std::abs(snap.rmsRef/baseline-std::sqrt((3*.04+297)/300))<.003,"late reference section dominates full-song loudness instead of first three seconds");
+        Engine::Parameters p;renderRms(e,8000,p,0,24000,.1f);renderRms(e,8000,p,24000,2376400,.5f);snap=e.snapshot();
+        check(snap.mixComplete&&!snap.mixMeasuring&&std::abs(snap.mixAnalysisSeconds-300)<1e-6,"live MATCH automatically finishes at precisely five minutes");
+        check(snap.loudnessValid&&std::abs(snap.mixGainDb-snap.matchGainDb)<.03,"live five-minute match follows the late song section within 0.03 dB");
+        const float finalRms=snap.rmsMix;renderRms(e,8000,p,2400400,8000,.9f);check(e.snapshot().rmsMix==finalRms,"MATCH cannot grow past its five-minute analysis budget");
+        p.match=false;renderRms(e,8000,p,0,256,0);p.match=true;juce::AudioBuffer<float>b(2,256);b.clear();process(e,b,{false,true,false,false,0},p);check(e.snapshot().mixAnalysisSeconds==0&&!e.snapshot().mixComplete,"rearmed MATCH waits for real playback");
+        process(e,b,{true,true,false,true,0},p);check(e.snapshot().mixAnalysisSeconds==0,"offline exports never enter the comparison analysis");
+        renderRms(e,8000,p,0,32000,.5f);process(e,b,{true,true,true,false,80000},p);check(e.snapshot().mixComplete,"transport seek finishes a contiguous matching pass");
+        e.setLoop(10,290);check(ready(e),"selected late reference region ready");snap=e.snapshot();check(std::abs(snap.referenceAnalysisSeconds-280)<1e-6&&std::abs(snap.rmsRef/baseline-1)<.002,"reference loop analysis uses the full selected region including its late section");
     }
     {
         Engine e;e.prepare(48000,256);Engine::Parameters p;p.match=false;juce::AudioBuffer<float> b(2,256);

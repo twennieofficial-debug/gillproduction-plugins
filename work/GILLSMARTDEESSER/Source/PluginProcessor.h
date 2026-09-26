@@ -5,7 +5,7 @@
 
 class GillSmartDeEsserProcessor final : public juce::AudioProcessor {
 public:
-    enum LearnState { idle, learning, ready, applied, insufficient };
+    enum LearnState { idle, learning, ready, applied, insufficient, armed };
     GillSmartDeEsserProcessor();
     static juce::AudioProcessorValueTreeState::ParameterLayout layout();
     void prepareToPlay(double,int) override;
@@ -40,7 +40,7 @@ public:
     bool learnedCandidate(gillsmart::Profile&) const noexcept;
     bool canUndo() const noexcept{return undoAvailable.load();}
     std::atomic<int> learnState{idle};
-    std::atomic<float> activeSeconds{0},reduction{0},sibilance{-160};
+    std::atomic<float> activeSeconds{0},elapsedSeconds{0},reduction{0},sibilance{-160};
     std::atomic<double> uiRate{48000};
     std::atomic<bool> supported{true};
     juce::AudioProcessorValueTreeState apvts;
@@ -51,7 +51,8 @@ private:
     gillsmart::SmartEngine engine;
     gillsmart::Learner learner;
     std::array<std::atomic<float>*,7> realtimeParameters{};
-    bool collecting=false;
+    bool collecting=false, waitingForPlay=false, haveLearnPosition=false;
+    double expectedLearnSeconds=0;
     std::atomic<int> request{0},currentProgram{0};
     std::atomic<unsigned> candidateVersion{0};
     std::array<std::atomic<float>,8> candidate{};

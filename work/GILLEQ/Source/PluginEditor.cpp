@@ -77,9 +77,7 @@ public:
         const auto alpha = slider.isEnabled() ? 1.0f : 0.35f;
         g.setColour (line.withAlpha (alpha)); g.fillRoundedRectangle ((float) x, cy - 2, (float) width, 4, 2);
         g.setColour (sage.withAlpha (alpha)); g.fillRoundedRectangle ((float) x, cy - 2, juce::jmax (1.0f, position - (float) x), 4, 2);
-        g.setColour (juce::Colours::black.withAlpha (0.14f * alpha)); g.fillEllipse (position - 6, cy - 5, 12, 12);
-        g.setColour (ivory.brighter (0.2f).withAlpha (alpha)); g.fillEllipse (position - 6, cy - 6, 12, 12);
-        g.setColour (sage.withAlpha (alpha)); g.drawEllipse (position - 6, cy - 6, 12, 12, 1.5f);
+        g.setOpacity(alpha);gill::material::disc(g,{position-6,cy-6,12,12},ivory);g.setOpacity(1.0f);
     }
     void drawButtonBackground (juce::Graphics& g, juce::Button& b, const juce::Colour&, bool over, bool down) override
     {

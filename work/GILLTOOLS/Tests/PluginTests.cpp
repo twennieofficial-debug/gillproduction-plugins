@@ -14,11 +14,19 @@ bool childBounds(juce::Component& root,juce::Component& component){
         good=childBounds(root,*child)&&good;
     }return good;
 }
+struct RescueHead:juce::AudioPlayHead{double seconds=0;bool playing=false;juce::Optional<PositionInfo>getPosition()const override{PositionInfo p;p.setTimeInSeconds(seconds);p.setPpqPosition(seconds*2);p.setBpm(120);p.setIsPlaying(playing);return p;}};
+void rescueLearning(){GillToolsProcessor p(ToolsKind::Rescue);RescueHead head;p.setPlayHead(&head);p.prepareToPlay(8000,127);juce::AudioBuffer<float>b(2,127);juce::MidiBuffer midi;b.clear();p.requestRescueLearn();p.processBlock(b,midi);check(p.rescueLearnState==4&&!p.rescue->isLearning(),"RESCUE LEARN arms without measuring stopped host silence");head.playing=true;
+ for(int at=0;at<32000;at+=127){const int n=std::min(127,32000-at);b.setSize(2,n,false,false,true);head.seconds=at/8000.;for(int i=0;i<n;++i){const float x=std::clamp(static_cast<float>(std::sin(2*juce::MathConstants<double>::pi*173*(at+i)/8000.)),-.5f,.8f);b.setSample(0,i,x);b.setSample(1,i,x);}p.processBlock(b,midi);}check(p.rescueLearnState==1&&p.rescue->isLearning(),"RESCUE wrapper keeps learning after four seconds");head.playing=false;head.seconds=4;b.clear();p.processBlock(b,midi);check(!p.rescue->isLearning()&&p.rescue->learnRevision()==1,"host STOP finishes RESCUE full-song analysis");check(std::abs(p.rescue->learnedPositiveDb()-20*std::log10(.8))<.01,"host-stopped learn reports the real positive clip boundary");
+ juce::MemoryBlock completed;p.getStateInformation(completed);GillToolsProcessor recalled(ToolsKind::Rescue);recalled.setStateInformation(completed.getData(),int(completed.getSize()));check(std::abs(recalled.value("clipDb")-20*std::log10(.8))<.011&&std::abs(recalled.value("negativeClipDb")-20*std::log10(.5))<.011,"immediate project save preserves newly completed clipping thresholds before timer application");
+ p.selectPreset(2,false);p.prepareToPlay(8000,127);p.getStateInformation(completed);recalled.setStateInformation(completed.getData(),int(completed.getSize()));check(recalled.value("clipDb")==0&&recalled.value("negativeClipDb")==0,"re-prepare after preset recall cannot resurrect a discarded learning result");
+ head.playing=false;p.requestRescueLearn();p.processBlock(b,midi);p.requestRescueLearn(true);p.processBlock(b,midi);check(p.rescueLearnState!=4&&!p.rescue->isLearning(),"FINISH cancels a waiting RESCUE learner");
+ p.requestRescueLearn();head.playing=true;p.processBlock(b,midi);p.selectPreset(2,false);p.processBlock(b,midi);check(!p.rescue->isLearning(),"preset recall cancels unfinished RESCUE learning");p.setPlayHead(nullptr);
+}
 int main(){
 #if JUCE_MAC
     gillInitialiseMacTestApplication();
 #endif
-    juce::ScopedJuceInitialiser_GUI gui;
+    juce::ScopedJuceInitialiser_GUI gui;rescueLearning();
     for(int kind=0;kind<3;++kind){
         GillToolsProcessor p(static_cast<ToolsKind>(kind));
         p.setPlayConfigDetails(2,2,48000,127);p.prepareToPlay(48000,127);

@@ -22,7 +22,8 @@
     "Space_DSP",
     "Echo_DSP",
     "Balance_DSP",
-    "Update_DSP"
+    "Update_DSP",
+    "BALANCE_FULL_SONG"
   ],
   "GILLEQ": [
     "DSP",
@@ -45,7 +46,8 @@
     "NEXT_FormAlignEdge_DSP",
     "NEXT_Finish_DSP",
     "NEXT_OutputPeakMeter_DSP",
-    "LIVE_QUALITY_DSP"
+    "LIVE_QUALITY_DSP",
+    "FINISH_SONG"
   ],
   "GILLRESTORATION": [
     "RESTORATION_DSP",
@@ -55,7 +57,8 @@
     "VOCAL_INTEGRATION",
     "Flow_DSP",
     "Heat_DSP",
-    "Tune_DSP"
+    "Tune_DSP",
+    "FLOW_FULL_SONG"
   ],
   "GILLCONTROL": [
     "QUALITY_CROSS_DLL_IPC",
@@ -63,12 +66,14 @@
   ],
   "GILLCREATIVE": [
     "CREATIVE_INTEGRATION",
-    "Creative_DSP"
+    "Creative_DSP",
+    "CREATIVE_FULL_SONG"
   ],
   "GILLSMARTDEESSER": [
     "DSP",
     "LEARNING",
-    "PLUGIN_INTEGRATION"
+    "PLUGIN_INTEGRATION",
+    "SMARTDEESSER_FULL_SONG"
   ],
   "GILLMIX": [
     "MIX_CORE",
@@ -86,5 +91,12 @@
     "MASTER_CORE",
     "MASTER_DELTA",
     "MASTER_CEILING"
+  ],
+  "GILLRISE": [
+    "RISE_DSP",
+    "RISE_INTEGRATION"
+  ],
+  "GILLASSIST": [
+    "ASSIST_INTEGRATION"
   ]
 }

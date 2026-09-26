@@ -7,7 +7,7 @@ if(CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS")
     endif()
 endif()
-project(GILLMIX VERSION 0.7.0 LANGUAGES C CXX)
+project(GILLMIX VERSION 0.10.0 LANGUAGES C CXX)
 # Keep each Mach-O image's JUCE implementation private, including custom
 # static runtimes and Objective-C++ units. VST3 entry points stay explicit exports.
 if(APPLE)
@@ -124,3 +124,4 @@ if(WIN32)
 endif()
 add_test(NAME MIX_CROSS_DLL COMMAND GillMixCrossDllTests "$<TARGET_FILE:GillMixBusModuleA>" "$<TARGET_FILE:GillMixBusModuleB>")
 set_tests_properties(MIX_CORE MIX_INTEGRATION MIX_CROSS_DLL PROPERTIES TIMEOUT 180 WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}")
+
