@@ -79,7 +79,7 @@ void ui(CreativeKind kind){auto p=std::make_unique<GillCreativeProcessor>(kind);
  p->selectPreset(0,false);p->audition(false);process(*p,head,.01);tick();const int w=editor->getWidth(),h=editor->getHeight();for(int scale:{1,2}){editor->setSize(w*scale,h*scale);tick();auto image=editor->createComponentSnapshot(editor->getLocalBounds());juce::FileOutputStream output(juce::File::getCurrentWorkingDirectory().getChildFile(name+"-UI-"+juce::String(w*scale)+"x"+juce::String(h*scale)+".png"));output.setPosition(0);output.truncate();juce::PNGImageFormat png;check(output.openedOk()&&png.writeImageToStream(image,output),name+" native UI screenshot");}p->setPlayHead(nullptr);
 }
 int main(){
- const auto assets=juce::File::getCurrentWorkingDirectory().getChildFile("capture-evidence");assets.createDirectory();
+ const auto evidenceOverride=juce::SystemStats::getEnvironmentVariable("GILL_CREATIVE_AUDIO_ROOT",{});const auto assets=(evidenceOverride.isEmpty()?juce::File::getCurrentWorkingDirectory():juce::File(evidenceOverride)).getChildFile("capture-evidence");assets.createDirectory();
 #if JUCE_WINDOWS
  _putenv_s("GILL_CREATIVE_AUDIO_ROOT",assets.getFullPathName().toRawUTF8());
 #else

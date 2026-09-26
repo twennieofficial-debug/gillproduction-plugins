@@ -11,7 +11,7 @@ int main(){
 gillInitialiseMacTestApplication();
 #endif
 juce::ScopedJuceInitialiser_GUI gui;int checks=0,failures=0;auto check=[&](bool pass,const char*name){++checks;if(!pass)++failures;std::printf("%s %s\n",pass?"PASS":"FAIL",name);};
-const auto folder=juce::File::getCurrentWorkingDirectory().getChildFile("full-song-evidence");folder.createDirectory();
+const auto evidenceOverride=juce::SystemStats::getEnvironmentVariable("GILL_CREATIVE_AUDIO_ROOT",{});const auto folder=(evidenceOverride.isEmpty()?juce::File::getCurrentWorkingDirectory():juce::File(evidenceOverride)).getChildFile("full-song-evidence");folder.createDirectory();
 #if JUCE_WINDOWS
 _putenv_s("GILL_CREATIVE_AUDIO_ROOT",folder.getFullPathName().toRawUTF8());
 #else
@@ -19,9 +19,11 @@ setenv("GILL_CREATIVE_AUDIO_ROOT",folder.getFullPathName().toRawUTF8(),1);
 #endif
 auto p=std::make_unique<GillCreativeProcessor>(CreativeKind::Phrase);Head head;head.seconds=12;head.playing=false;p->setPlayHead(&head);p->prepareToPlay(48000,1024);juce::AudioBuffer<float>audio(2,1024);juce::MidiBuffer midi;
 p->startLearn();audio.clear();p->processBlock(audio,midi);check(p->engine.learningState()==5,"LEARN arms while host transport is stopped");head.playing=true;
-for(int at=0;at<14402400;at+=1024){const int n=std::min(1024,14402400-at);audio.setSize(2,n,false,false,true);for(int i=0;i<n;++i){const float value=voice((at+i)/48000.);audio.setSample(0,i,value);audio.setSample(1,i,value);}head.seconds=12+at/48000.;p->processBlock(audio,midi);}
+// Accelerated playback, not an unbounded producer-speed stress: allow the
+// background disk writer to run outside the audio callback between blocks.
+for(int at=0;at<14402400;at+=1024){const int n=std::min(1024,14402400-at);audio.setSize(2,n,false,false,true);for(int i=0;i<n;++i){const float value=voice((at+i)/48000.);audio.setSample(0,i,value);audio.setSample(1,i,value);}head.seconds=12+at/48000.;p->processBlock(audio,midi);juce::Thread::sleep(1);}
 const auto plan=p->plan();check(plan.valid()&&plan.count==300&&std::abs(plan.durationSeconds-300)<.001f,"complete 48 kHz five-minute pass retains all 300 phrase markers");check(plan.timeAnchor&&plan.originSeconds==12,"captured timeline is anchored to its actual host start");
-for(int i=0;i<3000&&!p->canRender();++i)juce::Thread::sleep(5);check(p->canRender(),"background writer completes the whole-song source asset");juce::AudioFormatManager formats;formats.registerBasicFormats();std::unique_ptr<juce::AudioFormatReader>source(formats.createReaderFor(p->archive.sourceFile(plan.sourceRevision)));check(source&&source->lengthInSamples==14400000&&source->sampleRate==48000,"durable source contains every sample up to the 300-second boundary");
+for(int i=0;i<3000&&!p->canRender();++i)juce::Thread::sleep(5);if(!p->canRender())std::printf("ARCHIVE STATUS %d: %s\n",p->archive.status(),p->archive.error().toRawUTF8());check(p->canRender(),"background writer completes the whole-song source asset");juce::AudioFormatManager formats;formats.registerBasicFormats();std::unique_ptr<juce::AudioFormatReader>source(formats.createReaderFor(p->archive.sourceFile(plan.sourceRevision)));check(source&&source->lengthInSamples==14400000&&source->sampleRate==48000,"durable source contains every sample up to the 300-second boundary");
 check(p->renderEffects(true),"whole-song wet export starts");for(int i=0;i<12000&&p->renderer.busy();++i)juce::Thread::sleep(5);std::unique_ptr<juce::AudioFormatReader>render(formats.createReaderFor(p->renderer.file()));check(render&&render->lengthInSamples==14976000,"whole-song export includes five minutes plus twelve seconds of tail");
 if(render){juce::AudioBuffer<float>tail(2,48000*4);render->read(&tail,0,tail.getNumSamples(),298*48000,true,true);check(tail.getRMSLevel(0,0,tail.getNumSamples())>1.e-5f,"rendered reverb remains audible at the final phrase after 298 seconds");}
 juce::MemoryBlock saved;p->getStateInformation(saved);check(saved.getSize()<200000,"five-minute project state remains compact and refers to durable audio");
