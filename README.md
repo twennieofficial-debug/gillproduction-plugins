@@ -2,7 +2,7 @@
 
 Development sources and build automation for 47 GILLPRODUCTION vocal, mix and mastering effects (update 09). Eight new master products use 0.9.0. All39 previous products retain their versions and product IDs. Build targets are Windows x64 VST3 and macOS Universal VST3 for Apple Silicon and Intel. A new installer is produced only after its native verification gates pass.
 
-[Download the published update 07 — Windows installer and unsigned Mac DMG](https://github.com/twennieofficial-debug/gillproduction-plugins/releases/tag/bundle-test-07). This verified release contains 39 plugins. Update09 adds GILLCEILING, GILLLOW, GILLGLUE, GILLWIDTH, GILLPUNCH, GILLWEIGHT, GILLDELTA and GILLDELIVER. These sources now contain the real implementations; the47-product installer will be published only after its platform gates pass.
+[Download Update 08 — 39 plugins, Windows installer and unsigned Mac DMG](https://github.com/twennieofficial-debug/gillproduction-plugins/releases/tag/bundle-test-08). This release contains the existing39 products. Update09 adds GILLCEILING, GILLLOW, GILLGLUE, GILLWIDTH, GILLPUNCH, GILLWEIGHT, GILLDELTA and GILLDELIVER. These sources now contain the real implementations; the47-product installer will be published only after its platform gates pass.
 
 Sources, presets, tests and artwork are in `work/GILL*`; shared quality and interface helpers are in `work/GILLCommon` and must be included when building any group. Each product group includes `BUILDING.md`. JUCE 8.0.12 is pinned as a submodule under `work/dependencies/JUCE`; initialize submodules before building. See the [Mac build and packaging guide](work/packaging/macos/README.md) for the native build, validation and installer workflow.
 
