@@ -23,6 +23,8 @@ def quality_result_fixture(rate):
             live, pro = p.math.ceil(rate * .025) + 80, p.math.ceil(rate * .068) + 112
         if name == "GILLRESCUE":
             live, pro = p.math.ceil(rate * .004), p.math.ceil(rate * .012)
+        if name == "GILLCEILING": pro = p.math.ceil(rate*.003)+32
+        if name == "GILLWEIGHT": pro = 32
         products.append({"name": name, "factory_version": product["version"], "factory_version_verified": True,
                          "factory_uid": format(index + 1, "x"), "manufacturer": "GILLPRODUCTION",
                          "live_latency_samples": live, "pro_latency_samples": pro})
@@ -213,12 +215,12 @@ class SourceArchiveTests(unittest.TestCase):
                 p.verify_source_archive(path, manifest)
 
     def test_catalog_preserves_products_and_compact_sizes(self):
-        self.assertEqual(len(p.PRODUCTS), 39)
-        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 39)
+        self.assertEqual(len(p.PRODUCTS), 47)
+        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 47)
         self.assertEqual(sum(x["version"] == "0.6.0" for x in p.PRODUCTS), 22)
         self.assertEqual({x["name"] for x in p.PRODUCTS if x["version"] == "0.7.0"},
                          {"GILLMIX", "GILLLINK", "GILLHARMONY", "GILLREFERENCE", "GILLRESCUE"})
-        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 54)
+        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 58)
         self.assertIn("LIVE_QUALITY_DSP", p.CTEST_MATRIX["GILLNEXT"])
         for product in p.PRODUCTS:
             self.assertLessEqual(product["default_size"][0], 900)
@@ -266,7 +268,7 @@ class NativeEvidenceTests(unittest.TestCase):
             self.assertEqual(len(failure["failed_groups"]), 1)
 
     def test_all_expected_ctest_entries_match(self):
-        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 54)
+        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 58)
         for group, expected in p.CTEST_MATRIX.items():
             p.verify_ctest_listing(group, {"tests": [{"name": name} for name in expected]})
 
@@ -280,11 +282,11 @@ class NativeEvidenceTests(unittest.TestCase):
 
     def test_original_39_suites_remain_required(self):
         old = {k: [name for name in v if name != "LIVE_QUALITY_DSP"] for k, v in p.CTEST_MATRIX.items()
-               if k not in {"GILLCONTROL", "GILLCREATIVE", "GILLSMARTDEESSER", "GILLMIX", "GILLTOOLS"}}
+               if k not in {"GILLCONTROL", "GILLCREATIVE", "GILLSMARTDEESSER", "GILLMIX", "GILLTOOLS", "GILLMASTER"}}
         self.assertEqual(sum(map(len, old.values())), 39)
 
     def test_all47_release06_native_suites_are_now_explicitly_required(self):
-        old = {k: v for k, v in p.CTEST_MATRIX.items() if k not in {"GILLMIX", "GILLTOOLS"}}
+        old = {k: v for k, v in p.CTEST_MATRIX.items() if k not in {"GILLMIX", "GILLTOOLS", "GILLMASTER"}}
         self.assertEqual(sum(map(len, old.values())), 47)
 
     def test_a_duplicate_test_cannot_replace_missing_test(self):
@@ -376,12 +378,12 @@ class NativeQualityGateTests(unittest.TestCase):
             with self.subTest(name=name), self.assertRaises(RuntimeError):
                 p.verify_quality_result(result, 48000)
 
-    def test_release08_keeps_exact_old_and_updated_product_versions(self):
-        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("08", "0.8.0"))
+    def test_release09_keeps_exact_old_and_new_product_versions(self):
+        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("09", "0.9.0"))
         for rate in p.QUALITY_SAMPLE_RATES:
             p.verify_quality_result(quality_result_fixture(rate), rate)
         for name, wrong in (("GILLEQ", "0.7.0"), ("GILLHARMONY", "0.6.0"),
-                            ("GILLREFERENCE", "0.8.0"), ("GILLLINK", ""), ("GILLVOX", "0.6.0"), ("GILLFINISH", "0.7.0")):
+                            ("GILLREFERENCE", "0.8.0"), ("GILLLINK", ""), ("GILLVOX", "0.6.0"), ("GILLFINISH", "0.7.0"), ("GILLCEILING", "0.8.0"), ("GILLDELIVER", "0.7.0")):
             result = quality_result_fixture(48000)
             next(x for x in result["products"] if x["name"] == name)["factory_version"] = wrong
             with self.subTest(name=name, version=wrong), self.assertRaisesRegex(RuntimeError, "factory version"):

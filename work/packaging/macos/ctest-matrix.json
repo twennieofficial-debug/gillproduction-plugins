@@ -80,5 +80,11 @@
     "Harmony_DSP",
     "Rescue_DSP",
     "REFERENCE_DSP"
+  ],
+  "GILLMASTER": [
+    "MASTER_INTEGRATION",
+    "MASTER_CORE",
+    "MASTER_DELTA",
+    "MASTER_CEILING"
   ]
 }

@@ -466,5 +466,101 @@
       540,
       390
     ]
+  },
+  {
+    "target": "GILLCEILING",
+    "name": "GILLCEILING",
+    "code": "Gce1",
+    "group": "GILLMASTER",
+    "version": "0.9.0",
+    "bundle_id": "com.gillproduction.gillceiling",
+    "default_size": [
+      760,
+      480
+    ]
+  },
+  {
+    "target": "GILLLOW",
+    "name": "GILLLOW",
+    "code": "Glo1",
+    "group": "GILLMASTER",
+    "version": "0.9.0",
+    "bundle_id": "com.gillproduction.gilllow",
+    "default_size": [
+      620,
+      340
+    ]
+  },
+  {
+    "target": "GILLGLUE",
+    "name": "GILLGLUE",
+    "code": "Ggl1",
+    "group": "GILLMASTER",
+    "version": "0.9.0",
+    "bundle_id": "com.gillproduction.gillglue",
+    "default_size": [
+      420,
+      550
+    ]
+  },
+  {
+    "target": "GILLWIDTH",
+    "name": "GILLWIDTH",
+    "code": "Gwi1",
+    "group": "GILLMASTER",
+    "version": "0.9.0",
+    "bundle_id": "com.gillproduction.gillwidth",
+    "default_size": [
+      680,
+      420
+    ]
+  },
+  {
+    "target": "GILLPUNCH",
+    "name": "GILLPUNCH",
+    "code": "Gpu1",
+    "group": "GILLMASTER",
+    "version": "0.9.0",
+    "bundle_id": "com.gillproduction.gillpunch",
+    "default_size": [
+      680,
+      360
+    ]
+  },
+  {
+    "target": "GILLWEIGHT",
+    "name": "GILLWEIGHT",
+    "code": "Gwe1",
+    "group": "GILLMASTER",
+    "version": "0.9.0",
+    "bundle_id": "com.gillproduction.gillweight",
+    "default_size": [
+      400,
+      320
+    ]
+  },
+  {
+    "target": "GILLDELTA",
+    "name": "GILLDELTA",
+    "code": "Gdt1",
+    "group": "GILLMASTER",
+    "version": "0.9.0",
+    "bundle_id": "com.gillproduction.gilldelta",
+    "default_size": [
+      700,
+      330
+    ]
+  },
+  {
+    "target": "GILLDELIVER",
+    "name": "GILLDELIVER",
+    "code": "Gdl1",
+    "group": "GILLMASTER",
+    "version": "0.9.0",
+    "bundle_id": "com.gillproduction.gilldeliver",
+    "default_size": [
+      440,
+      560
+    ]
   }
 ]

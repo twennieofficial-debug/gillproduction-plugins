@@ -1,5 +1,5 @@
 GILLPRODUCTION - PLUGIN-ÜBERSICHT
-UPDATE 08 / 39 VST3-PLUGINS / 12 RECHTECK-UPDATES 0.8.0 + 27 UNVERAENDERTE PLUGINS
+UPDATE 09 / 47 VST3-PLUGINS / 8 NEUE MASTER-PLUGINS 0.9.0 + 39 VORHANDENE PLUGINS
 
 GILLTUNE
 - Korrigiert die Tonhöhe einer einzelnen Stimme auf Tonart und Skala.
@@ -179,6 +179,41 @@ GILLRESCUE
 - Intakte Samples bleiben erhalten; lange oder uneindeutige Verzerrungen werden nicht blind ersetzt.
 - Keine sichere Wiederherstellung verlorener Originaldetails. LIVE 4 ms, PRO 12 ms tatsächliche Zusatzlatenz.
 
+
+GILLCEILING
+- Stereo-gekoppelter Master-Limiter mit CLEAN, PUNCH und LOUD, Ceiling, Drive und Release.
+- PRO: Oversampling und Lookahead; LIVE: direkter Sample-Peak-Pfad. Bei MIX unter 100 % kann das Original die Ceiling überschreiten.
+
+GILLLOW
+- Kontrolliert den Bass dynamisch mit Threshold, Transientenschutz und Bass-Stereobreite.
+- SUB LISTEN hilft, den bearbeiteten Bereich gezielt abzuhören.
+
+GILLGLUE
+- Master-Bus-Kompressor mit drei Charakteren, Attack, Release und Bassfilter im Detektor.
+- GAIN MATCH und paralleler MIX erleichtern eine zurückhaltende Abstimmung.
+
+GILLWIDTH
+- Stellt die Stereobreite getrennt für Bass, Mitten und Höhen ein.
+- Echtes Stereoskop, Korrelation, zusätzliche Breitenbegrenzung und MONO CHECK.
+
+GILLPUNCH
+- Betont oder zähmt Anschläge in drei Frequenzbereichen und verändert ihren Sustain.
+- Für mehr Bewegung oder weichere Spitzen; Frequenztrennungen und MIX einstellbar.
+
+GILLWEIGHT
+- Erzeugt dosierbare Bass-Obertöne für mehr Gewicht auch auf kleinen Lautsprechern.
+- Drei Klangfarben; PRO arbeitet mit vierfachem Oversampling, SMALL SPEAKER dient zum Abhören.
+
+GILLDELTA
+- Zwei Instanzen vergleichen die echte Kette: SOURCE davor, RETURN dahinter, gleiche PAIR-Nummer.
+- LEARN gleicht bis 500 ms Verzögerung und begrenzt den Pegelunterschied aus. BEFORE, AFTER und DELTA abhören.
+- Beide Instanzen müssen im selben Host-Prozess laufen. Nach Änderungen der Kette erneut lernen.
+- Offline-Export und verlorene Verbindung geben AFTER aus; vor Echtzeit-Export AFTER wählen.
+
+GILLDELIVER
+- Prüft den durchlaufenden Song auf integrierte Lautheit, Loudness Range, Peaks, Clipping und Anfangs-/Endstille.
+- ANALYZE vor der Wiedergabe, STOP am Ende, REPORT für einen Textbericht; Ziele frei wählbar.
+- Verändert kein Audio. PRO nutzt eine endliche True-Peak-Schätzung, LIVE misst Sample Peaks.
 
 LIVE / PRO
 - LIVE verringert zusätzliche Verarbeitungslatenz. PRO verwendet je nach Effekt aufwendigere Verarbeitung.
