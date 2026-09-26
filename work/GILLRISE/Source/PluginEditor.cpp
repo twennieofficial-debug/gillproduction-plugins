@@ -3,7 +3,7 @@
 
 namespace {
 const juce::Colour cream(0xffefe7d7),gold(0xffb9955d),ink(0xff171817);
-void label(juce::Graphics&g,juce::String text,juce::Rectangle<int>bounds,float size=11,juce::Colour colour=cream,int align=juce::Justification::centred){g.setFont(juce::FontOptions(size));g.setColour(colour);g.drawFittedText(text,bounds,align,1);}
+void drawRiseLabel(juce::Graphics&g,juce::String text,juce::Rectangle<int>bounds,float size=11,juce::Colour colour=cream,int align=juce::Justification::centred){g.setFont(juce::FontOptions(size));g.setColour(colour);g.drawFittedText(text,bounds,align,1);}
 struct RiseLook:juce::LookAndFeel_V4 {
  RiseLook(){setColour(juce::Slider::textBoxTextColourId,cream);setColour(juce::Slider::textBoxBackgroundColourId,ink);setColour(juce::Slider::textBoxOutlineColourId,juce::Colour(0xff665442));setColour(juce::ComboBox::backgroundColourId,ink);setColour(juce::ComboBox::textColourId,cream);setColour(juce::ComboBox::outlineColourId,gold);setColour(juce::PopupMenu::backgroundColourId,ink);setColour(juce::PopupMenu::textColourId,cream);setColour(juce::PopupMenu::highlightedBackgroundColourId,juce::Colour(0xff67513b));}
  void drawRotarySlider(juce::Graphics&g,int x,int y,int w,int h,float value,float start,float end,juce::Slider&)override{
@@ -13,12 +13,12 @@ struct RiseLook:juce::LookAndFeel_V4 {
    float a=start+(end-start)*value;auto p=juce::Point<float>(cx,cy).getPointOnCircumference(radius*.36f,a),q=juce::Point<float>(cx,cy).getPointOnCircumference(radius*.7f,a);g.setColour(juce::Colours::white.withAlpha(.75f));g.drawLine({p.translated(1,1),q.translated(1,1)},3.5f);g.setColour(juce::Colour(0xff3a3328));g.drawLine({p,q},2.6f);
  }
  void drawButtonBackground(juce::Graphics&g,juce::Button&b,const juce::Colour&,bool over,bool down)override{auto r=b.getLocalBounds().toFloat().reduced(1);bool bright=b.getToggleState()||b.getName()=="PRIMARY";auto a=bright?juce::Colour(0xffefddbf):juce::Colour(0xff45433c),z=bright?juce::Colour(0xffa17c49):juce::Colour(0xff1a1b18);if(down){a=a.darker(.3f);z=z.darker(.3f);}else if(over)a=a.brighter(.1f);g.setColour(juce::Colours::black.withAlpha(.7f));g.fillRoundedRectangle(r.translated(0,2),4);g.setGradientFill(juce::ColourGradient(a,r.getX(),r.getY(),z,r.getX(),r.getBottom(),false));g.fillRoundedRectangle(r,4);g.setColour(bright?cream:gold.withAlpha(.5f));g.drawRoundedRectangle(r.reduced(.5f),4,.8f);g.setColour(juce::Colours::black.withAlpha(.5f));g.drawRoundedRectangle(r.reduced(2),3,.8f);}
- void drawButtonText(juce::Graphics&g,juce::TextButton&b,bool,bool)override{label(g,b.getButtonText(),b.getLocalBounds().reduced(4),b.getWidth()<70?10:11,(b.getToggleState()||b.getName()=="PRIMARY")?ink:cream.withAlpha(b.isEnabled()?1.f:.4f));}
+ void drawButtonText(juce::Graphics&g,juce::TextButton&b,bool,bool)override{drawRiseLabel(g,b.getButtonText(),b.getLocalBounds().reduced(4),b.getWidth()<70?10:11,(b.getToggleState()||b.getName()=="PRIMARY")?ink:cream.withAlpha(b.isEnabled()?1.f:.4f));}
  void drawLinearSlider(juce::Graphics&g,int x,int y,int w,int h,float pos,float,float,juce::Slider::SliderStyle,juce::Slider&)override{const float cy=y+h*.5f;g.setColour(juce::Colour(0xff090a08));g.fillRoundedRectangle(float(x),cy-3,float(w),6,3);g.setColour(gold.withAlpha(.65f));g.fillRoundedRectangle(float(x),cy-1,std::max(0.f,pos-x),2,1);gill::material::disc(g,{pos-5,cy-7,10,14});}
 };
 struct Dial:juce::Component {juce::String title;juce::Slider slider;juce::AudioProcessorValueTreeState::SliderAttachment attachment;
  Dial(GillRiseProcessor&p,const char*id,const char*name,const char*suffix):title(name),attachment(p.apvts,id,slider){slider.setSliderStyle(juce::Slider::Rotary);slider.setRotaryParameters(juce::MathConstants<float>::pi*1.2f,juce::MathConstants<float>::pi*2.8f,true);slider.setTextBoxStyle(juce::Slider::TextBoxBelow,false,82,20);slider.setTextValueSuffix(suffix);slider.setDoubleClickReturnValue(true,p.apvts.getParameter(id)->convertFrom0to1(p.apvts.getParameter(id)->getDefaultValue()));slider.setName(name);addAndMakeVisible(slider);}
- void resized()override{slider.setBounds(getLocalBounds().withTrimmedTop(18));}void paint(juce::Graphics&g)override{label(g,title,getLocalBounds().withHeight(17),10);}
+ void resized()override{slider.setBounds(getLocalBounds().withTrimmedTop(18));}void paint(juce::Graphics&g)override{drawRiseLabel(g,title,getLocalBounds().withHeight(17),10);}
 };
 struct Drag:juce::TextButton {std::function<void()>drag;bool fired=false;Drag():juce::TextButton("DRAG WAV"){}void mouseDown(const juce::MouseEvent&e)override{fired=false;juce::TextButton::mouseDown(e);}void mouseDrag(const juce::MouseEvent&e)override{if(!fired&&e.getDistanceFromDragStart()>5){fired=true;if(drag)drag();}}};
 }
@@ -43,16 +43,16 @@ struct GillRiseEditor::Impl:juce::Component,private juce::Timer {
    g.setGradientFill(juce::ColourGradient(juce::Colour(0xff6b432a),0,0,juce::Colour(0xff281c13),660,465,false));g.fillAll();for(int y=0;y<465;y+=3){juce::Path grain;grain.startNewSubPath(0,float(y));for(int x=0;x<=660;x+=10)grain.lineTo(float(x),float(y+2.5*std::sin(x*.025+y*.017)));g.setColour(juce::Colours::black.withAlpha(.08f));g.strokePath(grain,juce::PathStrokeType(.7f));}
    auto panel=getLocalBounds().toFloat().reduced(11);g.setColour(juce::Colours::black.withAlpha(.7f));g.fillRoundedRectangle(panel.translated(0,2),7);g.setGradientFill(juce::ColourGradient(juce::Colour(0xff353733),12,12,juce::Colour(0xff131511),630,452,false));g.fillRoundedRectangle(panel,7);g.setColour(gold.withAlpha(.55f));g.drawRoundedRectangle(panel.reduced(.5f),7,1);
    juce::Path gp;gp.startNewSubPath(28,5);gp.lineTo(15,5);gp.cubicTo(-3,5,-3,30,15,30);gp.lineTo(29,30);gp.lineTo(29,19);gp.lineTo(17,19);gp.startNewSubPath(24,39);gp.lineTo(24,13);gp.lineTo(40,13);gp.cubicTo(55,13,55,31,40,31);gp.lineTo(24,31);gp.applyTransform(juce::AffineTransform::scale(.72f,.72f).translated(27,21));g.setColour(juce::Colours::black);g.strokePath(gp,juce::PathStrokeType(4));g.setColour(gold);g.strokePath(gp,juce::PathStrokeType(2.3f));g.setColour(cream.withAlpha(.5f));g.strokePath(gp,juce::PathStrokeType(.5f));
-   label(g,"GILLRISE",{76,16,194,29},23,cream,juce::Justification::centredLeft);label(g,"REVERSE VOCAL DESIGNER",{77,43,272,17},9,gold,juce::Justification::centredLeft);
+   drawRiseLabel(g,"GILLRISE",{76,16,194,29},23,cream,juce::Justification::centredLeft);drawRiseLabel(g,"REVERSE VOCAL DESIGNER",{77,43,272,17},9,gold,juce::Justification::centredLeft);
    auto wave=juce::Rectangle<float>(23,112,614,105);g.setColour(juce::Colour(0xff080b09));g.fillRoundedRectangle(wave,6);g.setColour(gold.withAlpha(.45f));g.drawRoundedRectangle(wave,6,.7f);g.setColour(cream.withAlpha(.04f));g.fillRoundedRectangle(wave.reduced(2).withHeight(27),4);
    auto r=p.result();if(r&&!r->left.empty()){
      if(waveSource!=r){for(int x=0;x<590;++x){std::size_t a=std::size_t(x)*r->left.size()/590,b=std::size_t(x+1)*r->left.size()/590;float peak=0;for(std::size_t i=a;i<b;++i)peak=std::max({peak,std::abs(r->left[i]),std::abs(r->right[i])});wavePeaks[x]=std::min(35.f,peak/std::max(.0001f,r->peak)*35);}waveSource=r;}
      const float mid=165;for(int x=0;x<590;++x){g.setColour(gold.withAlpha(.85f));g.drawVerticalLine(35+x,mid-wavePeaks[x],mid+wavePeaks[x]);}
-     label(g,juce::String(r->lengthSeconds,2)+" s",{34,117,150,17},10,cream,juce::Justification::centredLeft);label(g,"END AT SYLLABLE",{455,194,167,17},9,gold,juce::Justification::centredRight);
-   }else label(g,"PLAY THE FIRST SYLLABLE TO CREATE YOUR RISE",wave.toNearestInt(),12,gold);
-   label(g,"START",{24,226,65,24},10);label(g,"END",{345,226,58,24},10);label(g,p.statusText(),{270,102,362,11},8,gold,juce::Justification::centredRight);
+     drawRiseLabel(g,juce::String(r->lengthSeconds,2)+" s",{34,117,150,17},10,cream,juce::Justification::centredLeft);drawRiseLabel(g,"END AT SYLLABLE",{455,194,167,17},9,gold,juce::Justification::centredRight);
+   }else drawRiseLabel(g,"PLAY THE FIRST SYLLABLE TO CREATE YOUR RISE",wave.toNearestInt(),12,gold);
+   drawRiseLabel(g,"START",{24,226,65,24},10);drawRiseLabel(g,"END",{345,226,58,24},10);drawRiseLabel(g,p.statusText(),{270,102,362,11},8,gold,juce::Justification::centredRight);
    juce::String hint="ALIGN WAV END TO THE SELECTED SYLLABLE  /  0 SAMPLES LATENCY";if(r&&r->hostPositionKnown){const double end=double(r->endSample)/r->sampleRate,start=end-r->lengthSeconds;hint="PLACE "+juce::String(start,3)+" s  ->  "+juce::String(end,3)+" s";if(start<0)hint+="  /  MOVE SONG RIGHT TO MAKE ROOM";}
-   label(g,message.isNotEmpty()?message:hint,{23,434,614,17},9,gold);
+   drawRiseLabel(g,message.isNotEmpty()?message:hint,{23,434,614,17},9,gold);
  }
 };
 GillRiseEditor::GillRiseEditor(GillRiseProcessor&p):AudioProcessorEditor(p),ui(std::make_unique<Impl>(p)){addAndMakeVisible(*ui);setResizable(true,true);getConstrainer()->setFixedAspectRatio(660./465.);setResizeLimits(594,419,990,698);setSize(660,465);}

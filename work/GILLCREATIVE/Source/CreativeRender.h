@@ -7,7 +7,7 @@ public:
     ~CreativeRender()override{signalThreadShouldExit();stopThread(-1);}
     bool start(const juce::File& source,const juce::String& product,gill::creative::Kind kind,const gill::creative::Plan& plan,gill::creative::Controls controls,bool effectsOnly){
         if(isThreadRunning()||!source.existsAsFile()||!gill::creative::Engine::validPlan(plan))return false;
-        task={source,product,kind,plan,controls,effectsOnly};progress=0;status=1;{std::lock_guard<std::mutex>lock(resultMutex);result={};failure.clear();}startThread();return true;
+        task={source,product,kind,plan,controls,effectsOnly};progress=0;status=1;{std::lock_guard<std::mutex>lock(resultMutex);result=juce::File{};failure.clear();}startThread();return true;
     }
     bool busy()const noexcept{return status==1||isThreadRunning();}
     juce::File file()const {std::lock_guard<std::mutex>lock(resultMutex);return result;}

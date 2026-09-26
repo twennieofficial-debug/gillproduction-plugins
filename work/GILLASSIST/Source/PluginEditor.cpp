@@ -4,11 +4,11 @@
 
 namespace{
 const juce::Colour ivory(0xffeee7d7),ink(0xff222925),green(0xff397368),amber(0xffd6b47d);
-void label(juce::Graphics&g,const juce::String&t,juce::Rectangle<int>r,float size,juce::Colour c=ink,int alignment=juce::Justification::centredLeft){g.setColour(c);g.setFont(juce::FontOptions(size));g.drawFittedText(t,r,alignment,1);}
+void drawAssistText(juce::Graphics&g,const juce::String&t,juce::Rectangle<int>r,float size,juce::Colour c=ink,int alignment=juce::Justification::centredLeft){g.setColour(c);g.setFont(juce::FontOptions(size));g.drawFittedText(t,r,alignment,1);}
 struct Look:juce::LookAndFeel_V4{
     Look(){setColour(juce::Slider::textBoxTextColourId,ink);setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);setColour(juce::Slider::textBoxBackgroundColourId,juce::Colour(0xffe3ddcd));setColour(juce::ComboBox::backgroundColourId,ivory);setColour(juce::ComboBox::textColourId,ink);setColour(juce::ComboBox::outlineColourId,juce::Colour(0xffbfb29b));setColour(juce::PopupMenu::backgroundColourId,ivory);setColour(juce::PopupMenu::textColourId,ink);setColour(juce::PopupMenu::highlightedBackgroundColourId,green);setColour(juce::PopupMenu::highlightedTextColourId,ivory);}
     void drawButtonBackground(juce::Graphics&g,juce::Button&b,const juce::Colour&,bool over,bool down)override{auto c=b.getToggleState()?green:ivory;if(over)c=c.brighter(.06f);gill::material::panel(g,b.getLocalBounds().toFloat().reduced(1),c,5,down);}
-    void drawButtonText(juce::Graphics&g,juce::TextButton&b,bool,bool)override{label(g,b.getButtonText(),b.getLocalBounds().reduced(4),11,b.getToggleState()?ivory:ink,juce::Justification::centred);}
+    void drawButtonText(juce::Graphics&g,juce::TextButton&b,bool,bool)override{drawAssistText(g,b.getButtonText(),b.getLocalBounds().reduced(4),11,b.getToggleState()?ivory:ink,juce::Justification::centred);}
     juce::Label*createSliderTextBox(juce::Slider&s)override{auto*l=juce::LookAndFeel_V4::createSliderTextBox(s);l->setColour(juce::Label::textColourId,ink);l->setColour(juce::Label::backgroundColourId,juce::Colour(0xffe3ddcd));l->setColour(juce::Label::outlineColourId,juce::Colour(0xffbfb5a2));l->setColour(juce::TextEditor::textColourId,ink);l->setColour(juce::TextEditor::backgroundColourId,ivory);return l;}
     void drawLinearSlider(juce::Graphics&g,int x,int y,int w,int h,float position,float,float,juce::Slider::SliderStyle,juce::Slider&)override{float cy=y+h*.5f;g.setColour(juce::Colour(0xffb4aa94));g.fillRoundedRectangle(float(x),cy-2,float(w),4,2);g.setColour(green);g.fillRoundedRectangle(float(x),cy-1,std::max(0.f,position-x),2,1);gill::material::disc(g,{position-7,cy-7,14,14});}
 };
@@ -16,7 +16,7 @@ struct Control:juce::Component{
     juce::String name;juce::Slider slider;std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>attachment;
     Control(GillAssistProcessor&p,const char*id,const char*text,const char*suffix):name(text){slider.setSliderStyle(juce::Slider::LinearHorizontal);slider.setColour(juce::Slider::textBoxTextColourId,ink);slider.setColour(juce::Slider::textBoxBackgroundColourId,juce::Colour(0xffe3ddcd));slider.setColour(juce::Slider::textBoxOutlineColourId,juce::Colour(0xffbfb5a2));slider.setTextBoxStyle(juce::Slider::TextBoxRight,false,57,18);slider.setTextValueSuffix(suffix);slider.setName(text);slider.onDragStart=[&p]{p.undoManager.beginNewTransaction("Control");};addAndMakeVisible(slider);attachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.state,id,slider);}
     void resized()override{slider.setBounds(getLocalBounds().withTrimmedLeft(58));}
-    void paint(juce::Graphics&g)override{label(g,name,{0,0,56,getHeight()},10);}
+    void paint(juce::Graphics&g)override{drawAssistText(g,name,{0,0,56,getHeight()},10);}
 };
 struct DragButton:juce::TextButton{
     std::function<void()>drag;bool started=false;DragButton():TextButton("WAV INS PROJEKT ZIEHEN"){}
@@ -33,12 +33,12 @@ struct Timeline:juce::Component,juce::SettableTooltipClient{
     float y(float db)const{return getHeight()*.58f-db*getHeight()/72.f;}
     void paint(juce::Graphics&g)override{
         g.setGradientFill(juce::ColourGradient(juce::Colour(0xff25372f),0,0,juce::Colour(0xff101c16),0,float(getHeight()),false));g.fillRoundedRectangle(getLocalBounds().toFloat(),7);
-        if(snapshot.waveform.empty()){label(g,"LEARN -> SONG ABSPIELEN -> STOP",getLocalBounds().reduced(20),17,ivory,juce::Justification::centred);return;}
+        if(snapshot.waveform.empty()){drawAssistText(g,"LEARN -> SONG ABSPIELEN -> STOP",getLocalBounds().reduced(20),17,ivory,juce::Justification::centred);return;}
         const double step=span()>60?15:span()>20?5:span()>5?1:.25;
-        for(double time=std::floor(left()/step)*step;time<left()+span();time+=step){float xx=x(time);g.setColour(ivory.withAlpha(.09f));g.drawVerticalLine(int(xx),19.f,float(getHeight()));label(g,juce::String(time,step<1?2:0)+" s",{int(xx)+4,2,60,15},9,ivory.withAlpha(.75f));}
+        for(double time=std::floor(left()/step)*step;time<left()+span();time+=step){float xx=x(time);g.setColour(ivory.withAlpha(.09f));g.drawVerticalLine(int(xx),19.f,float(getHeight()));drawAssistText(g,juce::String(time,step<1?2:0)+" s",{int(xx)+4,2,60,15},9,ivory.withAlpha(.75f));}
         for(const auto&r:snapshot.regions){if(r.end<left()||r.begin>left()+span())continue;auto colour=r.type==4?juce::Colour(0xff99a9dc):r.type==3?amber:juce::Colour(0xff859084);g.setColour(colour.withAlpha(.08f+.14f*r.confidence));g.fillRect(juce::Rectangle<float>(x(r.begin),20,std::max(1.f,x(r.end)-x(r.begin)),float(getHeight()-20)));}
         g.setColour(ivory.withAlpha(.35f));for(int pixel=0;pixel<getWidth();++pixel){int a=std::clamp(int(seconds(float(pixel))/gill::assist::hopSeconds),0,int(snapshot.waveform.size())-1),b=std::clamp(int(seconds(float(pixel+1))/gill::assist::hopSeconds)+1,a+1,int(snapshot.waveform.size()));float peak=0;for(int j=a;j<b;++j)peak=std::max(peak,snapshot.waveform[std::size_t(j)]);float h=std::min(.95f,peak*1.8f)*(getHeight()-38)*.5f;g.drawVerticalLine(pixel,getHeight()*.55f-h,getHeight()*.55f+h);}
-        for(int d:{-24,-12,0,12}){g.setColour(ivory.withAlpha(d==0?.2f:.07f));g.drawHorizontalLine(int(y(float(d))),0,float(getWidth()));label(g,juce::String(d)+" dB",{getWidth()-46,int(y(float(d)))-14,43,13},9,ivory.withAlpha(.7f));}
+        for(int d:{-24,-12,0,12}){g.setColour(ivory.withAlpha(d==0?.2f:.07f));g.drawHorizontalLine(int(y(float(d))),0,float(getWidth()));drawAssistText(g,juce::String(d)+" dB",{getWidth()-46,int(y(float(d)))-14,43,13},9,ivory.withAlpha(.7f));}
         juce::Path curve;for(int px=0;px<getWidth();++px){int i=std::clamp(int(seconds(float(px))/gill::assist::hopSeconds),0,int(snapshot.gainDb.size())-1);float yy=y(snapshot.gainDb[std::size_t(i)]);if(px==0)curve.startNewSubPath(0,yy);else curve.lineTo(float(px),yy);}g.setColour(juce::Colour(0xffa3dfbf));g.strokePath(curve,juce::PathStrokeType(1.7f));
         const double play=p.engine.positionView.load()-snapshot.startSeconds;if(play>=left()&&play<=left()+span()){g.setColour(amber);g.drawVerticalLine(int(x(play)),18,float(getHeight()));}
         if(dragging){g.setColour(amber.withAlpha(.16f));float end=float(getMouseXYRelative().x);g.fillRect(juce::Rectangle<float>(std::min(down.x,end),20,std::max(1.f,std::abs(end-down.x)),float(getHeight()-20)));}
@@ -91,13 +91,13 @@ struct GillAssistEditor::Impl:juce::Component,private juce::Timer{
         g.setGradientFill(juce::ColourGradient(juce::Colour(0xff7f5733),0,0,juce::Colour(0xff312416),820,520,false));g.fillAll(juce::Colour(0xff4d3520));
         for(int y=0;y<520;y+=3){g.setColour(juce::Colour(0xffbc9866).withAlpha(.09f+float(std::sin(y*.79))*.035f));g.drawLine(0,float(y),820,float(y+2),.7f);}
         gill::material::panel(g,{12,12,796,496},ivory,9);gill::material::panel(g,{17,58,786,251},juce::Colour(0xffc7c0b1),7,true);
-        juce::Path monogram;monogram.startNewSubPath(28,5);monogram.lineTo(15,5);monogram.cubicTo(-3,5,-3,30,15,30);monogram.lineTo(29,30);monogram.lineTo(29,19);monogram.lineTo(17,19);monogram.startNewSubPath(24,39);monogram.lineTo(24,13);monogram.lineTo(40,13);monogram.cubicTo(55,13,55,31,40,31);monogram.lineTo(24,31);monogram.applyTransform(juce::AffineTransform::scale(.7f).translated(27,19));g.setColour(juce::Colour(0xff493322));g.strokePath(monogram,juce::PathStrokeType(3.7f));g.setColour(juce::Colour(0xffa3865e));g.strokePath(monogram,juce::PathStrokeType(1.7f));label(g,"GILLASSIST",{87,18,240,31},24);label(g,"TRANSFER VOCAL EDITOR",{89,45,242,12},9,juce::Colour(0xff6c746e));label(g,"ZOOM",{698,69,36,20},8);
+        juce::Path monogram;monogram.startNewSubPath(28,5);monogram.lineTo(15,5);monogram.cubicTo(-3,5,-3,30,15,30);monogram.lineTo(29,30);monogram.lineTo(29,19);monogram.lineTo(17,19);monogram.startNewSubPath(24,39);monogram.lineTo(24,13);monogram.lineTo(40,13);monogram.cubicTo(55,13,55,31,40,31);monogram.lineTo(24,31);monogram.applyTransform(juce::AffineTransform::scale(.7f).translated(27,19));g.setColour(juce::Colour(0xff493322));g.strokePath(monogram,juce::PathStrokeType(3.7f));g.setColour(juce::Colour(0xffa3865e));g.strokePath(monogram,juce::PathStrokeType(1.7f));drawAssistText(g,"GILLASSIST",{87,18,240,31},24);drawAssistText(g,"TRANSFER VOCAL EDITOR",{89,45,242,12},9,juce::Colour(0xff6c746e));drawAssistText(g,"ZOOM",{698,69,36,20},8);
         for(int i=0;i<4;++i)gill::material::panel(g,{float(24+i*194),315,189,128},juce::Colour(0xffe8e0d0),6);
-        label(g,"Pause cleanup",{230,392,157,15},11);label(g,"30 ms pre-roll / soft tails",{230,412,160,15},9,juce::Colour(0xff69736a));
-        label(g,"Breath candidates",{425,392,160,15},11);label(g,"Inspect / protect regions",{425,412,160,15},9,juce::Colour(0xff69736a));
-        label(g,"S / SH candidates",{619,392,159,15},11);label(g,"Confidence-based reduction",{619,412,164,15},9,juce::Colour(0xff69736a));
-        label(g,message,{24,491,772,17},10,p.engine.state==gill::assist::Engine::Error?juce::Colours::darkred:juce::Colour(0xff58675c));
-        label(g,"0 SAMPLES",{432,23,104,24},10,green,juce::Justification::centredRight);
+        drawAssistText(g,"Pause cleanup",{230,392,157,15},11);drawAssistText(g,"30 ms pre-roll / soft tails",{230,412,160,15},9,juce::Colour(0xff69736a));
+        drawAssistText(g,"Breath candidates",{425,392,160,15},11);drawAssistText(g,"Inspect / protect regions",{425,412,160,15},9,juce::Colour(0xff69736a));
+        drawAssistText(g,"S / SH candidates",{619,392,159,15},11);drawAssistText(g,"Confidence-based reduction",{619,412,164,15},9,juce::Colour(0xff69736a));
+        drawAssistText(g,message,{24,491,772,17},10,p.engine.state==gill::assist::Engine::Error?juce::Colours::darkred:juce::Colour(0xff58675c));
+        drawAssistText(g,"0 SAMPLES",{432,23,104,24},10,green,juce::Justification::centredRight);
     }
     void refresh(){
         const auto current=p.engine.completedRevision.load();if(current!=revision){revision=current;timeline.snapshot=p.engine.plan();}

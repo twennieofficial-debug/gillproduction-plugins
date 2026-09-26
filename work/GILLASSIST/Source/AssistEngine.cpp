@@ -19,9 +19,9 @@ void Engine::stop(){stopRequested=true;}
 void Engine::importFile(const juce::File&file,double start){if((state==Capturing||state==Armed)&&!resetRequested)return;std::lock_guard<std::mutex>lock(mutex);resetToken={};resetImport=file;resetStart=std::isfinite(start)?start:0;resetEdits.clear();resetRequested=true;published=-1;}
 void Engine::restore(const juce::String&t,double start,const std::vector<Edit>&e){
     if(!validToken(t)){setStatus("Kein gespeicherter Transfer. LEARN starten.");return;}
-    std::lock_guard<std::mutex>lock(mutex);resetToken=t;resetImport={};resetStart=std::isfinite(start)?start:0;resetEdits=e;resetRequested=true;published=-1;
+    std::lock_guard<std::mutex>lock(mutex);resetToken=t;resetImport=juce::File{};resetStart=std::isfinite(start)?start:0;resetEdits=e;resetRequested=true;published=-1;
 }
-void Engine::clearTransfer(){std::lock_guard<std::mutex>lock(mutex);resetToken={};resetImport={};resetStart=0;resetEdits.clear();resetRequested=true;published=-1;}
+void Engine::clearTransfer(){std::lock_guard<std::mutex>lock(mutex);resetToken={};resetImport=juce::File{};resetStart=0;resetEdits.clear();resetRequested=true;published=-1;}
 void Engine::history(){undoStack.push_back(manual);if(undoStack.size()>100)undoStack.erase(undoStack.begin());redoStack.clear();}
 void Engine::edit(Edit e){if(!std::isfinite(e.begin)||!std::isfinite(e.end)||!std::isfinite(e.db))return;e.begin=std::clamp(e.begin,0.,maxSeconds);e.end=std::clamp(e.end,e.begin,maxSeconds);e.db=std::clamp(e.db,-24.f,24.f);e.type=std::clamp(e.type,0,4);if(e.end<=e.begin)return;std::lock_guard<std::mutex>lock(mutex);if(manual.size()>=2000)return;history();manual.push_back(e);++editRevision;}
 void Engine::clearEdits(){std::lock_guard<std::mutex>lock(mutex);history();manual.clear();++editRevision;}
@@ -67,7 +67,7 @@ void Engine::run(){
         if(resetRequested){
             if(audioUsers.load(std::memory_order_acquire)){wait(1);continue;}
             std::lock_guard<std::mutex>lock(mutex);
-            writer.reset();features.clear();published=-1;source={};rendered={};visual={};
+            writer.reset();features.clear();published=-1;source=juce::File{};rendered=juce::File{};visual={};
             cacheToken=resetToken;startSeconds=resetStart;manual=resetEdits;abManual.clear();undoStack.clear();redoStack.clear();
             // Detach results, never delete a WAV that may already be in a DAW.
             unclaimedRenders.clear();claimedRenders.clear();
@@ -83,7 +83,7 @@ void Engine::run(){
             if(!dir.createDirectory().wasOk()){state=Error;setStatus("Cacheordner kann nicht angelegt werden.");continue;}
             auto file=dir.getChildFile("source.wav");auto stream=file.createOutputStream();juce::WavAudioFormat wav;if(stream)writer.reset(wav.createWriterFor(stream.release(),captureRate,unsigned(captureChannels),24,{},0));
             if(!writer){state=Error;setStatus("Transferdatei kann nicht geschrieben werden.");continue;}
-            {std::lock_guard<std::mutex>lock(mutex);cacheToken=id;startSeconds=0;source=file;rendered={};visual={};manual.clear();undoStack.clear();redoStack.clear();}
+            {std::lock_guard<std::mutex>lock(mutex);cacheToken=id;startSeconds=0;source=file;rendered=juce::File{};visual={};manual.clear();undoStack.clear();redoStack.clear();}
             state.store(Armed,std::memory_order_release);setStatus("BEREIT - Song abspielen. Stop beendet LEARN.");
         }
         if(writer){
@@ -93,7 +93,7 @@ void Engine::run(){
             else if(state==Armed&&stopRequested){writer.reset();state=Idle;setStatus("LEARN abgebrochen - kein Audiomaterial.");}
         }
         juce::File file;bool copy=false,restoreOnly=false;double start=0;
-        {std::lock_guard<std::mutex>lock(mutex);if(pendingFile!=juce::File()&&!writer){file=pendingFile;copy=pendingCopy;restoreOnly=pendingRestore;start=pendingStart;pendingFile={};}}
+        {std::lock_guard<std::mutex>lock(mutex);if(pendingFile!=juce::File()&&!writer){file=pendingFile;copy=pendingCopy;restoreOnly=pendingRestore;start=pendingStart;pendingFile=juce::File{};}}
         if(file!=juce::File()){state=Analysing;published=-1;loadSource(file,copy,start);if(state!=Error){build();state=Ready;}else if(restoreOnly)setStatus("Transferdatei fehlt oder ist unlesbar. Erneut LEARN starten.");}
         if(!features.empty()&&!writer&&state!=Analysing){const auto settings=readSettings();if(settings!=lastSettings||editRevision.load()!=builtEditRevision){state=Analysing;build();if(state!=Error)state=Ready;}}
         wait(5);
@@ -116,7 +116,7 @@ void Engine::loadSource(const juce::File&file,bool copy,double start){
     FeatureAccumulator analyser(sourceRate);bool good=true;
     for(juce::int64 offset=0;offset<frames&&!threadShouldExit();offset+=4096){int count=int(std::min<juce::int64>(4096,frames-offset));scratch.clear();good=reader->read(&scratch,0,count,offset,true,sourceChannels==2)&&good;for(int n=0;n<count;++n)analyser.push(scratch.getSample(0,n),scratch.getSample(sourceChannels==2?1:0,n));if(copyWriter)good=copyWriter->writeFromAudioSampleBuffer(scratch,0,count)&&good;}
     copyWriter.reset();analyser.finish();if(!good||threadShouldExit()){state=Error;setStatus("Audio konnte nicht vollstaendig gelesen werden.");return;}
-    features=std::move(analyser.features);{std::lock_guard<std::mutex>lock(mutex);source=owned;startSeconds=start;rendered={};}
+    features=std::move(analyser.features);{std::lock_guard<std::mutex>lock(mutex);source=owned;startSeconds=start;rendered=juce::File{};}
     // Owned metadata makes the timeline anchor durable alongside the raw transfer.
     juce::DynamicObject::Ptr metadata=new juce::DynamicObject;metadata->setProperty("startSeconds",sourceStart);metadata->setProperty("duration",sourceDuration);metadata->setProperty("sampleRate",sourceRate);owned.getSiblingFile("transfer.json").replaceWithText(juce::JSON::toString(juce::var(metadata.get())));
 }
