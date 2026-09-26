@@ -13,8 +13,8 @@ public:
     explicit CreativeCaptureArchive(juce::String product):Thread("GILL capture writer"),name(std::move(product)),ring(std::make_unique<Packet[]>(slots)){startThread();}
     ~CreativeCaptureArchive() override {signalThreadShouldExit();stopThread(-1);}
     unsigned begin(double rate) noexcept override {
-        ++serial;failed=false;pending=Packet{};pending.rate=rate;pending.revision=serial;state=1;
-        enqueue(1);pending.action=0;return serial.load();
+        const auto revision=serial.fetch_add(1)+1;failed=false;pending=Packet{};pending.rate=rate;pending.revision=revision;state=1;
+        enqueue(1);pending.action=0;return revision;
     }
     void sample(float l,float r) noexcept override {
         if(failed.load(std::memory_order_relaxed))return;
