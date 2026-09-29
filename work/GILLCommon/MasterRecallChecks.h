@@ -15,6 +15,10 @@ void masterRecallChecks(Processor& p, bool strictSchema, Check checkRecall) {
     p.setValue("boost",9,false);p.getStateInformation(state);p.setValue("boost",0,false);
     p.setStateInformation(state.getData(),int(state.getSize()));
     checkRecall(p.value("boost")==9,"New BOOST survives project state recall");
+    tree.removeAllChildren(nullptr);
+    juce::AudioProcessor::copyXmlToBinary(*tree.createXml(),legacy);
+    p.setStateInformation(legacy.getData(),int(legacy.getSize()));
+    checkRecall(p.value("boost")==9,"Empty malformed legacy state does not reset BOOST");
     const auto& parameters=p.getParameters();
     auto* last=dynamic_cast<juce::AudioProcessorParameterWithID*>(parameters.getLast());
     checkRecall(last&&last->paramID=="boost","BOOST appended after released parameter order");
