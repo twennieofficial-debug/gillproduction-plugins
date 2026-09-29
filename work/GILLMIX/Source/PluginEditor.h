@@ -1,4 +1,5 @@
 #pragma once
+#include "../../GILLCommon/HostKeyboardPolicy.h"
 #include "PluginProcessor.h"
 #include "../../GILLCommon/QualityUi.h"
 #include "../../GILLCommon/MaterialUi.h"
@@ -7,6 +8,8 @@ public:
  explicit GillMixEditor(GillMixProcessor&);~GillMixEditor()override;
  void paint(juce::Graphics&)override;void resized()override;
 private:
+    gill::HostKeyboardPolicy hostKeyboard{*this};
+
  int getNumRows()override;void paintListBoxItem(int,juce::Graphics&,int,int,bool)override;
  void listBoxItemClicked(int,const juce::MouseEvent&)override;
  void timerCallback()override;void editTrack(int);

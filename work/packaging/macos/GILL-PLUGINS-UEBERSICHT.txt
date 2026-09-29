@@ -1,5 +1,5 @@
 GILLPRODUCTION - PLUGIN-ÜBERSICHT
-UPDATE 10 / 49 VST3-PLUGINS / ALLE VERSION 0.10.0
+UPDATE 12 / 56 VST3-PLUGINS / ALLE VERSION 0.12.0
 
 GILLTUNE
 - Korrigiert die Tonhöhe einer einzelnen Stimme auf Tonart und Skala.
@@ -125,7 +125,9 @@ GILLFINISH
 - LEARN schlägt Einstellungen vor; APPLY, REVERT und GAIN MATCH erleichtern den Vergleich.
 
 GILLPHRASE
-- Lernt bis zu fünf Minuten Vocal-Passagen und setzt verstärkten Hall an erkannte Phrasenenden.
+- Lernt bis zu fünf Minuten Vocal-Passagen und setzt Hall- und Delay-Throws an erkannte Phrasenenden.
+- Hall- und Delay-Send getrennt; Delay mit BPM-Raster und Feedback. HALL WAV, DELAY WAV oder beide als eigene Effektdatei exportieren.
+- Zehn Presets; diese Delay-Erweiterung gehört ausschließlich zu GILLPHRASE.
 - FOCUS, BLOOM und WIDE; Markerzeit und Stärke sind editierbar, Dry und Wet unabhängig.
 - Die Analyse erkennt Signalverläufe, keine Wörter oder Bedeutungen.
 
@@ -226,6 +228,36 @@ GILLASSIST
 - Undo/Redo, A/B, sechs Presets und echter WAV-Export.
 - Vorsichtige Signalheuristiken statt Sprach-KI; Atem-/Sibilanzkorrektur ist breitbandig.
 
+GILLBRAKE
+- Erstellt aus einer aufgenommenen Vocal-Phrase einen Tape-Stop oder ein Hochfahren.
+- Länge in Beats, Kurve, Klangfarbe und Pegel; als WAV in die Playlist ziehen.
+
+GILLWIRE
+- Telefon-, Funk- und beschädigte Signal-Klangfarben mit Filterung und Verzerrung.
+- Live-Effekt und Aufnahme/Export; DIRECT OFF ermöglicht einen reinen Effekt-Layer.
+
+GILLGHOST
+- Erzeugt eine flüsterartige Begleitspur aus der Hüllkurve und den hohen Sprachanteilen.
+- Luftigkeit, Klangfarbe, Breite und Originalstimme separat dosieren; Aufnahme/Export möglich.
+
+GILLTRAIL
+- Delay mit Tonhöhenbewegung in der Rückkopplung, BPM-Raster und Stereo-Wiederholungen.
+- Fallende, steigende und Quint-Klangfarbe; Feedback, Klang und Direct-Anteil. WAV-Export nach Aufnahme.
+
+GILLMETAL
+- Ringmodulation für metallische und elektronische Charakterstimmen.
+- Tiefe, mittlere oder hohe Trägerlage; Depth, Carrier, Tone und Width, mit Aufnahme/Export.
+
+GILLSTUTTER
+- Nimmt ein bis drei erkannte Silben auf und setzt sie als Wiederholungen auf ein BPM-Raster.
+- Gleichmäßiges Raster, Beschleunigung oder Schluss-Roll; Anstieg von leise nach laut und Links-rechts-Bewegung.
+- Länge auf Viertel-Beats einstellbar. Den fertigen WAV-Clip mit seinem ENDE an den Vocal-Einsatz setzen.
+
+GILLCROWD
+- Erstellt aus einer aufgenommenen Phrase vier bis 24 künstliche Gruppenstimmen.
+- Helle, tiefe und entspannte Charaktere mit unterschiedlicher Tonhöhe, Formanten, Timing und Panorama.
+- DIRECT OFF schaltet die Originalstimme aus. Gruppe vorhören, verändern und als WAV exportieren.
+
 SONG-ANALYSE UND EXPORT
 - FLOW, BALANCE, SMARTDEESSER, FINISH und RESCUE können bis zu fünf Minuten berücksichtigen.
 - LEARN bei stehendem Transport bereitet vor; PLAY startet, STOP/FINISH beendet.
@@ -240,3 +272,17 @@ LIVE / PRO
 
 Die Plugins sind eigenständige Entwicklungen. Vergleichsprodukte bezeichnen funktionale Anregungen, keinen identischen Klang und keinen übernommenen proprietären Programmcode.
 GILLALIGN speichert fertige Alignments in Jill Plugins/Align Takes. Diese Audiodateien zusammen mit dem FL-Projekt aufbewahren.
+
+UPDATE 12: BEDIENUNG UND EFFEKTDATEIEN
+- Windows x64. Mac ist bis zu einer erneuten Freigabe zurückgestellt.
+- Normale Plugin-Regler und Knöpfe sollen keine DAW-Transporttasten abfangen. Echte Texteingabe behält den Tastaturfokus.
+- FL-Wrapper: Bei gespeicherter Tastaturpriorität gegebenenfalls "Typing keyboard priority" ausschalten; "Keep focus" einschalten. Patcher oder abgetrennte Fenster können abweichend reagieren.
+- Neue Clip-Effekte nehmen bis zwölf Sekunden auf; GILLPHRASE und die vorhandenen Song-Lerner behalten ihre Fünf-Minuten-Funktion.
+- Bei STUTTER ist das Silbenende eine Signalerkennung, keine Spracherkennung. SOURCE IN/OUT bleiben korrigierbar.
+- CROWD erzeugt veränderte Kopien einer Stimme; das ersetzt keine unabhängig eingesungene Gruppe.
+- Host-BPM werden übernommen. Ohne Host-Tempo gilt MANUAL BPM. Exportierte Audiodateien folgen späteren Tempoänderungen nicht automatisch.
+- Alle sieben neuen Plugins behalten den Originalpfad ohne zusätzliche Pufferlatenz. Der Effekt selbst kann absichtliche Echo- und Zeitversätze enthalten.
+
+UPDATE 12: GILLCEILING und GILLFINISH erhalten zusaetzliches BOOST vor dem Limiter.
+DRIVE + BOOST: maximal +42 bzw. +36 dB; CEILING bleibt die Spitzengrenze bis0 dB.
+GAIN MATCH fuer den tatsaechlichen Lautheitsgewinn ausschalten.

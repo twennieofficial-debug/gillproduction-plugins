@@ -1,5 +1,6 @@
 #include "../Source/FinishDSP.h"
 #include "TestSupport.h"
+#include "../../GILLCommon/MasterLoudnessChecks.h"
 namespace {
 // Independent 16x interpolation: 65 base-rate taps, Hann-windowed sinc, no
 // coefficients shared with the engine's 8x/257-tap Blackman reconstruction.
@@ -41,7 +42,7 @@ void automation(){using namespace test;using namespace gillnext;
     bool invariant=true,finite=true,noalloc=true;double worst=0;
     for(double fs:rates){auto a=std::make_unique<FinishDSP>(),b=std::make_unique<FinishDSP>();a->prepare(fs,64,2);b->prepare(fs,64,2);std::array<float,64>left{},right{},refL{},refR{};FinishParameters p;
         const auto before=allocations.load();
-        for(int step=0;step<101;++step){p.driveDb=step*.18f;p.ceilingDb=-3+step*.03f;p.comp=float(step);p.clip=float(100-step);p.width=step*1.5f;p.bassMonoHz=20+step*2.3f;p.lowDb=-6+step*.12f;p.midDb=-p.lowDb;p.highDb=p.lowDb;p.toneEnabled=step%7!=0;p.compEnabled=step%9!=0;p.clipEnabled=step%11!=0;p.stereoEnabled=step%13!=0;p.limiterEnabled=step%17!=0;a->setParameters(p);b->setParameters(p);
+        for(int step=0;step<101;++step){p.driveDb=step*.18f;p.boostDb=step*.18f;p.ceilingDb=-3+step*.03f;p.comp=float(step);p.clip=float(100-step);p.width=step*1.5f;p.bassMonoHz=20+step*2.3f;p.lowDb=-6+step*.12f;p.midDb=-p.lowDb;p.highDb=p.lowDb;p.toneEnabled=step%7!=0;p.compEnabled=step%9!=0;p.clipEnabled=step%11!=0;p.stereoEnabled=step%13!=0;p.limiterEnabled=step%17!=0;a->setParameters(p);b->setParameters(p);
             for(int i=0;i<64;++i){left[i]=refL[i]=float(.2*std::sin((step*64+i)*.19));right[i]=refR[i]=float(.15*std::sin((step*64+i)*.27));}float* ptr[]{left.data(),right.data()};a->process(ptr,2,64);for(int i=0;i<64;++i){float* q[]{refL.data()+i,refR.data()+i};b->process(q,2,1);}for(int i=0;i<64;++i){worst=std::max(worst,std::abs(double(left[i])-refL[i]));invariant=invariant&&left[i]==refL[i]&&right[i]==refR[i];finite=finite&&std::isfinite(left[i])&&std::isfinite(right[i])&&std::abs(left[i])<32&&std::abs(right[i])<32;}
         }
         noalloc=noalloc&&before==allocations.load();
@@ -50,4 +51,4 @@ void automation(){using namespace test;using namespace gillnext;
     auto d=std::make_unique<FinishDSP>();FinishParameters p;p.driveDb=12;p.comp=80;p.clip=70;p.width=140;p.lowDb=5;p.midDb=-5;p.highDb=4;d->setParameters(p);d->prepare(48000,257,2);auto l=sine(48000,96000,317,.6),r=l;run(*d,l,r,257);d->setParameters(neutral());l=sine(48000,96000,317,.6);auto original=l;r=l;run(*d,l,r,257);bool dry=true;for(size_t i=90000;i<l.size();++i)dry=dry&&l[i]==original[i-d->latencySamples()];check(dry,"switching all modules off settles to exact delayed dry");
 }
 }
-int main(){using namespace gillnext;FinishParameters p;p.driveDb=4;p.comp=40;p.clip=30;p.lowDb=1;p.highDb=2;test::common<FinishDSP>(p,"FINISH");neutralAndTone();limiting();dynamicsAndStereo();automation();return test::result();}
+int main(){using namespace gillnext;FinishParameters p;p.driveDb=4;p.comp=40;p.clip=30;p.lowDb=1;p.highDb=2;test::common<FinishDSP>(p,"FINISH");masterLoudnessReserveChecks(18);neutralAndTone();limiting();dynamicsAndStereo();automation();return test::result();}

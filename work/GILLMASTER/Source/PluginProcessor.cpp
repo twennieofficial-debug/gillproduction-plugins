@@ -33,14 +33,14 @@ juce::AudioProcessorValueTreeState::ParameterLayout GillMasterProcessor::layout(
         else result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{p.id,1},p.label,juce::NormalisableRange<float>(p.lo,p.hi,p.step),p.initial));
     }
     if(int(kind)<6){result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"output",1},"OUTPUT",juce::NormalisableRange<float>(-18,kind==MasterKind::Ceiling?0.f:12.f,.01f),0));result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"mix",1},"MIX",juce::NormalisableRange<float>(0,100,.1f),100));}
-    result.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));result.add(gill::qualityParameter(1));return result;
+    result.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));result.add(gill::qualityParameter(1));if(kind==MasterKind::Ceiling)result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{"boost",1},"BOOST",juce::NormalisableRange<float>(0,18,.1f),0));return result;
 }
 float GillMasterProcessor::param(std::size_t i)const noexcept{if(i>=raw.size()||!raw[i])return 0;const auto v=raw[i]->load(std::memory_order_relaxed);return std::isfinite(v)?v:0;}
 float GillMasterProcessor::value(const juce::String&id)const{if(auto*p=apvts.getRawParameterValue(id)){const auto v=p->load();return std::isfinite(v)?v:0;}return 0;}
 void GillMasterProcessor::setValue(const juce::String&id,float v,bool gesture){if(!std::isfinite(v))return;if(auto*p=apvts.getParameter(id)){if(gesture)p->beginChangeGesture();p->setValueNotifyingHost(p->convertTo0to1(v));if(gesture)p->endChangeGesture();}}
 bool GillMasterProcessor::isBusesLayoutSupported(const BusesLayout&layout)const{const auto c=layout.getMainOutputChannelSet();return(c==juce::AudioChannelSet::mono()||c==juce::AudioChannelSet::stereo())&&layout.getMainInputChannelSet()==c;}
 void GillMasterProcessor::updateParameters(){
-    if(ceiling){gillnext::FinishParameters p;p.driveDb=param(0);p.ceilingDb=param(1);p.releaseMs=param(2);p.clip=param(3)<.5f?0:param(3)<1.5f?20:65;p.toneEnabled=p.compEnabled=p.stereoEnabled=false;ceiling->setParameters(p);}
+    if(ceiling){gillnext::FinishParameters p;p.driveDb=param(0);p.boostDb=ceiling?param(raw.size()-1):0;p.ceilingDb=param(1);p.releaseMs=param(2);p.clip=param(3)<.5f?0:param(3)<1.5f?20:65;p.toneEnabled=p.compEnabled=p.stereoEnabled=false;ceiling->setParameters(p);}
     if(low)low->parameters({param(0),param(1),param(2),param(3),param(4)});
     if(glue)glue->parameters({param(0),param(3),int(param(4)),param(1),param(2)});
     if(width)width->parameters({{param(0),param(1),param(2)},param(3),param(4),param(5)>.5f});
@@ -124,7 +124,7 @@ void GillMasterProcessor::selectPreset(int i,bool gesture){
     i=std::clamp(i,0,5);auto set=[&](const char*id,float v){setValue(id,v,gesture);};
     for(const auto&p:specs)if(p.id!="role")setValue(p.id,p.initial,gesture);set("output",0);set("mix",100);set("bypass",0);
     switch(kind){
-    case MasterKind::Ceiling:set("drive",i==1?4:i==2?7:i==4?10:0);set("character",i==1?1:i==2||i==4?2:0);set("release",i==1?65:i==2||i==4?35:i==3?250:150);set("ceiling",i==5?-2:i==3?-1.5f:-1);break;
+    case MasterKind::Ceiling:set("boost",i==4?3:0);set("drive",i==1?6:i==2?9:i==4?12:0);set("character",i==1?1:i==2||i==4?2:0);set("release",i==1?65:i==2||i==4?35:i==3?250:150);set("ceiling",i==5?-2:i==3?-1.5f:-1);break;
     case MasterKind::Low:set("amount",i==1?55:i==2?75:i==3?40:i==4?0:30);set("frequency",i==1?110:i==2?190:140);set("threshold",i==2?-24:-18);set("protect",i==3?100:60);set("width",i==4?0:i==1?30:100);set("listen",i==5?1:0);break;
     case MasterKind::Glue:set("amount",i==1?45:i==2?65:i==3?30:i==5?85:30);set("character",i==1?1:i==2||i==5?2:0);set("attack",i==3?70:i==2?10:30);set("release",i==1?110:i==2?250:180);set("detector",i==4?200:90);set("mix",i==5?35:100);break;
     case MasterKind::Width:set("low",i==1||i==2?0:i==4?70:100);set("mid",i==1?110:i==4?80:100);set("high",i==1?125:i==3?135:i==4?90:100);set("mono",i==5?1:0);break;
@@ -134,9 +134,11 @@ void GillMasterProcessor::selectPreset(int i,bool gesture){
     case MasterKind::Deliver:set("target",i==1?-9:i==2?-18:i==3?-23:-14);set("peakTarget",i==4?-2:-1);set("silence",i==5?-75:-60);break;
     }program=i;
 }
-void GillMasterProcessor::getStateInformation(juce::MemoryBlock&bytes){auto tree=apvts.copyState();tree.setProperty("schema",1,nullptr);tree.setProperty("program",program.load(),nullptr);for(auto child:tree)if(child["id"].toString()=="audition"||child["id"].toString()=="speaker"||child["id"].toString()=="listen"||child["id"].toString()=="mono")child.setProperty("value",0,nullptr);if(auto xml=tree.createXml())copyXmlToBinary(*xml,bytes);}
+void GillMasterProcessor::getStateInformation(juce::MemoryBlock&bytes){auto tree=apvts.copyState();tree.setProperty("schema",kind==MasterKind::Ceiling?2:1,nullptr);tree.setProperty("program",program.load(),nullptr);for(auto child:tree)if(child["id"].toString()=="audition"||child["id"].toString()=="speaker"||child["id"].toString()=="listen"||child["id"].toString()=="mono")child.setProperty("value",0,nullptr);if(auto xml=tree.createXml())copyXmlToBinary(*xml,bytes);}
 void GillMasterProcessor::setStateInformation(const void*data,int bytes){
-    if(!data||bytes<=0||bytes>2*1024*1024)return;auto xml=getXmlFromBinary(data,bytes);if(!xml||!xml->hasTagName(stateId(kind)))return;auto tree=juce::ValueTree::fromXml(*xml);if(!tree.isValid()||int(tree.getProperty("schema",0))!=1)return;juce::StringArray seen;
+    if(!data||bytes<=0||bytes>2*1024*1024)return;auto xml=getXmlFromBinary(data,bytes);if(!xml||!xml->hasTagName(stateId(kind)))return;auto tree=juce::ValueTree::fromXml(*xml);const int schema=int(tree.getProperty("schema",0));if(!tree.isValid()||(schema!=1&&!(kind==MasterKind::Ceiling&&schema==2)))return;
+    if(kind==MasterKind::Ceiling&&schema==1&&!tree.getChildWithProperty("id","boost").isValid()){juce::ValueTree extra("PARAM");extra.setProperty("id","boost",nullptr);extra.setProperty("value",0.f,nullptr);tree.addChild(extra,-1,nullptr);}
+    juce::StringArray seen;
     for(auto child:tree){if(!child.hasType("PARAM"))return;const auto id=child["id"].toString();auto*p=apvts.getParameter(id);if(!p||seen.contains(id))return;seen.add(id);const auto text=child["value"].toString();char*end=nullptr;const double v=std::strtod(text.toRawUTF8(),&end);const auto r=p->getNormalisableRange();if(text.isEmpty()||!end||*end||!std::isfinite(v)||v<r.start-.001||v>r.end+.001||(p->isDiscrete()&&v!=std::floor(v)))return;if(id=="audition"||id=="speaker"||id=="listen"||id=="mono")child.setProperty("value",0,nullptr);}
     if(seen.size()!=int(raw.size()))return;apvts.replaceState(tree);for(auto child:tree)if(auto*p=apvts.getParameter(child["id"].toString()))p->setValueNotifyingHost(p->convertTo0to1(float(child["value"])));program=std::clamp(int(tree.getProperty("program",0)),0,5);
 }

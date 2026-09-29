@@ -1,15 +1,16 @@
 # GILLPRODUCTION Plugins
 
-Development sources and build automation for 49 GILLPRODUCTION vocal, mix and mastering effects (update 10). All products use 0.10.0, with the 47 existing product IDs retained. GILLRISE and GILLASSIST are new. Build targets are Windows x64 VST3 and macOS Universal VST3 for Apple Silicon and Intel. A new installer is produced only after its native verification gates pass.
+Update12 development:56 compact vocal, creative, mixing and mastering VST3 plugins,
+all version0.12.0. Windows x64 and native macOS Apple Silicon/Intel targets.
+GILLCEILING and GILLFINISH now offer an additional BOOST before limiting;
+existing parameter ranges and factory identities are preserved.
 
-[Download Update10 for Windows - 49 plugins, version 0.10.0](https://github.com/twennieofficial-debug/gillproduction-plugins/releases/tag/bundle-test-10-windows). The Windows installer has been installed successfully and all 49 plugins have passed an FL Studio scan. Update10 includes full-song processing, WAV export and revised materials.
+This source revision is not a download or a completed installer. Platform
+installers are published only after the corresponding native verification gates.
+The most recent completed public release remains available from [Releases](https://github.com/twennieofficial-debug/gillproduction-plugins/releases).
 
-[Historical Update09 release - 47 plugins for Windows and Mac](https://github.com/twennieofficial-debug/gillproduction-plugins/releases/tag/bundle-test-09). This earlier release includes the Mac test package.
-
-Sources, presets, tests and artwork are in `work/GILL*`; shared quality and interface helpers are in `work/GILLCommon` and must be included when building any group. Each product group includes `BUILDING.md`. JUCE 8.0.12 is pinned as a submodule under `work/dependencies/JUCE`; initialize submodules before building. See the [Mac build and packaging guide](work/packaging/macos/README.md) for the native build, validation and installer workflow.
-
-The historical Update09 Mac build is a **test version**: it uses ad-hoc signing, is not Developer-ID-signed or Apple-notarized, and has not been verified in FL Studio on macOS. The pipeline produces a DMG only after the native tests, validation of the same Universal bundles on both architectures, and installer checks pass.
-
-Editors use compact logical window sizes, recorded in [products.json](work/packaging/macos/products.json). Retina scaling changes physical pixels while preserving the intended interface size; generated screenshots support layout review.
-
-Licensing is documented per product in `LICENSE`, `LICENSE-NOTICE.md` and `THIRD-PARTY.md` or `THIRD-PARTY-NOTICES.md`, beside `CMakeLists.txt`. Included third-party libraries retain their own notices. Speech test fixtures have separate attribution and licensing in their `Tests/fixtures/ORIGIN-AND-LICENSE.md` files.
+Build recipes and the product catalog are under work/packaging/macos. Initialize
+the pinned JUCE8.0.12 submodule before compiling. Source groups and their
+third-party notices are under work/GILL*. The Mac test distribution is ad-hoc
+signed, not Apple-notarized. Native CI validation does not assert FL Studio
+listening tests on Mac. Read MAC-INSTALLATION.txt and GILL-UPDATE-12-ANLEITUNG.md.

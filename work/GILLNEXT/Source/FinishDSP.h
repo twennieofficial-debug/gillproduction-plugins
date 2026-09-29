@@ -3,7 +3,7 @@
 
 namespace gillnext {
 struct FinishParameters {
-    float ceilingDb=-1,driveDb=0,comp=0,clip=0,width=100,bassMonoHz=80,lowDb=0,midDb=0,highDb=0;
+    float ceilingDb=-1,driveDb=0,boostDb=0,comp=0,clip=0,width=100,bassMonoHz=80,lowDb=0,midDb=0,highDb=0;
     bool toneEnabled=true,compEnabled=true,clipEnabled=true,stereoEnabled=true,limiterEnabled=true;
 };
 
@@ -24,7 +24,7 @@ public:
     }
     void setParameters(const FinishParameters& p) noexcept{
         ceilingTarget_=std::clamp(detail::finite(p.ceilingDb,-1),-3.,0.);
-        driveTarget_=std::clamp(detail::finite(p.driveDb),0.,18.);
+        driveTarget_=std::clamp(detail::finite(p.driveDb),0.,18.)+std::clamp(detail::finite(p.boostDb),0.,18.);
         compTarget_=p.compEnabled?std::clamp(detail::finite(p.comp),0.,100.)*.01:0;
         clipTarget_=p.clipEnabled?std::clamp(detail::finite(p.clip),0.,100.)*.01:0;
         stereoTarget_=p.stereoEnabled?1:0;widthTarget_=std::clamp(detail::finite(p.width,100),0.,150.)*.01;

@@ -43,7 +43,7 @@ def native_quality_fixture(records, arch):
 
 def native_mix_fixture(records, arch):
     """Synthetic schema fixture only; no native execution is claimed by these unit tests."""
-    products = [{"name": name, "version": "0.10.0", "factory_uid": "abc" if name == "GILLMIX" else "def",
+    products = [{"name": name, "version": "0.12.0", "factory_uid": "abc" if name == "GILLMIX" else "def",
                  "bundle": "/fixture/" + name + ".vst3"} for name in ("GILLMIX", "GILLLINK", "GILLLINK", "GILLLINK")]
     return {"passed": True, "architecture": arch, "source_sha256": "fixture",
             "executable_architectures": [arch], "executable_sha256": "1" * 64,
@@ -215,16 +215,16 @@ class SourceArchiveTests(unittest.TestCase):
                 p.verify_source_archive(path, manifest)
 
     def test_catalog_preserves_products_and_compact_sizes(self):
-        self.assertEqual(len(p.PRODUCTS), 49)
-        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 49)
-        self.assertTrue(all(x["version"] == "0.10.0" for x in p.PRODUCTS))
+        self.assertEqual(len(p.PRODUCTS), 56)
+        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 56)
+        self.assertTrue(all(x["version"] == "0.12.0" for x in p.PRODUCTS))
         baseline = p.read(p.HERE / "resources/compatibility/update09-products.json")
         current = {x["name"]: x for x in p.PRODUCTS}
         self.assertEqual(len(baseline), 47)
         for old in baseline:
             for field in ("name", "code", "target", "bundle_id"):
                 self.assertEqual(current[old["name"]][field], old[field])
-        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 66)
+        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 68)
         self.assertIn("LIVE_QUALITY_DSP", p.CTEST_MATRIX["GILLNEXT"])
         for product in p.PRODUCTS:
             self.assertLessEqual(product["default_size"][0], 900)
@@ -272,7 +272,7 @@ class NativeEvidenceTests(unittest.TestCase):
             self.assertEqual(len(failure["failed_groups"]), 1)
 
     def test_all_expected_ctest_entries_match(self):
-        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 66)
+        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 68)
         for group, expected in p.CTEST_MATRIX.items():
             p.verify_ctest_listing(group, {"tests": [{"name": name} for name in expected]})
 
@@ -390,7 +390,7 @@ class NativeQualityGateTests(unittest.TestCase):
                 p.verify_quality_result(result, 48000)
 
     def test_release10_requires_exact_updated_product_versions(self):
-        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("10", "0.10.0"))
+        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("12", "0.12.0"))
         for rate in p.QUALITY_SAMPLE_RATES:
             p.verify_quality_result(quality_result_fixture(rate), rate)
         for name, wrong in (("GILLEQ", "0.7.0"), ("GILLHARMONY", "0.6.0"),

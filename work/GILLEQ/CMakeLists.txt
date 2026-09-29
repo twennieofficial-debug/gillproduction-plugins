@@ -9,7 +9,7 @@ if(CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum supported macOS")
     endif()
 endif()
-project(GILLEQ VERSION 0.10.0 LANGUAGES C CXX)
+project(GILLEQ VERSION 0.12.0 LANGUAGES C CXX)
 # Keep each Mach-O image's JUCE implementation private, including custom
 # static runtimes and Objective-C++ units. VST3 entry points stay explicit exports.
 if(APPLE)
@@ -75,7 +75,7 @@ juce_add_plugin(GILLEQ
     NEEDS_MIDI_INPUT FALSE
     NEEDS_MIDI_OUTPUT FALSE
     IS_MIDI_EFFECT FALSE
-    EDITOR_WANTS_KEYBOARD_FOCUS TRUE
+    EDITOR_WANTS_KEYBOARD_FOCUS FALSE
     COPY_PLUGIN_AFTER_BUILD FALSE)
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     get_target_property(generated GILLEQ JUCE_GENERATED_SOURCES_DIRECTORY)

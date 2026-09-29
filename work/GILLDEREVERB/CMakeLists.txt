@@ -9,7 +9,7 @@ if(CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum supported macOS")
     endif()
 endif()
-project(GILLDEREVERB VERSION 0.10.0 LANGUAGES C CXX)
+project(GILLDEREVERB VERSION 0.12.0 LANGUAGES C CXX)
 # Keep each Mach-O image's JUCE implementation private, including custom
 # static runtimes and Objective-C++ units. VST3 entry points stay explicit exports.
 if(APPLE)
@@ -73,7 +73,7 @@ juce_add_plugin(GILLDEREVERB
     VST3_CATEGORIES Fx Restoration
     VST3_AUTO_MANIFEST FALSE
     IS_SYNTH FALSE NEEDS_MIDI_INPUT FALSE NEEDS_MIDI_OUTPUT FALSE IS_MIDI_EFFECT FALSE
-    EDITOR_WANTS_KEYBOARD_FOCUS TRUE COPY_PLUGIN_AFTER_BUILD FALSE)
+    EDITOR_WANTS_KEYBOARD_FOCUS FALSE COPY_PLUGIN_AFTER_BUILD FALSE)
 # JUCE 8.0.12's rcfile command reads JUCE_INFO_FILE but does not depend on it.
 # Append the missing file dependency so version/metadata changes regenerate
 # the resource and relink both Windows formats, including incremental builds.

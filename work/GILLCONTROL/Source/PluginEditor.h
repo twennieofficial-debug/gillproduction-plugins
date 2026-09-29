@@ -1,4 +1,5 @@
 #pragma once
+#include "../../GILLCommon/HostKeyboardPolicy.h"
 #include "PluginProcessor.h"
 
 class GillControlLookAndFeel final : public juce::LookAndFeel_V4 {
@@ -13,6 +14,8 @@ public:
     void paint(juce::Graphics&) override;
     void resized() override;
 private:
+    gill::HostKeyboardPolicy hostKeyboard{*this};
+
     void timerCallback() override;
     GillControlProcessor& processor;
     GillControlLookAndFeel look;

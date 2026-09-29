@@ -67,7 +67,8 @@
   "GILLCREATIVE": [
     "CREATIVE_INTEGRATION",
     "Creative_DSP",
-    "CREATIVE_FULL_SONG"
+    "CREATIVE_FULL_SONG",
+    "PHRASE_DELAY_STEMS"
   ],
   "GILLSMARTDEESSER": [
     "DSP",
@@ -98,5 +99,8 @@
   ],
   "GILLASSIST": [
     "ASSIST_INTEGRATION"
+  ],
+  "GILLMOTION": [
+    "MOTION_INTEGRATION"
   ]
 }

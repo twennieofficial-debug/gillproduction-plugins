@@ -9,7 +9,7 @@ if(CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum supported macOS")
     endif()
 endif()
-project(GILLCREATIVE VERSION 0.10.0 LANGUAGES C CXX)
+project(GILLCREATIVE VERSION 0.12.0 LANGUAGES C CXX)
 # Keep each Mach-O image's JUCE implementation private, including custom
 # static runtimes and Objective-C++ units. VST3 entry points stay explicit exports.
 if(APPLE)
@@ -98,7 +98,7 @@ function(add_gill product code kind category)
     PRODUCT_NAME "${product}" DESCRIPTION "${product} Vocal Effects"
     FORMATS VST3 VST3_CATEGORIES Fx ${category} VST3_AUTO_MANIFEST FALSE
     IS_SYNTH FALSE NEEDS_MIDI_INPUT FALSE NEEDS_MIDI_OUTPUT FALSE IS_MIDI_EFFECT FALSE
-    EDITOR_WANTS_KEYBOARD_FOCUS TRUE COPY_PLUGIN_AFTER_BUILD FALSE)
+    EDITOR_WANTS_KEYBOARD_FOCUS FALSE COPY_PLUGIN_AFTER_BUILD FALSE)
   if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     get_target_property(generated ${product} JUCE_GENERATED_SOURCES_DIRECTORY)
     get_target_property(info ${product} JUCE_INFO_FILE)
@@ -113,6 +113,9 @@ add_gill(GILLDIRECTOR Gdi1 1 Tools)
 add_gill(GILLREPLY Grp1 2 Delay)
 
 enable_testing()
+add_executable(GillPhraseDelayTests Tests/PhraseDelayTests.cpp)
+target_link_libraries(GillPhraseDelayTests PRIVATE GillCreativeShared GillCreativeAssets)
+add_test(NAME PHRASE_DELAY_STEMS COMMAND GillPhraseDelayTests)
 if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Tests/PluginTests.cpp")
   add_executable(GillCreativeIntegrationTests Tests/PluginTests.cpp)
   target_link_libraries(GillCreativeIntegrationTests PRIVATE GillCreativeShared GillCreativeAssets)

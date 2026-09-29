@@ -1,0 +1,1 @@
+JUCE 8.0.12 is included under AGPL-3.0. Signalsmith Stretch and Linear are used from ../GILLNEXT/ThirdParty/signalsmith-stretch, under their included MIT licenses. Keep that directory with this source tree. No proprietary competitor DSP is included.

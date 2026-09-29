@@ -27,10 +27,12 @@ private:
         offline.postPlan(plan,true);auto controls=task.controls;controls.pro=true;controls.bypass=false;if(task.effectsOnly){controls.dry=0;controls.effectsOnly=true;}
         const auto folder=CreativeCaptureArchive::folder(task.product).getChildFile("Exports");if(folder.createDirectory().failed()){fail("EXPORT FOLDER NOT WRITABLE");return;}
         const auto id=juce::Time::getCurrentTime().formatted("%Y%m%d-%H%M%S")+"-"+juce::Uuid().toString().substring(0,8);
-        const auto temporary=folder.getChildFile(".render-"+id+".wav");const auto finalFile=folder.getChildFile(task.product+(task.effectsOnly?"-FX-":"-MIX-")+id+".wav");
+        const auto temporary=folder.getChildFile(".render-"+id+".wav");const auto finalFile=folder.getChildFile(task.product+(task.effectsOnly?(task.controls.phraseExport==1?"-REVERB-":task.controls.phraseExport==2?"-DELAY-":"-FX-"):"-MIX-")+id+".wav");
         juce::WavAudioFormat wav;auto stream=temporary.createOutputStream();std::unique_ptr<juce::AudioFormatWriter>writer(stream?wav.createWriterFor(stream.release(),rate,2,32,{},0):nullptr);
         if(!writer){fail("EXPORT FILE CANNOT BE CREATED");return;}
-        const std::int64_t total=source->lengthInSamples+static_cast<std::int64_t>(rate*std::max(12.f,controls.length*2+2));juce::AudioBuffer<float>buffer(2,1024);float peak=0;
+        constexpr double divisions[]{1./6,.25,1./3,.5,.75,1.,2.};
+        const double delayTail=task.kind==gill::creative::Kind::Phrase&&controls.delaySend>0&&controls.phraseExport!=1?60./plan.bpm*divisions[std::clamp(controls.delayRate,0,6)]*(2+std::ceil(std::log(.00001)/std::log(std::clamp(double(controls.delayFeedback),.01,.75)))):0.;
+        const std::int64_t total=source->lengthInSamples+static_cast<std::int64_t>(rate*std::max(double(std::max(12.f,controls.length*2+2)),delayTail));juce::AudioBuffer<float>buffer(2,1024);float peak=0;
         for(std::int64_t offset=0;offset<total;offset+=1024){if(threadShouldExit()){writer.reset();temporary.deleteFile();status=0;return;}const int n=static_cast<int>(std::min<std::int64_t>(1024,total-offset));buffer.clear();
             const int available=static_cast<int>(std::clamp<std::int64_t>(source->lengthInSamples-offset,0,n));if(available>0&&!source->read(&buffer,0,available,offset,true,true)){writer.reset();fail("CAPTURE READ FAILED");return;}
             gill::creative::Transport transport;transport.hasPPQ=true;transport.ppq=plan.originPPQ+offset/rate*plan.bpm/60.;transport.bpm=plan.bpm;transport.playing=true;transport.hasSeconds=plan.timeAnchor;transport.seconds=plan.originSeconds+offset/rate;

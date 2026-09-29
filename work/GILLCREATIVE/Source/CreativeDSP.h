@@ -44,7 +44,7 @@ private:
     std::atomic<unsigned>version{0},captureEpoch{0},sourceRevision{0};std::atomic<bool>commit{false};std::atomic<int>count{0},capture{-1};std::atomic<double>origin{0},originSeconds{0};std::atomic<bool>timeAnchor{false};
     std::atomic<float>duration{0},seconds{0},bpm{120};std::array<std::atomic<float>,maxMarkers*5>fields{};std::array<std::atomic<float>,wavePoints>wave{};
 };
-struct Controls{float amount=.55f,length=1.6f,tone=.55f,width=1,mix=.25f,dry=1,sensitivity=-40;int variant=0;bool pro=true,bypass=false,effectsOnly=false;};
+struct Controls{float amount=.55f,length=1.6f,tone=.55f,width=1,mix=.25f,dry=1,sensitivity=-40;int variant=0;float reverbSend=1,delaySend=0,delayFeedback=.38f;int delayRate=3,phraseExport=0;bool pro=true,bypass=false,effectsOnly=false;};
 struct Transport{double ppq=0,bpm=120,seconds=0;bool hasPPQ=false,playing=true,hasSeconds=false;};
 
 class Reverb{
@@ -78,11 +78,11 @@ public:
         if(!frames)frames=std::make_unique<Frame[]>(maxFrames);fs=std::isfinite(rate)&&rate>=8000&&rate<=384000?rate:48000;captureRate=std::min(48000.,fs);frameLength=std::max(32,static_cast<int>(fs*.01));
         constexpr double q[]{.509795579,.601344886,.899976223,2.56291545};for(auto&channel:antiAlias)for(int i=0;i<4;++i)channel[i].prepare(fs,std::min(20000.,fs*.4),q[i]);
         if(kind==Kind::Reply)for(auto&b:banks)if(!b.data){b.capacity=48000*300;b.data=std::make_unique<std::atomic<float>[]>(static_cast<size_t>(b.capacity)*2);b.role=0;b.used=0;b.rate=captureRate;}
-        delay[0].assign(static_cast<size_t>(fs*2.1)+4,0);delay[1].assign(delay[0].size(),0);reverb.prepare(fs);resetAudio();
+        delay[0].assign(static_cast<size_t>(fs*6.1)+4,0);delay[1].assign(delay[0].size(),0);reverb.prepare(fs);resetAudio();
         if(learning)abortLearn();if(!prepared){state=0;progress=0;candidate=Plan{};active=Plan{};undo=Plan{};published.store(candidate);applied=false;captureBank=-1;activeBank=-1;command=0;seenIncoming=0;prepared=true;}
         totalSamples=0;freePPQ=0;lastHostExpected=0;hadHost=false;wasPlaying=false;
     }
-    void resetAudio()noexcept{reverb.reset();for(auto&d:delay)std::fill(d.begin(),d.end(),0.f);delayPos=0;voices={};detectorLP=0;detectorPrev=0;envelope=0;lowL=lowR=0;wetSmooth=0;lastBeat=-1.e9;}
+    void resetAudio()noexcept{reverb.reset();for(auto&d:delay)std::fill(d.begin(),d.end(),0.f);delayPos=0;voices={};detectorLP=0;detectorPrev=0;envelope=0;lowL=lowR=0;phraseLP={};phraseSendSmooth=0;phraseReverbSmooth=1;wetSmooth=0;lastBeat=-1.e9;}
     void finishCaptureOutsideProcess()noexcept{armed=false;finishLearn();}
     void request(int c)noexcept{command.store(c,std::memory_order_release);}
     // Called only on a non-audio producer thread.
@@ -160,7 +160,18 @@ public:
             if(kind==Kind::Phrase){
                 float send=voice*.08f;if(plan.valid()){send=0;const double rel=beat-plan.originPPQ;
                     const float window=.22f+.55f*c.amount;for(int i=scanIndex;i<plan.count;++i){const auto&m=plan.markers[i];if(m.startBeat>rel+window)break;if(rel>=m.endBeat-window&&rel<=m.endBeat+.06f){const float ramp=std::clamp(static_cast<float>((rel-(m.endBeat-window))/window),0.f,1.f);send=std::max(send,m.strength*(.25f+.75f*ramp)*voice);}}}
-                const float softness=c.pro?std::clamp((voice-.25f)/.75f,0.f,1.f):voice;auto wet=reverb.process(mono*send*softness*(.5f+2*c.amount)*(c.variant==2?1.15f:1),c.length*(c.variant==1?1.3f:c.variant==2?.72f:1),c.tone,c.pro);wl=wet[0];wr=wet[1];
+                const float softness=c.pro?std::clamp((voice-.25f)/.75f,0.f,1.f):voice;auto wet=reverb.process(mono*send*softness*(.5f+2*c.amount)*(c.variant==2?1.15f:1),c.length*(c.variant==1?1.3f:c.variant==2?.72f:1),c.tone,c.pro);phraseSendSmooth+=follow*(c.delaySend-phraseSendSmooth);phraseReverbSmooth+=follow*(c.reverbSend-phraseReverbSmooth);
+                constexpr double divisions[]{1./6,.25,1./3,.5,.75,1.,2.};
+                const int ds=std::clamp(int(std::round(fs*60/bpm*divisions[std::clamp(c.delayRate,0,6)])),1,int(delay[0].size())-1);
+                int rd=delayPos-ds;if(rd<0)rd+=int(delay[0].size());
+                const float tk=float(1-std::exp(-2*pi*(900+c.tone*10000)/fs));
+                const float dl=delay[0][rd],dr=delay[1][rd];phraseLP[0]+=tk*(dl-phraseLP[0]);phraseLP[1]+=tk*(dr-phraseLP[1]);
+                const float excitation=mono*send*softness*(.5f+2*c.amount)*phraseSendSmooth;
+                delay[0][delayPos]=finite(excitation+phraseLP[1]*std::clamp(c.delayFeedback,0.f,.75f));
+                delay[1][delayPos]=finite(phraseLP[0]*std::clamp(c.delayFeedback,0.f,.75f));
+                if(++delayPos>=int(delay[0].size()))delayPos=0;
+                wl=(c.phraseExport==2?0:wet[0]*phraseReverbSmooth)+(c.phraseExport==1?0:dl);
+                wr=(c.phraseExport==2?0:wet[1]*phraseReverbSmooth)+(c.phraseExport==1?0:dr);
             }else if(kind==Kind::Director){
                 float activity=plan.valid()?local:.55f;
                 if(c.variant==1&&plan.valid())activity=std::clamp(.2f+.45f*activity+.4f*static_cast<float>(std::clamp((beat-plan.originPPQ)/plan.durationBeats,0.,1.)),0.f,1.f);
@@ -200,7 +211,9 @@ public:
             wetSmooth+=follow*(c.mix-wetSmooth);if(std::abs(c.mix-wetSmooth)<1.e-4f)wetSmooth=c.mix;
             drySmooth+=follow*(c.dry-drySmooth);if(std::abs(c.dry-drySmooth)<1.e-4f)drySmooth=c.dry;
             const float bypassTarget=c.bypass?1.f:0.f;bypassSmooth+=follow*(bypassTarget-bypassSmooth);if(std::abs(bypassTarget-bypassSmooth)<1.e-4f)bypassSmooth=bypassTarget;
-            const float direct=kind==Kind::Director?(1-wetSmooth)*drySmooth:drySmooth;
+            // Exported effect stems must contain no original voice, even during
+            // the dry control's startup smoothing ramp.
+            const float direct=c.effectsOnly?0.f:(kind==Kind::Director?(1-wetSmooth)*drySmooth:drySmooth);
             float outL=finite((l*direct+wl*wetSmooth)*(1-bypassSmooth)+l*bypassSmooth),outR=finite((r*direct+wr*wetSmooth)*(1-bypassSmooth)+r*bypassSmooth);
             if(!right)outL=.5f*(outL+outR);left[n]=outL;if(right)right[n]=outR;outputMaximum=std::max(outputMaximum,std::max(std::abs(outL),std::abs(outR)));lastBeat=beat;
         }
@@ -278,6 +291,7 @@ private:
     CaptureSink* sink=nullptr;
     bool prepared=false,hadHost=false,wasPlaying=false,learning=false,armed=false,preview=false,phraseOpen=false;int frameLength=480,frameSamples=0,frameCount=0,crossings=0,gapFrames=0,captureBank=-1,activeBank=-1,delayPos=0;
     std::int64_t totalSamples=0;double sumSquare=0,sumLow=0,sideSquare=0;float framePrevious=0,phraseBegin=0,lastVoicedBeat=0,phraseStartSec=0,lastVoicedSec=0,phraseStrength=0;
+    std::array<float,2>phraseLP{};float phraseSendSmooth=0,phraseReverbSmooth=1;
     float detectorLP=0,detectorPrev=0,envelope=0,lowL=0,lowR=0,wetSmooth=0,drySmooth=1,bypassSmooth=0,previousCaptureL=0,previousCaptureR=0;
     Plan candidate,active,undo;PlanMailbox published,publishedActive,incoming;unsigned seenIncoming=0;
     std::atomic<int>command{0},state{0};std::atomic<float>progress{0},capturedSeconds{0},playPosition{0},vocalConfidence{0};std::atomic<bool>applied{false},sideSeen{false},previewDisplay{false};

@@ -1,4 +1,4 @@
-GILLPRODUCTION – UPDATE 10 / 49 PLUGINS FÜR MAC
+GILLPRODUCTION – UPDATE 12 / 56 PLUGINS FÜR MAC
 
 1. Dein Projekt speichern und FL Studio schließen.
 2. Die DMG-Datei öffnen und „GILL-PLUGINS…pkg“ doppelt anklicken.
@@ -10,9 +10,9 @@ GILLPRODUCTION – UPDATE 10 / 49 PLUGINS FÜR MAC
 Installationsort:
 /Library/Audio/Plug-Ins/VST3/GILLPRODUCTION
 
-Alle 49 VST3-Plugins sind gemeinsam enthalten und verwenden Version 0.10.0.
-Die Kennungen der 47 bisherigen Plugins bleiben erhalten; GILLRISE und
-GILLASSIST kommen neu hinzu. Es wird keine zusätzliche
+Alle 56 VST3-Plugins sind gemeinsam enthalten und verwenden Version 0.12.0.
+Die Kennungen aller bisherigen Plugins bleiben erhalten.
+Auch die sieben kreativen Effekte aus Windows-Update11 sind enthalten. Es wird keine zusätzliche
 Downloader-App installiert. Nach dem Download funktioniert die Installation
 offline. Deine Projekte, Audioeinstellungen und Aufnahmen werden nicht verändert.
 Die gleiche Installer-Datei unterstützt Apple Silicon und Intel.
@@ -47,8 +47,8 @@ importieren, danach Pegelbereiche bearbeiten und eine WAV exportieren.
 Gerenderte Dateien zusammen mit dem Projekt aufbewahren. GILLALIGN bleibt
 auf einzelne Takes bis 20 Sekunden ausgelegt.
 
-Weitere Bedienung und Presets stehen in GILL-UPDATE-10-ANLEITUNG.md;
-GILL-PLUGINS-UEBERSICHT.txt erklärt alle 49 Plugins in Stichpunkten.
+Weitere Bedienung und Presets stehen in GILL-UPDATE-12-ANLEITUNG.md;
+GILL-PLUGINS-UEBERSICHT.txt erklärt alle 56 Plugins in Stichpunkten.
 
 Die vollständigen Quellen und Lizenztexte liegen in der DMG bei.
 Zusätzliche Lizenztexte liegen nach Installation unter

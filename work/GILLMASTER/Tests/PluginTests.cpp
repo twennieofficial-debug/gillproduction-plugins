@@ -1,6 +1,7 @@
 #include "../Source/PluginProcessor.h"
 #include "../Source/PluginEditor.h"
 #include <cstdio>
+#include "../../GILLCommon/MasterRecallChecks.h"
 
 #if JUCE_MAC
 extern "C" void gillInitialiseMacTestApplication();
@@ -33,6 +34,7 @@ int main(){
         }
         for(int preset=0;preset<6;++preset){p.setCurrentProgram(preset);check(p.getCurrentProgram()==preset,"Factory preset selection");juce::MemoryBlock saved;p.getStateInformation(saved);p.setCurrentProgram((preset+1)%6);p.setStateInformation(saved.getData(),int(saved.getSize()));check(p.getCurrentProgram()==preset,"Preset and settings survive state recall");}
         p.selectPreset(0,false);
+        if(kind==0)masterRecallChecks(p,true,[](bool good,const char*message){check(good,message);});
         {
             juce::MemoryBlock original;p.getStateInformation(original);
             std::vector<float> values;for(auto* parameter:p.getParameters())values.push_back(parameter->getValue());

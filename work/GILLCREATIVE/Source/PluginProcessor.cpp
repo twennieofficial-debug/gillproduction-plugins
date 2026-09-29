@@ -3,6 +3,7 @@
 #include <cstring>
 #include <cstdlib>
 namespace{
+const char*throwPresets[]{"QUARTER THROW","DOTTED ADLIB","TRIPLET ENDING","HALL + PING PONG"};
 const char*names[]{"GILLPHRASE","GILLDIRECTOR","GILLREPLY"};
 const char*ids[]{"amount","length","tone","width","mix","dry","sensitivity","variant","bypass","gillQuality"};
 const char*presetNames[3][6]={{"LAST WORD HALO","SHORT VERSE SPACE","DARK TAIL","TRAP CLOUD","BRIGHT ADLIB","ONLY THROWS"},{"RAP IN FRONT","OPEN HOOK","DARK VERSE","MOVING ADLIB","CLEAN INTIMATE","WIDE CHORUS"},{"SINGLE ANSWER","TRAP TRIPLETS","WIDE DOUBLES","LOW DENSITY","SHORT SYLLABLE","ONLY REPLIES"}};
@@ -13,14 +14,15 @@ const float presets[3][6][8]={
  {{70,.3f,58,100,65,100,-40,0},{85,.18f,66,130,72,100,-42,2},{80,.28f,54,140,68,100,-40,1},{35,.25f,50,90,65,100,-38,0},{90,.12f,72,110,78,100,-42,2},{95,.35f,60,120,90,0,-40,1}}};
 juce::Identifier stateId(CreativeKind k){return juce::String(names[static_cast<int>(k)])+"_STATE";}
 }
-GillCreativeProcessor::GillCreativeProcessor(CreativeKind k):AudioProcessor([k]{auto buses=BusesProperties().withInput("VOCAL",juce::AudioChannelSet::stereo(),true);if(k==CreativeKind::Director)buses=buses.withInput("BEAT GUIDE",juce::AudioChannelSet::stereo(),false);return buses.withOutput("OUTPUT",juce::AudioChannelSet::stereo(),true);}()),kind(k),apvts(*this,nullptr,stateId(k),layout(k)),engine(k),archive(names[static_cast<int>(k)]){engine.setCaptureSink(&archive);for(size_t i=0;i<raw.size();++i)raw[i]=apvts.getRawParameterValue(ids[i]);selectPreset(0,false);}
+GillCreativeProcessor::GillCreativeProcessor(CreativeKind k):AudioProcessor([k]{auto buses=BusesProperties().withInput("VOCAL",juce::AudioChannelSet::stereo(),true);if(k==CreativeKind::Director)buses=buses.withInput("BEAT GUIDE",juce::AudioChannelSet::stereo(),false);return buses.withOutput("OUTPUT",juce::AudioChannelSet::stereo(),true);}()),kind(k),apvts(*this,nullptr,stateId(k),layout(k)),engine(k),archive(names[static_cast<int>(k)]){engine.setCaptureSink(&archive);for(size_t i=0;i<raw.size();++i)raw[i]=apvts.getRawParameterValue(ids[i]);if(kind==CreativeKind::Phrase){const char*ids[]{"reverbSend","delaySend","delayFeedback","delayRate"};for(int i=0;i<4;++i)phraseRaw[i]=apvts.getRawParameterValue(ids[i]);}selectPreset(0,false);}
 juce::AudioProcessorValueTreeState::ParameterLayout GillCreativeProcessor::layout(CreativeKind k){
     juce::AudioProcessorValueTreeState::ParameterLayout result;auto f=[&](const char*id,const char*name,float low,float high,float step,float def){result.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{id,1},name,juce::NormalisableRange<float>(low,high,step),def));};
     f("amount",k==CreativeKind::Reply?"DENSITY":k==CreativeKind::Director?"INTENSITY":"THROW",0,100,.1f,65);
     f("length",k==CreativeKind::Reply?"CHOP LENGTH":"TAIL",k==CreativeKind::Reply?.05f:.15f,k==CreativeKind::Reply?1.5f:8.f,.01f,k==CreativeKind::Reply?.3f:2.6f);
     f("tone","TONE",0,100,.1f,55);f("width","WIDTH",0,150,.1f,100);f("mix","WET",0,100,.1f,k==CreativeKind::Director?65.f:38.f);f("dry","DRY",0,100,.1f,100);f("sensitivity","DETECT",-60,-18,.1f,-40);
     result.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"variant",1},"VARIANT",juce::StringArray{"I","II","III"},0));
-    result.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));result.add(gill::qualityParameter(1));return result;
+    result.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));result.add(gill::qualityParameter(1));
+    if(k==CreativeKind::Phrase){f("reverbSend","REVERB SEND",0,100,.1f,100);f("delaySend","DELAY SEND",0,100,.1f,0);f("delayFeedback","FEEDBACK",0,75,.1f,38);result.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{"delayRate",1},"DELAY RATE",juce::StringArray{"1/16 T","1/16","1/8 T","1/8","1/8 D","1/4","1/2"},3));}return result;
 }
 const juce::String GillCreativeProcessor::getName()const{return names[static_cast<int>(kind)];}
 bool GillCreativeProcessor::isBusesLayoutSupported(const BusesLayout&l)const{const auto main=l.getMainOutputChannelSet();if((main!=juce::AudioChannelSet::mono()&&main!=juce::AudioChannelSet::stereo())||l.getMainInputChannelSet()!=main)return false;if(l.inputBuses.size()>1){const auto side=l.inputBuses[1];if(!side.isDisabled()&&side!=juce::AudioChannelSet::mono()&&side!=juce::AudioChannelSet::stereo())return false;}return true;}
@@ -35,16 +37,17 @@ void GillCreativeProcessor::process(juce::AudioBuffer<float>&b,bool hostBypass){
     if(!rateSupported){for(int c=0;c<channels;++c)for(int i=0;i<count;++i)b.setSample(c,i,gill::creative::finite(b.getSample(c,i)));return;}
     std::array<float,10>v{};for(size_t i=0;i<v.size();++i){const float x=raw[i]?raw[i]->load(std::memory_order_relaxed):0;v[i]=std::isfinite(x)?x:0;}
     gill::creative::Controls controls;controls.amount=std::clamp(v[0]/100,0.f,1.f);controls.length=std::clamp(v[1],.05f,8.f);controls.tone=std::clamp(v[2]/100,0.f,1.f);controls.width=std::clamp(v[3]/100,0.f,1.5f);controls.mix=std::clamp(v[4]/100,0.f,1.f);controls.dry=std::clamp(v[5]/100,0.f,1.f);controls.sensitivity=std::clamp(v[6],-60.f,-18.f);controls.variant=std::clamp(static_cast<int>(v[7]+.5f),0,2);controls.bypass=hostBypass||v[8]>.5f;controls.pro=quality.isPro();
+    if(kind==CreativeKind::Phrase){controls.reverbSend=phraseRaw[0]->load()*.01f;controls.delaySend=phraseRaw[1]->load()*.01f;controls.delayFeedback=phraseRaw[2]->load()*.01f;controls.delayRate=int(phraseRaw[3]->load());}
     gill::creative::Transport transport;if(auto*head=getPlayHead())if(auto position=head->getPosition()){transport.playing=position->getIsPlaying();if(auto bpm=position->getBpm())if(std::isfinite(*bpm)&&*bpm>0)transport.bpm=*bpm;if(auto ppq=position->getPpqPosition())if(std::isfinite(*ppq)){transport.ppq=*ppq;transport.hasPPQ=true;}if(auto seconds=position->getTimeInSeconds())if(std::isfinite(*seconds)){transport.seconds=*seconds;transport.hasSeconds=true;}}
     tempo=static_cast<float>(transport.bpm);const float*sideL=nullptr,*sideR=nullptr;if(kind==CreativeKind::Director&&getBusCount(true)>1&&getBus(true,1)->isEnabled()){auto side=getBusBuffer(b,true,1);if(side.getNumChannels()>0){sideL=side.getReadPointer(0);sideR=side.getReadPointer(std::min(1,side.getNumChannels()-1));}}
     engine.process(b.getWritePointer(0),channels>1?b.getWritePointer(1):nullptr,sideL,sideR,count,controls,transport);
 }
-void GillCreativeProcessor::selectPreset(int index,bool gesture){index=std::clamp(index,0,5);const auto&v=presets[static_cast<int>(kind)][index];for(int i=0;i<8;++i)setValue(ids[i],v[i],gesture);setValue("bypass",0,gesture);currentProgram=index;}
-const juce::String GillCreativeProcessor::getProgramName(int i){return presetNames[static_cast<int>(kind)][std::clamp(i,0,5)];}
-bool GillCreativeProcessor::presetMatches()const{const auto&v=presets[static_cast<int>(kind)][currentProgram.load()];for(int i=0;i<8;++i)if(std::abs(value(ids[i])-v[i])>.011f)return false;return true;}
+void GillCreativeProcessor::selectPreset(int index,bool gesture){index=std::clamp(index,0,getNumPrograms()-1);const auto&v=presets[static_cast<int>(kind)][index<6?index:5];for(int i=0;i<8;++i)setValue(ids[i],v[i],gesture);setValue("bypass",0,gesture);if(kind==CreativeKind::Phrase){setValue("reverbSend",index<6||index==9?100:0,gesture);setValue("delaySend",index>=6?80:0,gesture);setValue("delayFeedback",index==7?48:index==8?28:38,gesture);setValue("delayRate",index==6?5:index==7?4:index==8?2:3,gesture);}currentProgram=index;}
+const juce::String GillCreativeProcessor::getProgramName(int i){return kind==CreativeKind::Phrase&&i>=6?throwPresets[std::clamp(i-6,0,3)]:presetNames[static_cast<int>(kind)][std::clamp(i,0,5)];}
+bool GillCreativeProcessor::presetMatches()const{const int selected=currentProgram.load();const auto&v=presets[static_cast<int>(kind)][selected<6?selected:5];if(kind==CreativeKind::Phrase&&(std::abs(value("reverbSend")-(selected<6||selected==9?100:0))>.011f||std::abs(value("delaySend")-(selected>=6?80:0))>.011f||std::abs(value("delayFeedback")-(selected==7?48:selected==8?28:38))>.011f||int(value("delayRate"))!=(selected==6?5:selected==7?4:selected==8?2:3)))return false;for(int i=0;i<8;++i)if(std::abs(value(ids[i])-v[i])>.011f)return false;return true;}
 void GillCreativeProcessor::editPlan(const gill::creative::Plan&p,bool commit){if(!gill::creative::Engine::validPlan(p))return;const std::lock_guard<std::mutex>lock(modelProducer);engine.postPlan(p,commit);}
 void GillCreativeProcessor::getStateInformation(juce::MemoryBlock&out){
-    auto state=apvts.copyState();state.setProperty("schema",2,nullptr);state.setProperty("program",currentProgram.load(),nullptr);auto plan=engine.savedPlan();
+    auto state=apvts.copyState();state.setProperty("schema",kind==CreativeKind::Phrase?3:2,nullptr);state.setProperty("program",currentProgram.load(),nullptr);auto plan=engine.savedPlan();
     if(gill::creative::Engine::validPlan(plan)){
         juce::ValueTree model("MODEL");model.setProperty("origin",plan.originPPQ,nullptr);model.setProperty("originSeconds",plan.originSeconds,nullptr);model.setProperty("timeAnchor",plan.timeAnchor,nullptr);const auto source=archive.sourceFileForState(plan.sourceRevision);if(source.existsAsFile())model.setProperty("sourceFile",source.getFullPathName(),nullptr);model.setProperty("beats",plan.durationBeats,nullptr);model.setProperty("seconds",plan.durationSeconds,nullptr);model.setProperty("bpm",plan.bpm,nullptr);model.setProperty("applied",engine.isApplied(),nullptr);
         for(int i=0;i<plan.count;++i){const auto&m=plan.markers[i];juce::ValueTree event("MARKER");event.setProperty("start",m.startBeat,nullptr);event.setProperty("end",m.endBeat,nullptr);event.setProperty("in",m.startSec,nullptr);event.setProperty("out",m.endSec,nullptr);event.setProperty("strength",m.strength,nullptr);model.addChild(event,-1,nullptr);}
@@ -58,7 +61,7 @@ void GillCreativeProcessor::getStateInformation(juce::MemoryBlock&out){
 }
 void GillCreativeProcessor::setStateInformation(const void*data,int bytes){
     if(!data||bytes<=0||bytes>192*1024*1024)return;auto xml=getXmlFromBinary(data,bytes);if(!xml||!xml->hasTagName(stateId(kind).toString()))return;auto state=juce::ValueTree::fromXml(*xml);if(!state.isValid())return;
-    const int schema=static_cast<int>(state.getProperty("schema",0));if(schema!=1&&schema!=2)return;
+    const int schema=static_cast<int>(state.getProperty("schema",0));if(schema!=1&&schema!=2&&!(schema==3&&kind==CreativeKind::Phrase))return;
     juce::StringArray seen;int models=0;
     for(const auto&child:state){
         if(child.hasType("MODEL")){if(++models>1)return;continue;}
@@ -67,9 +70,12 @@ void GillCreativeProcessor::setStateInformation(const void*data,int bytes){
         const auto text=child["value"].toString();char*end=nullptr;const double value=std::strtod(text.toRawUTF8(),&end);
         if(text.isEmpty()||!end||*end||!std::isfinite(value))return;
         const auto range=p->getNormalisableRange();if(value<range.start-.001||value>range.end+.001)return;
-        if((id=="variant"||id=="bypass"||id=="gillQuality")&&value!=std::floor(value))return;
+        if(p->isDiscrete()&&value!=std::floor(value))return;
     }
-    if(seen.size()!=static_cast<int>(raw.size()))return;
+    if(kind==CreativeKind::Phrase&&schema<3){
+        if(seen.size()!=10)return;
+        for(const char*id:{"reverbSend","delaySend","delayFeedback","delayRate"}){if(seen.contains(id))return;auto*p=apvts.getParameter(id);juce::ValueTree child("PARAM");child.setProperty("id",id,nullptr);child.setProperty("value",p->convertFrom0to1(p->getDefaultValue()),nullptr);state.addChild(child,-1,nullptr);}
+    }else if(seen.size()!=getParameters().size())return;
     const auto model=state.getChildWithName("MODEL");gill::creative::Plan plan;bool commit=false;std::vector<float>audio;int frames=0;double rate=48000;juce::File sourceFile;bool missingSource=false;
     if(model.isValid()){
         plan.originPPQ=static_cast<double>(model["origin"]);plan.originSeconds=static_cast<double>(model["originSeconds"]);plan.timeAnchor=static_cast<bool>(model["timeAnchor"]);if(schema>=2){const auto sourcePath=model["sourceFile"].toString();if(sourcePath.isNotEmpty()){sourceFile=juce::File(sourcePath);missingSource=!sourceFile.existsAsFile();}}plan.durationBeats=static_cast<float>(model["beats"]);plan.durationSeconds=static_cast<float>(model["seconds"]);plan.bpm=static_cast<float>(model["bpm"]);commit=static_cast<bool>(model["applied"]);
@@ -87,12 +93,13 @@ void GillCreativeProcessor::setStateInformation(const void*data,int bytes){
         if(sourceFile.existsAsFile())plan.sourceRevision=archive.restore(sourceFile);engine.postPlan(plan,commit);
     }
     else{engine.request(7);if(missingSource)archive.restore(sourceFile);}
-    state.removeChild(model,nullptr);apvts.replaceState(state);currentProgram=std::clamp(static_cast<int>(state["program"]),0,5);
+    state.removeChild(model,nullptr);apvts.replaceState(state);currentProgram=std::clamp(static_cast<int>(state["program"]),0,getNumPrograms()-1);
 }
 juce::AudioProcessorEditor*GillCreativeProcessor::createEditor(){return new GillCreativeEditor(*this);}
 
-bool GillCreativeProcessor::renderEffects(bool effectsOnly){
+bool GillCreativeProcessor::renderEffects(bool effectsOnly,int phrasePart){
     const auto model=plan();if(!canRender())return false;
     gill::creative::Controls c;c.amount=value("amount")/100;c.length=value("length");c.tone=value("tone")/100;c.width=value("width")/100;c.mix=value("mix")/100;c.dry=value("dry")/100;c.sensitivity=value("sensitivity");c.variant=static_cast<int>(value("variant"));
+    if(kind==CreativeKind::Phrase){c.reverbSend=value("reverbSend")*.01f;c.delaySend=value("delaySend")*.01f;c.delayFeedback=value("delayFeedback")*.01f;c.delayRate=int(value("delayRate"));c.phraseExport=effectsOnly?std::clamp(phrasePart,0,2):0;}
     return renderer.start(archive.sourceFile(model.sourceRevision),getName(),kind,model,c,effectsOnly);
 }
