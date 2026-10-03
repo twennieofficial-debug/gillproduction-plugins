@@ -282,7 +282,7 @@ public:
             v.live.prepare(fs,maxBlock,channels_); v.pro.prepare(fs,maxBlock,channels_);
         }
         maximumLatency_=voices_[0].pro.latencySamples()+chunk;
-        latency_=selected(0).latencySamples()+chunk;
+        latency_=live_?0:voices_[0].pro.latencySamples()+chunk;
         for(auto& buffer:dry_) buffer.assign(static_cast<size_t>(maximumLatency_+1),0);
         int history=1024; while(history<maximumLatency_+fs*.10) history*=2;
         voiceHistory_.assign(static_cast<size_t>(history),0); historyMask_=history-1;
@@ -292,7 +292,7 @@ public:
     void setLiveMode(bool live) noexcept {
         if(live_==live) return;
         live_=live;
-        if(prepared_) { latency_=selected(0).latencySamples()+chunk; reset(); }
+        if(prepared_) { latency_=live_?0:voices_[0].pro.latencySamples()+chunk; reset(); }
     }
     void setParameters(const HarmonyParameters& p) noexcept {
         parameters_=p; parameters_.key=std::clamp(p.key,0,11); parameters_.scale=std::clamp(p.scale,0,3);
@@ -350,6 +350,23 @@ public:
         if(!prepared_||!audio||frames<=0||channels<=0)return;
         const int active=std::min(channels_,channels); for(int c=0;c<active;++c)if(!audio[c])return;
         processed_=true;
+        if(live_) {
+            // No generated harmony can meet a strict zero-sample timing budget.
+            // Monitor the current input (or silence with DIRECT OFF), retaining
+            // output trim, bypass and causal input analysis without an audio FIFO.
+            for(int n=0;n<frames;++n){std::array<float,2> input{};
+                for(int c=0;c<active;++c)input[c]=static_cast<float>(std::clamp(harmony_detail::clean(audio[c][n]),-32.0,32.0));
+                detector_.sample(input,active);slew(direct_,parameters_.direct?1:0);
+                slew(bypass_,parameters_.bypass?1:0);slew(output_,harmony_detail::gain(parameters_.outputDb));
+                double ip=0,op=0;for(int c=0;c<active;++c){const double dry=input[c],wet=direct_*dry*output_;
+                    audio[c][n]=static_cast<float>(bypass_==1?dry:wet+bypass_*(dry-wet));
+                    ip=std::max(ip,std::abs(dry));op=std::max(op,std::abs(double(audio[c][n])));}
+                inputPeakValue_=std::max(ip,inputPeakValue_*peakDecay_);outputPeakValue_=std::max(op,outputPeakValue_*peakDecay_);}
+            hzView_=detector_.hz();confidenceView_=detector_.confidence();
+            inputPeakView_=static_cast<float>(inputPeakValue_);outputPeakView_=static_cast<float>(outputPeakValue_);
+            for(auto& v:voiceLevelView_)v=0;for(auto& v:voiceSemitonesView_)v=0;
+            return;
+        }
         for(int n=0;n<frames;++n,++clock_) {
             std::array<float,2> input{};
             for(int c=0;c<active;++c) { input[c]=static_cast<float>(std::clamp(harmony_detail::clean(audio[c][n]),-32.0,32.0)); frame_[c][phase_]=input[c]; }

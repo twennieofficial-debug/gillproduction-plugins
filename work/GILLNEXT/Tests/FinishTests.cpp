@@ -9,6 +9,32 @@ double reconstructedPeak(const std::vector<float>& audio){
     for(int phase=0;phase<16;++phase){double sum=0;for(int k=-radius;k<=radius;++k){const double d=k-phase/16.;const double sinc=std::abs(d)<1e-12?1:std::sin(test::pi*d)/(test::pi*d);const double w=std::abs(d)<=radius?.5+.5*std::cos(test::pi*d/radius):0;coefficients[phase][k+radius]=sinc*w;sum+=sinc*w;}for(auto&c:coefficients[phase])c/=sum;}
     double maximum=0;for(int i=-radius;i<int(audio.size())+radius;++i)for(int phase=0;phase<16;++phase){double value=0;for(int k=-radius;k<=radius;++k)if(i+k>=0&&i+k<int(audio.size()))value+=audio[size_t(i+k)]*coefficients[phase][k+radius];maximum=std::max(maximum,std::abs(value));}return maximum;
 }
+
+void transientCeilingSweep(float maximumDrive,float minimumCeiling){
+    bool bounded=true,finite=true;double worst=-100;int cases=0;
+    for(double fs:{8000.,22050.,44100.,96000.,192000.})
+    for(float ceiling:{minimumCeiling,3.f,6.f})for(float clip:{0.f,20.f,65.f,100.f})
+    for(float drive:{0.f,6.f,12.f,maximumDrive})for(double amplitude:{.5,1.,2.}){
+        auto d=std::make_unique<gillnext::FinishDSP>();gillnext::FinishParameters p;
+        p.toneEnabled=p.compEnabled=p.stereoEnabled=false;p.clip=clip;p.driveDb=drive;p.ceilingDb=ceiling;
+        
+        d->setParameters(p);d->prepare(fs,127,2);
+        std::vector<float> left(2048+d->latencySamples()+96),right(left.size());
+        for(int i=0;i<2048;++i){
+            const double envelope=((i>180&&i<500)||(i>790&&i<1200))?1:.08;
+            const double x=amplitude*envelope*(.85*std::sin(2*test::pi*.017*i)+.15*std::sin(2*test::pi*.091*i));
+            left[i]=float(x);right[i]=float(.37*x);
+        }
+        test::run(*d,left,right,127);
+        const double over=20*std::log10(std::max(reconstructedPeak(left),reconstructedPeak(right)))-ceiling;
+        worst=std::max(worst,over);bounded=bounded&&over<=.05;
+        for(size_t n=0;n<left.size();++n)finite=finite&&std::isfinite(left[n])&&std::isfinite(right[n]);
+        ++cases;
+    }
+    test::check(bounded&&finite,"Transient clip/drive sweep respects independent16x ceiling +0.05 dB, including full CLIP and positive ceilings",worst);
+    std::printf("TRANSIENT TRUE PEAK %d cases; worst relative to ceiling %.8f dB\n",cases,worst);
+}
+
 gillnext::FinishParameters neutral(){gillnext::FinishParameters p;p.toneEnabled=p.compEnabled=p.clipEnabled=p.stereoEnabled=p.limiterEnabled=false;return p;}
 void neutralAndTone(){using namespace test;using namespace gillnext;
     bool identity=true,drive=true,tone=true;double worst=0;
@@ -21,7 +47,7 @@ void neutralAndTone(){using namespace test;using namespace gillnext;
 void limiting(){using namespace test;using namespace gillnext;
     bool samples=true,truePeak=true,stereo=true;double worstOver=-100,worstInputOver=0;int cases=0;
     FILE* csv=std::fopen("FinishTruePeak.csv","w");if(csv)std::fprintf(csv,"rate,fixture,ceiling_db,input_sample_peak,input_16x_peak,output_sample_peak,output_16x_peak,over_ceiling_db\n");
-    for(double fs:rates)for(int fixture=0;fixture<6;++fixture)for(float ceiling:{-3.f,-1.f,0.f}){
+    for(double fs:rates)for(int fixture=0;fixture<6;++fixture)for(float ceiling:{-3.f,-1.f,0.f,3.f,6.f}){
         auto p=neutral();p.limiterEnabled=true;p.ceilingDb=ceiling;p.driveDb=fixture==5?12:0;p.clipEnabled=fixture==5;p.clip=fixture==5?65.f:0.f;
         auto d=std::make_unique<FinishDSP>();d->setParameters(p);d->prepare(fs,127,2);
         std::vector<float> l(4096+d->latencySamples()+96),r(l.size());std::uint32_t random=17329;
@@ -42,7 +68,7 @@ void automation(){using namespace test;using namespace gillnext;
     bool invariant=true,finite=true,noalloc=true;double worst=0;
     for(double fs:rates){auto a=std::make_unique<FinishDSP>(),b=std::make_unique<FinishDSP>();a->prepare(fs,64,2);b->prepare(fs,64,2);std::array<float,64>left{},right{},refL{},refR{};FinishParameters p;
         const auto before=allocations.load();
-        for(int step=0;step<101;++step){p.driveDb=step*.18f;p.boostDb=step*.18f;p.ceilingDb=-3+step*.03f;p.comp=float(step);p.clip=float(100-step);p.width=step*1.5f;p.bassMonoHz=20+step*2.3f;p.lowDb=-6+step*.12f;p.midDb=-p.lowDb;p.highDb=p.lowDb;p.toneEnabled=step%7!=0;p.compEnabled=step%9!=0;p.clipEnabled=step%11!=0;p.stereoEnabled=step%13!=0;p.limiterEnabled=step%17!=0;a->setParameters(p);b->setParameters(p);
+        for(int step=0;step<101;++step){p.driveDb=step*.18f;p.boostDb=step*.18f;p.ceilingDb=-3+step*.09f;p.comp=float(step);p.clip=float(100-step);p.width=step*1.5f;p.bassMonoHz=20+step*2.3f;p.lowDb=-6+step*.12f;p.midDb=-p.lowDb;p.highDb=p.lowDb;p.toneEnabled=step%7!=0;p.compEnabled=step%9!=0;p.clipEnabled=step%11!=0;p.stereoEnabled=step%13!=0;p.limiterEnabled=step%17!=0;a->setParameters(p);b->setParameters(p);
             for(int i=0;i<64;++i){left[i]=refL[i]=float(.2*std::sin((step*64+i)*.19));right[i]=refR[i]=float(.15*std::sin((step*64+i)*.27));}float* ptr[]{left.data(),right.data()};a->process(ptr,2,64);for(int i=0;i<64;++i){float* q[]{refL.data()+i,refR.data()+i};b->process(q,2,1);}for(int i=0;i<64;++i){worst=std::max(worst,std::abs(double(left[i])-refL[i]));invariant=invariant&&left[i]==refL[i]&&right[i]==refR[i];finite=finite&&std::isfinite(left[i])&&std::isfinite(right[i])&&std::abs(left[i])<32&&std::abs(right[i])<32;}
         }
         noalloc=noalloc&&before==allocations.load();
@@ -51,4 +77,4 @@ void automation(){using namespace test;using namespace gillnext;
     auto d=std::make_unique<FinishDSP>();FinishParameters p;p.driveDb=12;p.comp=80;p.clip=70;p.width=140;p.lowDb=5;p.midDb=-5;p.highDb=4;d->setParameters(p);d->prepare(48000,257,2);auto l=sine(48000,96000,317,.6),r=l;run(*d,l,r,257);d->setParameters(neutral());l=sine(48000,96000,317,.6);auto original=l;r=l;run(*d,l,r,257);bool dry=true;for(size_t i=90000;i<l.size();++i)dry=dry&&l[i]==original[i-d->latencySamples()];check(dry,"switching all modules off settles to exact delayed dry");
 }
 }
-int main(){using namespace gillnext;FinishParameters p;p.driveDb=4;p.comp=40;p.clip=30;p.lowDb=1;p.highDb=2;test::common<FinishDSP>(p,"FINISH");masterLoudnessReserveChecks(18);neutralAndTone();limiting();dynamicsAndStereo();automation();return test::result();}
+int main(){using namespace gillnext;FinishParameters p;p.driveDb=4;p.comp=40;p.clip=30;p.lowDb=1;p.highDb=2;test::common<FinishDSP>(p,"FINISH");masterLoudnessReserveChecks(18);neutralAndTone();limiting();transientCeilingSweep(18,-3);dynamicsAndStereo();automation();return test::result();}

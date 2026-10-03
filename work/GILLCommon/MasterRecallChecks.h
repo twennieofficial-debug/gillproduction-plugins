@@ -1,6 +1,13 @@
 #pragma once
 template<class Processor,class Check>
 void masterRecallChecks(Processor& p, bool strictSchema, Check checkRecall) {
+    const float originalCeiling=p.value("ceiling");
+    for(float ceiling:{-3.f,-1.f,0.f,3.f,6.f}){
+        p.setValue("ceiling",ceiling,false);juce::MemoryBlock saved;p.getStateInformation(saved);
+        p.setValue("ceiling",-2,false);p.setStateInformation(saved.getData(),int(saved.getSize()));
+        checkRecall(std::abs(p.value("ceiling")-ceiling)<.011f,"Negative, zero and positive CEILING values survive state recall in physical dB units");
+    }
+    p.setValue("ceiling",originalCeiling,false);
     p.setValue("boost",0,false);p.setValue("drive",6,false);
     juce::MemoryBlock state;p.getStateInformation(state);
     auto xml=juce::AudioProcessor::getXmlFromBinary(state.getData(),int(state.getSize()));

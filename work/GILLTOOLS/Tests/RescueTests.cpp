@@ -63,9 +63,10 @@ int main() {
                     auto clipped = original; for (auto& v : clipped) v = static_cast<float>(std::clamp(static_cast<double>(v),-limit,limit));
                     p.clipDb = p.negativeClipDb = static_cast<float>(clipDb);
                     const auto r = render(clipped,rate,p,live);
-                    const double gain = improvement(original,clipped,r,rate); gains.push_back(gain);
+                    const double gain = improvement(original,clipped,r,rate); if(!live)gains.push_back(gain);
                     check(gain >= -1., "MILD known-original reconstruction does not regress >1dB", gain);
-                    check(r.latency == static_cast<int>(std::ceil(rate*(live?.004:.012))), "Declared mode latency is the actual delay", r.latency);
+                    if(live)check(r.repaired==0&&std::equal(clipped.begin(),clipped.end(),r.audio.begin()),"LIVE is unbuffered exact input; repair is PRO-only");
+                    check(r.latency == (live?0:static_cast<int>(std::ceil(rate*.012))), "Declared mode latency is the actual delay", r.latency);
                     double untouched = 0;
                     for (size_t n = 0; n < original.size(); ++n) if (std::abs(clipped[n]) < limit - 1e-7)
                         untouched = std::max(untouched, std::abs(static_cast<double>(r.audio[n+r.latency]-clipped[n])));

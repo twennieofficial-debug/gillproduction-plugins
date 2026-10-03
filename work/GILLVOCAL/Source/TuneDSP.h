@@ -7,6 +7,7 @@
 #include <vector>
 #include <cstdint>
 #include "TuneLiveDSP.h"
+#include "FormantDSP.h"
 
 namespace gill {
 
@@ -45,6 +46,7 @@ public:
         maxLag_ = static_cast<int>(std::ceil(detectorRate_ / 70.0));
         minLag_ = std::max(2, static_cast<int>(std::floor(detectorRate_ / 1000.0)));
         detectorRing_.assign(static_cast<size_t>(maxLag_ * 2 + 32), 0.0f);
+        int rawSize=1024;while(rawSize<sampleRate_*.10)rawSize*=2;voiceHistory_.assign(rawSize,0);voiceMask_=rawSize-1;
         ordered_.resize(detectorRing_.size());
         difference_.resize(static_cast<size_t>(maxLag_ + 2));
         detectHop_ = std::max(1, static_cast<int>(std::round(detectorRate_ * 0.005)));
@@ -58,6 +60,7 @@ public:
         for (auto& d : dryDelay_) std::fill(d.begin(), d.end(), 0.0f);
         std::fill(controlHistory_.begin(),controlHistory_.end(),Control{});sampleClock_=0;lastControlTime_=-1;lastControl_={};detectorPower_.fill(0);detectorChannel_=0;
         std::fill(detectorRing_.begin(), detectorRing_.end(), 0.0f);
+        std::fill(voiceHistory_.begin(),voiceHistory_.end(),0.f);
         delayIndex_ = detectorIndex_ = detectorFilled_ = decimationCounter_ = detectCounter_ = 0;
         lowpass1_ = lowpass2_ = shiftSemitones_ = 0.0f;voiceBlend_=0;
         correctionActive_=false;unitySamples_=0;pendingVoiceFrames_=0;pendingVoiceHz_=0;
@@ -111,6 +114,7 @@ public:
             std::array<float,2> current{},liveOutput{};
             for(int c=0;c<channels_;++c){const float raw=c<active?buffers[c][n]:0;current[c]=std::isfinite(raw)?std::clamp(raw,-32.f,32.f):0;detectorPower_[c]=detectorDecay*detectorPower_[c]+(1-detectorDecay)*current[c]*current[c];}
             if(active==2){const int other=1-detectorChannel_;if(detectorPower_[other]>detectorPower_[detectorChannel_]*2)detectorChannel_=other;}else detectorChannel_=0;
+                voiceHistory_[static_cast<int>(sampleClock_)&voiceMask_]=current[detectorChannel_];
                 lowpass1_ += lowpassCoefficient_ * (current[detectorChannel_] - lowpass1_);
                 lowpass2_ += lowpassCoefficient_ * (lowpass1_ - lowpass2_);
                 if (++decimationCounter_ >= decimation_) {
@@ -249,6 +253,22 @@ private:
         for(double step:{.2,.05,.01}){const double a0=periodError(refined-step,comparison),b0=periodError(refined,comparison),c0=periodError(refined+step,comparison);const double curvature=a0-2*b0+c0;if(curvature>1e-18)refined+=std::clamp(.5*(a0-c0)/curvature,-1.,1.)*step;}
         const float hz = static_cast<float>(detectorRate_/refined);
         if (hz < 70.0f || hz > 1000.0f) { unvoiced(comparison); return; }
+        // Low-passed YIN can look confident in a noisy breath while the full
+        // waveform is not periodic. Require broadband evidence too, so the
+        // shifter cannot turn such noise into metallic, pitched sidebands.
+        const double rawPeriod=sampleRate_/hz;
+        const int voiceWindow=std::max(int(sampleRate_*.008),int(std::ceil(rawPeriod)));
+        double voiceError=0,voiceEnergy=0;
+        for(int j=0;j<voiceWindow;++j){
+            const auto pos=sampleClock_-j;const double previous=double(pos)-rawPeriod;
+            const auto base=static_cast<std::int64_t>(std::floor(previous));const double fraction=previous-base;
+            const double x=voiceHistory_[static_cast<int>(pos)&voiceMask_];
+            const double a=voiceHistory_[static_cast<int>(base)&voiceMask_],b1=voiceHistory_[static_cast<int>(base+1)&voiceMask_];
+            const double y=a+fraction*(b1-a);voiceError+=(x-y)*(x-y);voiceEnergy+=x*x+y*y;
+        }
+        const double incoherence=voiceError/std::max(voiceEnergy,1e-12);
+        if(incoherence>(voiced_?.32:.22)){unvoiced(comparison);return;}
+
         // Clean periodic vowels enter immediately. Borderline candidates need
         // consecutive, consistent evidence; once voiced the existing threshold
         // remains unchanged. This rejects isolated noise detections without an
@@ -290,7 +310,7 @@ private:
 
     TuneLiveDSP live_;
     std::array<std::vector<float>, 2> dryDelay_;
-    std::vector<float> detectorRing_, ordered_, difference_;std::vector<Control> controlHistory_;
+    std::vector<float> detectorRing_, ordered_, difference_,voiceHistory_;int voiceMask_=1023;std::vector<Control> controlHistory_;
     std::atomic<float> detected_{0.0f}, target_{0.0f}, confidence_{0.0f};
     double sampleRate_ = 48000.0, detectorRate_ = 12000.0, sustainedSeconds_ = 0.0;
     int channels_ = 1, latency_ = 0, key_ = 0, scale_ = 0, lastTargetNote_ = -1000;
@@ -306,31 +326,42 @@ private:
     bool prepared_ = false, voiced_ = false, hasProcessed_ = false;
 };
 
-// Both engines allocate only during prepare. Switching quality never changes
-// buffer capacity or calls the host from the audio callback.
+// Both paths allocate only during prepare. LIVE monitors the original signal
+// at the same sample position; pitch/formant correction is PRO-only. The LIVE
+// analysis runs on a fixed stack scratch buffer and is metering, never audio.
 class TuneDSP {
 public:
     void setQualityMode(int mode) noexcept { setLiveMode(mode != 0); }
-    void setLiveMode(bool live) noexcept { if (live_ != live) { live_=live; selected().reset(); } }
-    int qualityMode() const noexcept { return live_ ? 1 : 0; }
-    void prepare(double fs,int block,int channels) {
-        pro_.setQualityMode(0); low_.setQualityMode(1);
-        pro_.prepare(fs,block,channels); low_.prepare(fs,block,channels);
+    void setLiveMode(bool live) noexcept { if(live_!=live){live_=live;reset();} }
+    int qualityMode()const noexcept{return live_?1:0;}
+    void prepare(double fs,int block,int channels){
+        pro_.setQualityMode(0);low_.setQualityMode(1);pro_.prepare(fs,block,channels);low_.prepare(fs,block,channels);
+        supported_=pro_.latencySamples()>0;
+        if(supported_)formant_.prepare(fs,channels);
     }
-    void reset() { pro_.reset(); low_.reset(); }
-    void setParameters(int key,int scale,float retune,float humanize,float mix) noexcept {
-        pro_.setParameters(key,scale,retune,humanize,mix);
-        low_.setParameters(key,scale,retune,humanize,mix);
+    void reset(){pro_.reset();low_.reset();formant_.reset();}
+    void setParameters(int key,int scale,float retune,float humanize,float mix)noexcept{
+        pro_.setParameters(key,scale,retune,humanize,mix);low_.setParameters(key,scale,retune,humanize,mix);formant_.setMix(mix);
     }
-    void process(float* const* buffers,int channels,int samples) noexcept { selected().process(buffers,channels,samples); }
-    int latencySamples() const noexcept { return selected().latencySamples(); }
-    int maximumLatencySamples() const noexcept { return std::max(pro_.latencySamples(),low_.latencySamples()); }
-    float detectedHz() const noexcept { return selected().detectedHz(); }
-    float targetHz() const noexcept { return selected().targetHz(); }
-    float confidence() const noexcept { return selected().confidence(); }
+    void setFormant(float semitones)noexcept{formant_.setSemitones(semitones);}
+    void process(float*const* buffers,int channels,int samples)noexcept{
+        if(!supported_||!buffers||channels<1||samples<1)return;
+        if(!live_){pro_.process(buffers,channels,samples);formant_.process(buffers,channels,samples);return;}
+        const int active=std::min(channels,2);for(int c=0;c<active;++c)if(!buffers[c])return;
+        constexpr int chunk=128;std::array<std::array<float,chunk>,2>scratch{};
+        for(int at=0;at<samples;at+=chunk){const int n=std::min(chunk,samples-at);std::array<float*,2>ptr{};
+            for(int c=0;c<active;++c){ptr[c]=scratch[c].data();for(int i=0;i<n;++i){const float x=buffers[c][at+i];buffers[c][at+i]=std::isfinite(x)?std::clamp(x,-32.f,32.f):0;ptr[c][i]=buffers[c][at+i];}}
+            low_.process(ptr.data(),active,n);
+        }
+    }
+    int latencySamples()const noexcept{return live_?0:maximumLatencySamples();}
+    int maximumLatencySamples()const noexcept{return supported_?pro_.latencySamples()+formant_.latencySamples():0;}
+    int formantLatencySamples()const noexcept{return supported_?formant_.latencySamples():0;}
+    float detectedHz()const noexcept{return selected().detectedHz();}
+    float targetHz()const noexcept{return selected().targetHz();}
+    float confidence()const noexcept{return selected().confidence();}
 private:
-    TuneEngine& selected() noexcept { return live_ ? low_ : pro_; }
-    const TuneEngine& selected() const noexcept { return live_ ? low_ : pro_; }
-    TuneEngine pro_,low_; bool live_=false;
+    const TuneEngine& selected()const noexcept{return live_?low_:pro_;}
+    TuneEngine pro_,low_;FormantDSP formant_;bool live_=false,supported_=false;
 };
 } // namespace gill

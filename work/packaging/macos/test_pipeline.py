@@ -1,5 +1,6 @@
 """Local packaging-gate regression tests; these are not native Mac DSP tests."""
 import copy
+import importlib.util
 import json
 from pathlib import Path
 import tempfile
@@ -17,17 +18,18 @@ def quality_result_fixture(rate):
     products = []
     for index, product in enumerate(p.PRODUCTS):
         name = product["name"]
-        live = p.math.ceil(rate * .016) if name in ("GILLTUNE", "GILLTUNE LIVE") else int(rate * .02) if name == "GILLFORM" else 0
-        pro = live
+        live = pro = 0
         if name == "GILLHARMONY":
-            live, pro = p.math.ceil(rate * .025) + 80, p.math.ceil(rate * .068) + 112
+            pro = p.math.ceil(rate * .068) + 112
         if name == "GILLRESCUE":
-            live, pro = p.math.ceil(rate * .004), p.math.ceil(rate * .012)
+            pro = max(64, p.math.ceil(rate * .012))
         if name == "GILLCEILING": pro = p.math.ceil(rate*.003)+32
         if name == "GILLWEIGHT": pro = 32
         products.append({"name": name, "factory_version": product["version"], "factory_version_verified": True,
                          "factory_uid": format(index + 1, "x"), "manufacturer": "GILLPRODUCTION",
-                         "live_latency_samples": live, "pro_latency_samples": pro})
+                         "live_latency_samples": live, "pro_latency_samples": pro,
+                         "live_signal_measured": True, "live_native_bypass_verified": True,
+                         "live_impulse_offset_samples": 0, "live_dry_maximum_error": 0.0})
     return {"passed": True, "failures": 0, "checks": 1, "sample_rate": rate,
             "actual_vst3_bundles": p.PRODUCT_COUNT, "products": products}
 
@@ -43,7 +45,7 @@ def native_quality_fixture(records, arch):
 
 def native_mix_fixture(records, arch):
     """Synthetic schema fixture only; no native execution is claimed by these unit tests."""
-    products = [{"name": name, "version": "0.12.0", "factory_uid": "abc" if name == "GILLMIX" else "def",
+    products = [{"name": name, "version": p.SUITE_VERSION, "factory_uid": "abc" if name == "GILLMIX" else "def",
                  "bundle": "/fixture/" + name + ".vst3"} for name in ("GILLMIX", "GILLLINK", "GILLLINK", "GILLLINK")]
     return {"passed": True, "architecture": arch, "source_sha256": "fixture",
             "executable_architectures": [arch], "executable_sha256": "1" * 64,
@@ -215,16 +217,16 @@ class SourceArchiveTests(unittest.TestCase):
                 p.verify_source_archive(path, manifest)
 
     def test_catalog_preserves_products_and_compact_sizes(self):
-        self.assertEqual(len(p.PRODUCTS), 56)
-        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 56)
-        self.assertTrue(all(x["version"] == "0.12.0" for x in p.PRODUCTS))
-        baseline = p.read(p.HERE / "resources/compatibility/update09-products.json")
+        self.assertEqual(len(p.PRODUCTS), 60)
+        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 60)
+        self.assertTrue(all(x["version"] == "0.14.0" for x in p.PRODUCTS))
+        baseline = p.read(p.HERE / "resources/compatibility/update13-products.json")
         current = {x["name"]: x for x in p.PRODUCTS}
-        self.assertEqual(len(baseline), 47)
+        self.assertEqual(len(baseline), 57)
         for old in baseline:
             for field in ("name", "code", "target", "bundle_id"):
                 self.assertEqual(current[old["name"]][field], old[field])
-        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 68)
+        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 73)
         self.assertIn("LIVE_QUALITY_DSP", p.CTEST_MATRIX["GILLNEXT"])
         for product in p.PRODUCTS:
             self.assertLessEqual(product["default_size"][0], 900)
@@ -272,7 +274,7 @@ class NativeEvidenceTests(unittest.TestCase):
             self.assertEqual(len(failure["failed_groups"]), 1)
 
     def test_all_expected_ctest_entries_match(self):
-        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 68)
+        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 73)
         for group, expected in p.CTEST_MATRIX.items():
             p.verify_ctest_listing(group, {"tests": [{"name": name} for name in expected]})
 
@@ -290,6 +292,15 @@ class NativeEvidenceTests(unittest.TestCase):
         for group, names in baseline.items():
             self.assertTrue(set(names) <= set(p.CTEST_MATRIX[group]))
 
+    def test_all_71_update13_mac_suites_remain_required(self):
+        baseline = p.read(p.HERE / "resources/compatibility/update13-ctest-matrix.json")
+        self.assertEqual(sum(map(len, baseline.values())), 71)
+        for group, names in baseline.items():
+            self.assertTrue(set(names) <= set(p.CTEST_MATRIX[group]))
+        # GILLDEREVERB's extra VST3_HOST executable uses Windows APIs and is
+        # registered only on WIN32. Both Mac architectures use pluginval.
+        self.assertNotIn("VST3_HOST", p.CTEST_MATRIX["GILLDEREVERB"])
+
     def test_new_full_song_and_new_product_tests_are_required(self):
         for group, name in (("GILLCREATIVE", "CREATIVE_FULL_SONG"),
                             ("GILLVOCAL", "FLOW_FULL_SONG"),
@@ -297,7 +308,13 @@ class NativeEvidenceTests(unittest.TestCase):
                             ("GILLSMARTDEESSER", "SMARTDEESSER_FULL_SONG"),
                             ("GILLNEXT", "FINISH_SONG"),
                             ("GILLRISE", "RISE_INTEGRATION"),
-                            ("GILLASSIST", "ASSIST_INTEGRATION")):
+                            ("GILLASSIST", "ASSIST_INTEGRATION"),
+                            ("GILLNEXT", "STRICT_LIVE_13"),
+                            ("GILLVOCAL", "AUDIO_REPAIR_13"),
+                            ("GILLCREATIVE", "PHRASE_DELAY_STEMS"),
+                            ("GILLNOTE", "NOTE_INTEGRATION"),
+                            ("GILLTEXTURE", "TEXTURE_DSP"),
+                            ("GILLTEXTURE", "TEXTURE_INTEGRATION")):
             self.assertIn(name, p.CTEST_MATRIX[group])
 
     def test_a_duplicate_test_cannot_replace_missing_test(self):
@@ -381,16 +398,35 @@ class NativeQualityGateTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "factory version"):
             p.verify_quality_result(result, 48000)
 
-    def test_nonzero_live_and_invalid_pitch_latency_rejected(self):
-        for name, latency in (("GILLSMARTDEESSER", 1), ("GILLTUNE", 0), ("GILLFORM", 1200)):
+    def test_nonzero_live_is_rejected_for_every_product(self):
+        for rate in p.QUALITY_SAMPLE_RATES:
+            for product in p.PRODUCTS:
+                result = quality_result_fixture(rate)
+                record = next(x for x in result["products"] if x["name"] == product["name"])
+                record.update(live_latency_samples=1, pro_latency_samples=max(1, record["pro_latency_samples"]))
+                with self.subTest(name=product["name"], rate=rate), self.assertRaises(RuntimeError):
+                    p.verify_quality_result(result, rate)
+
+    def test_reported_zero_live_requires_actual_native_signal_measurement(self):
+        changes = (("live_signal_measured", False), ("live_native_bypass_verified", False),
+                   ("live_impulse_offset_samples", 1), ("live_impulse_offset_samples", False),
+                   ("live_dry_maximum_error", 1.01e-7), ("live_dry_maximum_error", -1.0),
+                   ("live_dry_maximum_error", float("nan")), ("live_dry_maximum_error", float("inf")))
+        for product in p.PRODUCTS:
+            for field, value in changes:
+                result = quality_result_fixture(48000)
+                record = next(x for x in result["products"] if x["name"] == product["name"])
+                record[field] = value
+                with self.subTest(name=product["name"], field=field, value=value), self.assertRaisesRegex(RuntimeError, "measured LIVE"):
+                    p.verify_quality_result(result, 48000)
+        for field in ("live_signal_measured", "live_native_bypass_verified", "live_impulse_offset_samples", "live_dry_maximum_error"):
             result = quality_result_fixture(48000)
-            product = next(x for x in result["products"] if x["name"] == name)
-            product.update(live_latency_samples=latency, pro_latency_samples=max(latency, 2000))
-            with self.subTest(name=name), self.assertRaises(RuntimeError):
+            del result["products"][0][field]
+            with self.subTest(missing=field), self.assertRaisesRegex(RuntimeError, "measured LIVE"):
                 p.verify_quality_result(result, 48000)
 
-    def test_release10_requires_exact_updated_product_versions(self):
-        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("12", "0.12.0"))
+    def test_release14_requires_exact_updated_product_versions(self):
+        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("14", "0.14.0"))
         for rate in p.QUALITY_SAMPLE_RATES:
             p.verify_quality_result(quality_result_fixture(rate), rate)
         for name, wrong in (("GILLEQ", "0.7.0"), ("GILLHARMONY", "0.6.0"),
@@ -401,10 +437,10 @@ class NativeQualityGateTests(unittest.TestCase):
                 p.verify_quality_result(result, 48000)
 
     def test_harmony_and_rescue_exact_reported_delay_at_each_native_rate(self):
-        measured_harmony = {44100: (1183, 3111), 48000: (1280, 3377),
-                            96000: (2480, 6641), 192000: (4880, 13169)}
-        measured_rescue = {44100: (177, 530), 48000: (192, 576),
-                           96000: (384, 1152), 192000: (768, 2304)}
+        measured_harmony = {44100: (0, 3111), 48000: (0, 3377),
+                            96000: (0, 6641), 192000: (0, 13169)}
+        measured_rescue = {44100: (0, 530), 48000: (0, 576),
+                           96000: (0, 1152), 192000: (0, 2304)}
         for rate in p.QUALITY_SAMPLE_RATES:
             result = quality_result_fixture(rate)
             for name, measured in (("GILLHARMONY", measured_harmony), ("GILLRESCUE", measured_rescue)):
@@ -414,7 +450,7 @@ class NativeQualityGateTests(unittest.TestCase):
                     for delta in (-1, 1):
                         bad = copy.deepcopy(result)
                         next(x for x in bad["products"] if x["name"] == name)[field] += delta
-                        with self.subTest(rate=rate, name=name, field=field, delta=delta), self.assertRaisesRegex(RuntimeError, "latency differs"):
+                        with self.subTest(rate=rate, name=name, field=field, delta=delta), self.assertRaises(RuntimeError):
                             p.verify_quality_result(bad, rate)
             p.verify_quality_result(result, rate)
 
@@ -550,6 +586,58 @@ class InstallerEnvironmentTests(unittest.TestCase):
                 p.require_disposable_install_runner(root / "delivery/test.pkg")
                 with self.assertRaisesRegex(RuntimeError, "inside the GitHub runner"):
                     p.require_disposable_install_runner(root.parent / "outside.pkg")
+
+
+class SigningPreflightTests(unittest.TestCase):
+    def setUp(self):
+        self.secrets = {name: "private-value-do-not-log" for name in p.SIGNING_SECRET_NAMES}
+        self.secrets["GILL_APPLICATION_IDENTITY"] = "Developer ID Application: Test Fixture"
+        self.secrets["GILL_INSTALLER_IDENTITY"] = "Developer ID Installer: Test Fixture"
+
+    def test_missing_secrets_report_only_names(self):
+        for name in p.SIGNING_SECRET_NAMES:
+            environment = dict(self.secrets)
+            environment[name] = "   "
+            with self.subTest(name=name), self.assertRaises(RuntimeError) as failure:
+                p.signing_preflight(environment)
+            self.assertIn(name, str(failure.exception))
+            self.assertNotIn("private-value", str(failure.exception))
+
+    def test_presence_does_not_claim_certificate_validity(self):
+        result = p.signing_preflight(self.secrets)
+        self.assertEqual(result, {"required_secret_count": 9, "present": True, "certificate_validity_verified": False})
+        self.assertNotIn("private-value", json.dumps(result))
+
+    def test_wrong_identity_type_is_rejected_without_values(self):
+        for name in ("GILL_APPLICATION_IDENTITY", "GILL_INSTALLER_IDENTITY"):
+            environment = dict(self.secrets)
+            environment[name] = "private-wrong-identity"
+            with self.subTest(name=name), self.assertRaisesRegex(RuntimeError, "Invalid signing identity type") as failure:
+                p.signing_preflight(environment)
+            self.assertNotIn("private-wrong", str(failure.exception))
+
+
+class RepositoryStagingTests(unittest.TestCase):
+    def test_shared_art_and_release_guides_are_staged_without_generated_test_outputs(self):
+        spec = importlib.util.spec_from_file_location("gill_staging_test", p.HERE.parent / "prepare_repository.py")
+        staging = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(staging)
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            included = ("GILLCommon/Assets/GP-JADE-transparent.png", "GILLTEXTURE/CMakeLists.txt",
+                        "GILLTEXTURE/Source/Factory.cpp", "GILLTEXTURE/Tests/MacTestApplication.mm",
+                        "packaging/macos/GILL-UPDATE-13-ANLEITUNG.md", "packaging/macos/GILL-UPDATE-14-ANLEITUNG.md")
+            excluded = ("GILLTEXTURE/Tests/generated.png", "GILLTEXTURE/Tests/build/cache.txt",
+                        "GILLTEXTURE/Tests/generated.wav", "packaging/macos/private-notes.txt")
+            for relative in included + excluded:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_bytes(b"fixture")
+            p.write(root / "packaging/macos/products.json", [{"group": "GILLTEXTURE"}])
+            selected = {path.relative_to(root).as_posix() for path in staging.selected_sources(root)}
+            self.assertTrue(set(included) <= selected)
+            self.assertFalse(set(excluded) & selected)
+            self.assertFalse((root / "packaging/repository").exists())
 
 
 if __name__ == "__main__":

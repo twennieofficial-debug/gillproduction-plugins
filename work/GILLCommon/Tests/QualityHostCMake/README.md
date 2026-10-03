@@ -10,15 +10,14 @@ the neutral, statically linked JUCE runtime; the host modules are compiled here.
 Run `GillQualityHost --list paths.json --sample-rate 48000 --report report.json`.
 `paths.json` accepts an array of bundle paths or an object with a `plugins` array
 whose entries have a `path` or `bundle` property. Include one GILLCONTROL and at
-least two other GILL VST3 bundles. Each bundle must expose version 0.6.0.
+least two other GILL VST3 bundles. Each bundle must expose version 0.13.0.
 
 The test checks processor-state quality against the hosted parameter cache,
 global commands, a local override, the same global button clicked again through
 the native editor, controller closure/recreation and saved-state recall. Its
 render callback runs on a worker thread. It also checks finite output and the
 controller's bit-exact dry pass-through. Reported host latency is checked in both
-modes: LIVE is zero except Tune's 16 ms window and Form's positive window below
-25 ms. Factory names, version, JUCE-derived VST3 UIDs and observed latencies are
+modes: LIVE is exactly zero for every product without exceptions. Factory names, version, JUCE-derived VST3 UIDs and observed latencies are
 included in the JSON evidence. These UIDs are host identities, not a claim to
 decode the manufacturer's four-character plugin code.
 
@@ -30,3 +29,5 @@ button in its native accessibility tree, and invokes `accessibilityPerformPress`
 This runs the plugin's existing button action; it never writes a parameter as a
 substitute for the UI action. Platform execution results
 must be recorded separately; a Windows result does not verify the Mac binary.
+
+Update13: all LIVE processors require exactly0reported samples; actual normal native processBlock timing is measured with confirmed plugin BYPASS. Buffered pitch/formant/harmony/repair are PRO only.

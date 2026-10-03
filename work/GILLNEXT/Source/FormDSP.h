@@ -95,23 +95,31 @@ private:
 };
 class FormDSP {
 public:
-    void setLiveMode(bool live) noexcept { if(live_!=live){live_=live;selected().reset();} }
+    // Strict LIVE is an unbuffered monitor. Pitch/formant resynthesis requires
+    // past/future context and is deliberately reserved for PRO.
+    void setLiveMode(bool live) noexcept { if(live_!=live){live_=live;pro_.reset();liveMeter_.reset();} }
     void prepare(double fs,int block,int channels) {
-        pro_.setLiveMode(false);low_.setLiveMode(true);
-        pro_.prepare(fs,block,channels);low_.prepare(fs,block,channels);
+        pro_.setLiveMode(false);pro_.prepare(fs,block,channels);liveMeter_.prepare(fs);
     }
-    void setParameters(const FormParameters& p) noexcept {pro_.setParameters(p);low_.setParameters(p);}
-    void reset() noexcept {pro_.reset();low_.reset();}
-    void process(float*const* audio,int channels,int frames) noexcept {selected().process(audio,channels,frames);}
-    int latencySamples()const noexcept{return selected().latencySamples();}
-    int maximumLatencySamples()const noexcept{return std::max(pro_.latencySamples(),low_.latencySamples());}
-    double tailSeconds()const noexcept{return selected().tailSeconds();}
-    float inputRms()const noexcept{return selected().inputRms();}
-    float outputRms()const noexcept{return selected().outputRms();}
-    float gainReductionDb()const noexcept{return selected().gainReductionDb();}
+    void setParameters(const FormParameters& p) noexcept {pro_.setParameters(p);}
+    void reset() noexcept {pro_.reset();liveMeter_.reset();}
+    void process(float*const* audio,int channels,int frames) noexcept {
+        if(!live_){pro_.process(audio,channels,frames);return;}
+        if(!audio||channels<=0||frames<=0)return;
+        const int active=std::min(channels,2);for(int c=0;c<active;++c)if(!audio[c])return;
+        for(int i=0;i<frames;++i){double power=0,peak=0;for(int c=0;c<active;++c){
+            const float x=std::isfinite(audio[c][i])?audio[c][i]:0.f;audio[c][i]=x;
+            power+=double(x)*x/active;peak=std::max(peak,std::abs(double(x)));}
+            liveMeter_.sample(power,power,peak,peak);}
+        liveMeter_.publish();
+    }
+    int latencySamples()const noexcept{return live_?0:pro_.latencySamples();}
+    int maximumLatencySamples()const noexcept{return pro_.latencySamples();}
+    double tailSeconds()const noexcept{return live_?0:pro_.tailSeconds();}
+    float inputRms()const noexcept{return live_?liveMeter_.in.load():pro_.inputRms();}
+    float outputRms()const noexcept{return live_?liveMeter_.out.load():pro_.outputRms();}
+    float gainReductionDb()const noexcept{return 0;}
 private:
-    FormEngine& selected() noexcept{return live_?low_:pro_;}
-    const FormEngine& selected()const noexcept{return live_?low_:pro_;}
-    FormEngine pro_,low_;bool live_=false;
+    FormEngine pro_;detail::Meter liveMeter_;bool live_=false;
 };
 }

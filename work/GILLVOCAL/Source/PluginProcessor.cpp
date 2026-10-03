@@ -17,9 +17,9 @@ GillVocalProcessor::GillVocalProcessor(GillKind k, bool liveTune)
     tune.setQualityMode(isLiveTune?1:0);
     const char* flowIds[]{"amount","mode","autogain","bypass"};
     const char* heatIds[]{"low","mid","high","style","mix","output","bypass"};
-    const char* tuneIds[]{"key","scale","retune","humanize","mix","bypass"};
+    const char* tuneIds[]{"key","scale","retune","humanize","mix","bypass","formant"};
     const char** ids=k==GillKind::Flow?flowIds:k==GillKind::Heat?heatIds:tuneIds;
-    const int count=k==GillKind::Flow?4:k==GillKind::Heat?7:6;
+    const int count=k==GillKind::Flow?4:k==GillKind::Heat?7:7;
     for(int i=0;i<count;++i)parameterValues[static_cast<size_t>(i)]=apvts.getRawParameterValue(ids[i]);
 }
 juce::AudioProcessorValueTreeState::ParameterLayout GillVocalProcessor::layout(GillKind k,int qualityDefault) {
@@ -29,7 +29,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout GillVocalProcessor::layout(G
     if(k==GillKind::Flow){f("amount","AMOUNT",0,100,.1f,60);choice("mode","MODE",{"NATURAL","FOCUS","CRUSH"},0);l.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"autogain",1},"AUTO GAIN",true));}
     else if(k==GillKind::Heat){f("low","LOW DRIVE",0,24,.1f,4);f("mid","MID DRIVE",0,24,.1f,6);f("high","HIGH DRIVE",0,24,.1f,3);choice("style","STYLE",{"WARM","TAPE","EDGE"},0);f("mix","MIX",0,100,.1f,100);f("output","OUTPUT",-24,12,.1f,0);}
     else {choice("key","KEY",{"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"},0);choice("scale","SCALE",{"CHROMATIC","MAJOR","MINOR"},0);f("retune","RETUNE",0,200,.1f,100);f("humanize","HUMANIZE",0,100,.1f,80);f("mix","MIX",0,100,.1f,100);}
-    l.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));l.add(gill::qualityParameter(qualityDefault)); return l;
+    l.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{"bypass",1},"BYPASS",false));l.add(gill::qualityParameter(qualityDefault)); if(k==GillKind::Tune)f("formant","FORMANT",-12,12,.01f,0); return l;
 }
 const juce::String GillVocalProcessor::getName()const { return kind==GillKind::Flow?"GILLFLOW":kind==GillKind::Heat?"GILLHEAT":isLiveTune?"GILLTUNE LIVE":"GILLTUNE"; }
 bool GillVocalProcessor::isBusesLayoutSupported(const BusesLayout& l)const {auto o=l.getMainOutputChannelSet();return (o==juce::AudioChannelSet::mono()||o==juce::AudioChannelSet::stereo())&&o==l.getMainInputChannelSet();}
@@ -39,7 +39,7 @@ float GillVocalProcessor::parameter(size_t i)const noexcept {const auto* p=param
 void GillVocalProcessor::updateParameters(){
     if(kind==GillKind::Flow)flow.setParameters(parameter(0),juce::roundToInt(parameter(1)),parameter(2)>.5f);
     else if(kind==GillKind::Heat)heat.setParameters(parameter(0),parameter(1),parameter(2),juce::roundToInt(parameter(3)),parameter(4),parameter(5));
-    else tune.setParameters(juce::roundToInt(parameter(0)),juce::roundToInt(parameter(1)),parameter(2),parameter(3),parameter(4));
+    else {tune.setParameters(juce::roundToInt(parameter(0)),juce::roundToInt(parameter(1)),parameter(2),parameter(3),parameter(4));tune.setFormant(parameter(6));}
 }
 void GillVocalProcessor::prepareToPlay(double fs,int block){songLearn.reset();
     const bool supported=std::isfinite(fs)&&fs>=8000&&fs<=384000;rateSupported.store(supported);
@@ -100,8 +100,8 @@ void GillVocalProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypas
 void GillVocalProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer& m){m.clear();process(b,false);}
 void GillVocalProcessor::processBlockBypassed(juce::AudioBuffer<float>& b,juce::MidiBuffer& m){m.clear();process(b,true);}
 const juce::String GillVocalProcessor::getProgramName(int i){if(kind!=GillKind::Tune)return "DEFAULT";const char* names[]{"NATURAL","POP","RAP","TRAP","ROBOT"};return names[juce::jlimit(0,4,i)];}
-void GillVocalProcessor::setCurrentProgram(int i){if(kind!=GillKind::Tune)return;i=juce::jlimit(0,4,i);currentProgram.store(i);setValue("retune",presetRetune[i]);setValue("humanize",presetHuman[i]);setValue("mix",100);}
-bool GillVocalProcessor::presetMatches()const{const auto i=juce::jlimit(0,4,currentProgram.load());return kind==GillKind::Tune&&std::abs(value("retune")-presetRetune[i])<.01f&&std::abs(value("humanize")-presetHuman[i])<.01f&&std::abs(value("mix")-100)<.01f;}
+void GillVocalProcessor::setCurrentProgram(int i){if(kind!=GillKind::Tune)return;i=juce::jlimit(0,4,i);currentProgram.store(i);setValue("retune",presetRetune[i]);setValue("humanize",presetHuman[i]);setValue("mix",100);setValue("formant",0);}
+bool GillVocalProcessor::presetMatches()const{const auto i=juce::jlimit(0,4,currentProgram.load());return kind==GillKind::Tune&&std::abs(value("retune")-presetRetune[i])<.01f&&std::abs(value("humanize")-presetHuman[i])<.01f&&std::abs(value("mix")-100)<.01f&&std::abs(value("formant"))<.01f;}
 void GillVocalProcessor::getStateInformation(juce::MemoryBlock& out){auto s=apvts.copyState();s.setProperty("version",1,nullptr);s.setProperty("program",currentProgram.load(),nullptr);
     if(kind==GillKind::Flow){const auto p=savedProfile();s.setProperty("learnValid",p.valid,nullptr);s.setProperty("learnRms",p.rmsDb,nullptr);s.setProperty("learnPeak",p.peakDb,nullptr);s.setProperty("learnCrest",p.crestDb,nullptr);s.setProperty("learnThreshold",p.thresholdDb,nullptr);
         s.setProperty("learnVersion",static_cast<int>(p.version),nullptr);s.setProperty("learnRange",p.dynamicRangeDb,nullptr);s.setProperty("learnMotion",p.motionDb,nullptr);s.setProperty("learnAttack",p.attackMs,nullptr);s.setProperty("learnRelease",p.releaseMs,nullptr);}
@@ -111,6 +111,11 @@ void GillVocalProcessor::setStateInformation(const void* data,int bytes){
     if(!data||bytes<=0||bytes>1024*1024)return;
     if(auto xml=getXmlFromBinary(data,bytes))if(xml->hasTagName(apvts.state.getType())){auto incoming=juce::ValueTree::fromXml(*xml);auto clean=apvts.copyState();
     if (!incoming.getChildWithProperty("id","gillQuality").isValid()) { auto oldQuality=clean.getChildWithProperty("id","gillQuality"); if(oldQuality.isValid()) oldQuality.setProperty("value",apvts.getParameter("gillQuality")->convertFrom0to1(apvts.getParameter("gillQuality")->getDefaultValue()),nullptr); }
+    if(kind==GillKind::Tune&&!incoming.getChildWithProperty("id","formant").isValid()){
+        bool completeLegacy=incoming.hasProperty("version");
+        for(const char* id:{"key","scale","retune","humanize","mix","bypass"})completeLegacy=completeLegacy&&incoming.getChildWithProperty("id",id).hasProperty("value");
+        if(completeLegacy){auto formant=clean.getChildWithProperty("id","formant");if(formant.isValid())formant.setProperty("value",0.f,nullptr);}
+    }
 bool changed=false;
         for(auto child:incoming){auto id=child.getProperty("id").toString();auto* p=apvts.getParameter(id);double v=0;if(!p||!child.hasProperty("value")||!number(child.getProperty("value"),v))continue;
             auto target=clean.getChildWithProperty("id",id);if(target.isValid()){const auto& r=p->getNormalisableRange();target.setProperty("value",r.snapToLegalValue(static_cast<float>(juce::jlimit(static_cast<double>(r.start),static_cast<double>(r.end),v))),nullptr);changed=true;}}

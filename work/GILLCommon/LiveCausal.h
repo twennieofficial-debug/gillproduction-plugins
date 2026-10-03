@@ -34,9 +34,11 @@ public:
   for(int k=0;k<bands-1;++k){const double hz=70*std::pow(top/70.,double(k)/(bands-2));cuts_[k]=hz;coef_[k]=1-std::exp(-6.283185307179586*hz/fs_);}
   for(int k=0;k<bands;++k)hz_[k]=k==0?40:k==bands-1?top*1.2:std::sqrt(cuts_[k-1]*cuts_[k]);
   for(int k=0;k<bands;++k){const double w=6.283185307179586*std::min(hz_[k],fs_*.45)/fs_;sine_[k]=std::sin(w);cosine_[k]=std::cos(w);for(int c=0;c<2;++c)detectors_[c][k].bandpass(hz_[k],fs_,4);}
-  fastA_=alpha(.003,fs_);slowA_=alpha(.12,fs_);gainA_=alpha(.005,fs_);reset();
+  voiceDecimation_=std::max(1,int(std::round(fs_/12000.)));voiceLowAlpha_=alpha(1/(6.283185307179586*2500),fs_);
+  // Restoration detectors follow syllabic energy, not each low vocal cycle.
+  fastA_=alpha(kind_==Kind::Room||kind_==Kind::Clean?.012:.003,fs_);slowA_=alpha(.12,fs_);gainA_=alpha(.005,fs_);reset();
  }
- void reset() noexcept {lp_={};power_={};slow_={};hold_={};floor_.fill(1e-10);gains_.fill(1);wanted_.fill(1);target_.fill(0);for(auto&g:stageGains_)g={1,1,1};for(auto&g:stageWanted_)g={1,1,1};cleanTargets_={};for(auto&ch:detectors_)for(auto&f:ch)f.reset();for(auto&ch:peaks_)for(auto&f:ch)f=Biquad{};reduction_={};view_={};clock_=0;mix_=p_.mix;output_=p_.output;weights_={};weights_[std::clamp(p_.listen,0,3)]=1;bodyHistory_=0;}
+ void reset() noexcept {lp_={};power_={};slow_={};hold_={};floor_.fill(1e-10);gains_.fill(1);wanted_.fill(1);target_.fill(0);for(auto&g:stageGains_)g={1,1,1};for(auto&g:stageWanted_)g={1,1,1};cleanTargets_={};for(auto&ch:detectors_)for(auto&f:ch)f.reset();for(auto&ch:peaks_)for(auto&f:ch)f=Biquad{};reduction_={};view_={};clock_=0;mix_=p_.mix;output_=p_.output;weights_={};weights_[std::clamp(p_.listen,0,3)]=1;bodyHistory_=0;voiceHistory_={};voicePos_=voiceCount_=voiceDecimate_=0;voiceLow_=voiceCertainty_=0;}
  void set(Settings p) noexcept {
   p.amount=std::clamp(finite(p.amount),0.,1.);p.sensitivity=std::clamp(finite(p.sensitivity),0.,1.);
   p.low=std::clamp(finite(p.low,80),20.,20000.);p.high=std::clamp(finite(p.high,16000),p.low,24000.);
@@ -52,6 +54,11 @@ public:
   for(int n=0;n<samples;++n){std::array<std::array<double,bands>,2>parts{};std::array<double,2>x{};
    for(int c=0;c<active;++c){x[c]=clean(audio[c][n]);if(dry&&dry[c])dry[c][n]=T(x[c]);double last=0;
     for(int k=0;k<bands-1;++k){auto&s=lp_[c][k];s+=coef_[k]*(x[c]-s);parts[c][k]=s-last;last=s;}parts[c][bands-1]=x[c]-last;
+   }
+   if(kind_==Kind::Clean){const double mono=active>1&&std::abs(x[1])>std::abs(x[0])?x[1]:x[0];voiceLow_+=voiceLowAlpha_*(mono-voiceLow_);
+    if(++voiceDecimate_>=voiceDecimation_){voiceDecimate_=0;voiceHistory_[voicePos_++&1023]=voiceLow_;voiceCount_=std::min(1024,voiceCount_+1);
+     if((voicePos_&63)==0&&voiceCount_>400){double best=0;const double rate=fs_/voiceDecimation_;for(int lag=std::max(8,int(rate/900));lag<=int(rate/70);++lag){double aa=0,bb=0,ab=0;for(int j=0;j<128;++j){const double a=voiceHistory_[(voicePos_-1-j)&1023],b=voiceHistory_[(voicePos_-1-j-lag)&1023];aa+=a*a;bb+=b*b;ab+=a*b;}if(aa>1e-8&&bb>1e-8)best=std::max(best,ab/std::sqrt(aa*bb));}voiceCertainty_=std::clamp((best-.82)/.16,0.,1.);}
+    }
    }
    for(int k=0;k<bands;++k){double e=0;for(int c=0;c<active;++c){const double signal=kind_==Kind::Silk?detectors_[c][k].process(x[c]):parts[c][k];e=std::max(e,signal*signal);}power_[k]+=fastA_*(e-power_[k]);slow_[k]+=slowA_*(power_[k]-slow_[k]);hold_[k]=std::max(power_[k],hold_[k]*std::exp(-1/(fs_*.20)));}
    const bool update=(clock_++&15)==0;if(update)analyse();
@@ -84,10 +91,15 @@ private:
    if(kind_==Kind::Silk){double neighbours=0;int count=0;for(int j=std::max(0,k-3);j<=std::min(bands-1,k+3);++j)if(std::abs(j-k)>1){neighbours+=power_[j];++count;}
     const double prominence=10*std::log10((power_[k]+1e-10)/(neighbours/std::max(1,count)+1e-10));cut=p_.amount*std::clamp((prominence-(14-11*p_.sensitivity))*.6,0.,12.)*focus;}
    if(kind_==Kind::Spark){const double novelty=10*std::log10((power_[k]+1e-8)/(slow_[k]+1e-8));cut=p_.amount*std::clamp((novelty-(10-8*p_.sensitivity))*1.5,0.,p_.boost?9.:18.)*focus*(p_.boost?-1:1);}
-   if(kind_==Kind::Clean){const double a=1-std::exp(-16/(fs_*(power_[k]<floor_[k]?.05:5.)));floor_[k]+=a*(power_[k]-floor_[k]);const double snr=power_[k]/std::max(floor_[k],1e-12);
-    cleanTargets_[k]={18*p_.noise*std::clamp((3-snr)/2.,0.,1.),20*p_.plosives*plosive*std::clamp((280-hz)/180.,0.,1.),12*p_.breaths*breath*std::clamp((hz-500)/2500.,0.,1.)};
+   if(kind_==Kind::Clean){const double a=1-std::exp(-16/(fs_*(power_[k]<floor_[k]?.05:5.)));floor_[k]+=a*(power_[k]-floor_[k])*(power_[k]<floor_[k]?1:1-voiceCertainty_);const double snr=power_[k]/std::max(floor_[k],1e-12);
+    cleanTargets_[k]={18*p_.noise*std::clamp((3-snr)/2.,0.,1.)*(1-.9*voiceCertainty_),20*p_.plosives*plosive*std::clamp((280-hz)/180.,0.,1.),12*p_.breaths*breath*std::clamp((hz-500)/2500.,0.,1.)};
     for(int j=0;j<3;++j){cut+=cleanTargets_[k][j];stageWanted_[k][j]=std::pow(10.,-cleanTargets_[k][j]/20);reduction_[j]=std::max(reduction_[j],float(-db(stageGains_[k][j])));}}
    target_[k]=cut;wanted_[k]=std::pow(10.,-cut/20);const int index=std::clamp(int(127*std::log(std::max(40.,hz)/40.)/std::log(500.)),0,127);view_[index]=float(-db(gains_[k]));
+  }
+  if(kind_==Kind::Room||kind_==Kind::Clean)for(int k=0;k<bands;++k){
+   const int left=std::max(0,k-1),right=std::min(bands-1,k+1);
+   if(kind_==Kind::Room)wanted_[k]=std::pow(10.,-(target_[left]+2*target_[k]+target_[right])/80);
+   else for(int j=0;j<3;++j)stageWanted_[k][j]=std::pow(10.,-(cleanTargets_[left][j]+2*cleanTargets_[k][j]+cleanTargets_[right][j])/80);
   }
  }
  Settings p_;Kind kind_=Kind::Room;double fs_=48000;int ch_=2;std::uint64_t clock_=0;
@@ -96,6 +108,7 @@ private:
  std::array<std::array<double,3>,bands>stageGains_{},stageWanted_{};std::array<std::array<Biquad,bands>,2>detectors_{},peaks_{};
  std::array<float,3>reduction_{};std::array<float,128>view_{};std::array<double,4>weights_{1,0,0,0};
  double fastA_=0,slowA_=0,gainA_=0,attackA_=.01,releaseA_=.001,mix_=1,output_=1,bodyHistory_=0;
+ std::array<double,1024>voiceHistory_{};std::uint64_t voicePos_=0;int voiceCount_=0,voiceDecimate_=0,voiceDecimation_=4;double voiceLow_=0,voiceLowAlpha_=0,voiceCertainty_=0;
 };
 
 // Causal conservative impulse repair. Without future samples LIVE cannot
@@ -108,17 +121,31 @@ public:
  template<class T>void process(T*const*audio,int channels,int samples,T*const*dry=nullptr)noexcept{
   if(!audio||samples<=0)return;const int active=std::clamp(channels,0,2);for(int c=0;c<active;++c)if(!audio[c])return;
   for(int i=0;i<samples;++i){amount_+=smooth_*(target_-amount_);for(int c=0;c<active;++c){auto&s=state_[c];const double x=clean(audio[c][i]);if(dry&&dry[c])dry[c][i]=T(x);
+    s.raw[static_cast<size_t>(s.age)&8191]=x;
     const double prediction=s.last+std::clamp(s.last-s.previous,-s.slope*2-.003,s.slope*2+.003);
     const double error=x-prediction,threshold=std::max(crackle_?.012:.025,s.error*(crackle_?7:10)+s.level*.06);
-    const bool suspect=std::abs(error)>threshold&&s.age>16;
+    // A periodic vocal's glottal edge repeats; clipping it once per cycle
+    // creates a buzz. Only an innovation unsupported by the previous two
+    // periods is eligible, and never continue extrapolating indefinitely.
+    const bool suspect=std::abs(error)>threshold&&s.age>16&&s.repairedRun<3&&!periodic(s);
     const double repaired=suspect?prediction+std::clamp(error,-threshold,threshold):x;
     const double y=x+amount_*(repaired-x);audio[c][i]=T(clean(y));
     // Limit contamination of the robust prediction statistics by the click.
-    const double accepted=suspect?repaired:x;s.error+=smooth_*(std::min(std::abs(error),threshold)-s.error);s.level+=smooth_*(std::abs(x)-s.level);s.slope+=smooth_*(std::abs(accepted-s.last)-s.slope);s.previous=s.last;s.last=accepted;++s.age;
+    const double accepted=suspect?repaired:x;s.repairedRun=suspect?s.repairedRun+1:0;s.error+=smooth_*(std::min(std::abs(error),threshold)-s.error);s.level+=smooth_*(std::abs(x)-s.level);s.slope+=smooth_*(std::abs(accepted-s.last)-s.slope);s.previous=s.last;s.last=accepted;++s.age;
   }}
  }
 private:
- struct State{double last=0,previous=0,error=.001,level=0,slope=.001;std::uint64_t age=0;};std::array<State,2>state_{};
+ struct State{double last=0,previous=0,error=.001,level=0,slope=.001;std::uint64_t age=0;int repairedRun=0;std::array<double,8192>raw{};};std::array<State,2>state_{};
+ bool periodic(const State&s)const noexcept{
+  const int stride=std::max(1,int(std::round(fs_/48000))),lo=std::max(8,int(fs_/1000)),hi=int(fs_/70);
+  if(s.age<static_cast<std::uint64_t>(2*hi+12*stride))return false;
+  for(int lag=lo;lag<=hi;lag+=stride){bool match=true;
+   for(int cycle=1;cycle<=2&&match;++cycle){double aa=0,bb=0,ab=0;
+    for(int j=0;j<9;++j){const double a=s.raw[static_cast<size_t>(s.age-j*stride)&8191],b=s.raw[static_cast<size_t>(s.age-j*stride-cycle*lag)&8191];aa+=a*a;bb+=b*b;ab+=a*b;}
+    match=aa>1e-12&&bb>aa*.16&&bb<aa*6.25&&ab>0&&ab*ab>aa*bb*.992;
+   }if(match)return true;
+  }return false;
+ }
  double fs_=48000,smooth_=.005,amount_=.55,target_=.55;bool crackle_=false;
 };
 }

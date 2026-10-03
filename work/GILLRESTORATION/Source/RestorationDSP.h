@@ -90,27 +90,46 @@ private:
         const double left=repaired(c,first-1),right=raw(c,first+length);
         const double distance=static_cast<double>(length+1);
         const double slopeLimit=std::max(1.e-8,4*c.noise+std::abs(right-left)/distance);
-        const double a=std::clamp(left-repaired(c,first-2),-slopeLimit,slopeLimit)*distance;
-        const double b=std::clamp(raw(c,first+length+1)-right,-slopeLimit,slopeLimit)*distance;
-        const double bound=std::max(std::abs(left),std::abs(right))+std::max(4*c.noise,.1*c.level);
+        const double delta=right-left;
+        // Monotone Hermite slopes: noisy endpoints previously allowed a long
+        // repaired gap to overshoot the input, producing an audible new click.
+        // The reconstructed span must stay inside its two endpoint values.
+        auto safeSlope=[&](double slope){return slope*delta>0?std::copysign(std::min(std::abs(slope)*distance,3*std::abs(delta)),delta):0.;};
+        const double a=safeSlope(std::clamp(left-repaired(c,first-2),-slopeLimit,slopeLimit));
+        const double b=safeSlope(std::clamp(raw(c,first+length+1)-right,-slopeLimit,slopeLimit));
         for(int j=0;j<length;++j){
             const double u=(j+1)/distance,u2=u*u,u3=u2*u;
             double y=(2*u3-3*u2+1)*left+(u3-2*u2+u)*a+(-2*u3+3*u2)*right+(u3-u2)*b;
-            y=std::clamp(y,-std::max(bound,1.e-9),std::max(bound,1.e-9));
+            y=std::clamp(y,std::min(left,right),std::max(left,right));
             c.repaired[static_cast<size_t>(index(first+j))]=std::isfinite(y)?y:0.0;
         }
         c.coveredUntil=first+length-1;
+    }
+    bool periodicCandidate(const Channel& c,std::int64_t t)const noexcept {
+        // Recurrent glottal edges are not clicks. Compare two earlier cycles,
+        // permitting their envelope to change without accepting random noise.
+        const int shortest=std::max(8,int(sampleRate/1000)),longest=int(sampleRate/70);
+        if(t<3*longest)return false;
+        for(int lag=shortest;lag<=longest;lag+=stride){bool matches=true;
+            for(int cycle=1;cycle<=2&&matches;++cycle){double aa=0,bb=0,ab=0;
+                for(int j=-3;j<=3;++j){const double a=raw(c,t+j*stride),b=raw(c,t-cycle*lag+j*stride);aa+=a*a;bb+=b*b;ab+=a*b;}
+                matches=aa>1e-12&&bb>aa*.16&&bb<aa*6.25&&ab>0&&ab*ab>aa*bb*.992;
+            }
+            if(matches)return true;
+        }return false;
     }
     void detect(Channel& c,std::int64_t t) noexcept {
         if(t<=c.coveredUntil)return;
         if(t>=c.nextContext)updateContext(c,t);
         const double x=raw(c,t),left=repaired(c,t-1),step=x-left;
-        const double factor=mode==Mode::Declick?12.0-7.0*current:7.5-4.0*current;
+        const bool diffuse=c.residual>c.level*.20&&c.noise>c.level*.45;
+        const double factor=(mode==Mode::Declick?12.0-7.0*current:7.5-4.0*current)*(diffuse?1.8:1.);
         const double threshold=std::max({2.e-5,c.noise*factor,c.level*(mode==Mode::Declick?.035:.015)});
         const double previousStep=left-repaired(c,t-2);
         const double innovation=step-previousStep;
         if(std::abs(step)>threshold && std::abs(innovation)>.70*std::abs(step)
            && std::abs(innovation)>std::max(2.e-5,c.residual*factor*1.5)){
+            if(periodicCandidate(c,t))return;
             for(int length=1;length<=maximumGap;++length){
                 const double right=raw(c,t+length),endStep=right-raw(c,t+length-1);
                 if(step*endStep>=0 || std::abs(endStep)<std::max(.5*threshold,.32*std::abs(step)))continue;
@@ -121,7 +140,7 @@ private:
                 repairGap(c,t,length);return;
             }
         }
-        if(mode==Mode::Decrackle){
+        if(mode==Mode::Decrackle&&!diffuse){
             // Fine-crackle path: a short two-sided prediction innovation, not
             // merely the longer isolated-edge detector with a renamed knob.
             // Agreement of forward/backward innovations prevents flagging a
@@ -132,7 +151,7 @@ private:
             const double limit=std::max({2.e-5,c.residual*(10.0-5.5*current),c.level*.009});
             if(forward*backward>0 && std::min(std::abs(forward),std::abs(backward))>limit*1.3
                && std::abs(residual)>limit && (x-left)*(x-r)>0)
-                repairGap(c,t,1);
+                if(!periodicCandidate(c,t))repairGap(c,t,1);
         }
     }
     template<class T> void processImpl(T** data,int nChannels,int nSamples,T** delayedDry) noexcept {

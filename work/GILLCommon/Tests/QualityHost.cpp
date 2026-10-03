@@ -22,62 +22,66 @@ namespace {
 juce::String expectedVersion(const juce::String& name) {
     struct Version { const char* name; const char* version; };
     static constexpr Version versions[] {
-    {"GILLEQ", "0.12.0"},
-    {"GILL-DE-ESSER", "0.12.0"},
-    {"GILLDEREVERB", "0.12.0"},
-    {"GILLDECLICK", "0.12.0"},
-    {"GILLDECRACKLE", "0.12.0"},
-    {"GILLTUNE", "0.12.0"},
-    {"GILLTUNE LIVE", "0.12.0"},
-    {"GILLHEAT", "0.12.0"},
-    {"GILLFLOW", "0.12.0"},
-    {"GILLAIR", "0.12.0"},
-    {"GILLSPACE", "0.12.0"},
-    {"GILLECHO", "0.12.0"},
-    {"GILLBALANCE", "0.12.0"},
-    {"GILLSILK", "0.12.0"},
-    {"GILLSPARK", "0.12.0"},
-    {"GILLSTRIP", "0.12.0"},
-    {"GILLGOLD", "0.12.0"},
-    {"GILLDIVE", "0.12.0"},
-    {"GILLVOX", "0.12.0"},
-    {"GILLOPTA", "0.12.0"},
-    {"GILLBUSS", "0.12.0"},
-    {"GILLQUAD", "0.12.0"},
-    {"GILLSTAGE", "0.12.0"},
-    {"GILLRIDE", "0.12.0"},
-    {"GILLCLEAN", "0.12.0"},
-    {"GILLPOCKET", "0.12.0"},
-    {"GILLALIGN", "0.12.0"},
-    {"GILLFORM", "0.12.0"},
-    {"GILLFINISH", "0.12.0"},
-    {"GILLCONTROL", "0.12.0"},
-    {"GILLPHRASE", "0.12.0"},
-    {"GILLDIRECTOR", "0.12.0"},
-    {"GILLREPLY", "0.12.0"},
-    {"GILLSMARTDEESSER", "0.12.0"},
-    {"GILLMIX", "0.12.0"},
-    {"GILLLINK", "0.12.0"},
-    {"GILLHARMONY", "0.12.0"},
-    {"GILLREFERENCE", "0.12.0"},
-    {"GILLRESCUE", "0.12.0"},
-    {"GILLCEILING", "0.12.0"},
-    {"GILLLOW", "0.12.0"},
-    {"GILLGLUE", "0.12.0"},
-    {"GILLWIDTH", "0.12.0"},
-    {"GILLPUNCH", "0.12.0"},
-    {"GILLWEIGHT", "0.12.0"},
-    {"GILLDELTA", "0.12.0"},
-    {"GILLDELIVER", "0.12.0"},
-    {"GILLRISE", "0.12.0"},
-    {"GILLASSIST", "0.12.0"},
-    {"GILLBRAKE", "0.12.0"},
-    {"GILLWIRE", "0.12.0"},
-    {"GILLGHOST", "0.12.0"},
-    {"GILLTRAIL", "0.12.0"},
-    {"GILLMETAL", "0.12.0"},
-    {"GILLSTUTTER", "0.12.0"},
-    {"GILLCROWD", "0.12.0"},
+    {"GILLEQ", "0.14.0"},
+    {"GILL-DE-ESSER", "0.14.0"},
+    {"GILLDEREVERB", "0.14.0"},
+    {"GILLDECLICK", "0.14.0"},
+    {"GILLDECRACKLE", "0.14.0"},
+    {"GILLTUNE", "0.14.0"},
+    {"GILLNOTE", "0.14.0"},
+    {"GILLVOCODE", "0.14.0"},
+    {"GILLGRAIN", "0.14.0"},
+    {"GILLPULSE", "0.14.0"},
+    {"GILLTUNE LIVE", "0.14.0"},
+    {"GILLHEAT", "0.14.0"},
+    {"GILLFLOW", "0.14.0"},
+    {"GILLAIR", "0.14.0"},
+    {"GILLSPACE", "0.14.0"},
+    {"GILLECHO", "0.14.0"},
+    {"GILLBALANCE", "0.14.0"},
+    {"GILLSILK", "0.14.0"},
+    {"GILLSPARK", "0.14.0"},
+    {"GILLSTRIP", "0.14.0"},
+    {"GILLGOLD", "0.14.0"},
+    {"GILLDIVE", "0.14.0"},
+    {"GILLVOX", "0.14.0"},
+    {"GILLOPTA", "0.14.0"},
+    {"GILLBUSS", "0.14.0"},
+    {"GILLQUAD", "0.14.0"},
+    {"GILLSTAGE", "0.14.0"},
+    {"GILLRIDE", "0.14.0"},
+    {"GILLCLEAN", "0.14.0"},
+    {"GILLPOCKET", "0.14.0"},
+    {"GILLALIGN", "0.14.0"},
+    {"GILLFORM", "0.14.0"},
+    {"GILLFINISH", "0.14.0"},
+    {"GILLCONTROL", "0.14.0"},
+    {"GILLPHRASE", "0.14.0"},
+    {"GILLDIRECTOR", "0.14.0"},
+    {"GILLREPLY", "0.14.0"},
+    {"GILLSMARTDEESSER", "0.14.0"},
+    {"GILLMIX", "0.14.0"},
+    {"GILLLINK", "0.14.0"},
+    {"GILLHARMONY", "0.14.0"},
+    {"GILLREFERENCE", "0.14.0"},
+    {"GILLRESCUE", "0.14.0"},
+    {"GILLCEILING", "0.14.0"},
+    {"GILLLOW", "0.14.0"},
+    {"GILLGLUE", "0.14.0"},
+    {"GILLWIDTH", "0.14.0"},
+    {"GILLPUNCH", "0.14.0"},
+    {"GILLWEIGHT", "0.14.0"},
+    {"GILLDELTA", "0.14.0"},
+    {"GILLDELIVER", "0.14.0"},
+    {"GILLRISE", "0.14.0"},
+    {"GILLASSIST", "0.14.0"},
+    {"GILLBRAKE", "0.14.0"},
+    {"GILLWIRE", "0.14.0"},
+    {"GILLGHOST", "0.14.0"},
+    {"GILLTRAIL", "0.14.0"},
+    {"GILLMETAL", "0.14.0"},
+    {"GILLSTUTTER", "0.14.0"},
+    {"GILLCROWD", "0.14.0"},
 
 
     };
@@ -93,6 +97,9 @@ struct Item {
     juce::AudioBuffer<float> buffer{2, 128};
     juce::MidiBuffer midi;
     int liveLatency = -1, proLatency = -1;
+    int measuredLiveImpulseOffset = -999;
+    double measuredLiveDryError = -1;
+    bool liveSignalMeasured = false, nativeBypassVerified = false;
 };
 class Host final : public juce::Timer {
 public:
@@ -131,7 +138,7 @@ public:
         for (int i = 0; i < static_cast<int>(items.size()); ++i) if (i != master) { local = i; break; }
         return master >= 0 && local >= 0;
     }
-    std::optional<float> savedQuality(Item& item) {
+    std::optional<float> savedParameter(Item& item,const juce::String& id) {
         juce::MemoryBlock state; item.processor->getStateInformation(state);
         if (auto wrapper = juce::AudioProcessor::getXmlFromBinary(state.getData(), static_cast<int>(state.getSize()))) {
             if (auto* component = wrapper->getChildByName("IComponent")) {
@@ -149,11 +156,71 @@ public:
             if (length == 0 || length > state.getSize() - offset - 9) continue;
             if (auto xml = juce::AudioProcessor::getXmlFromBinary(bytes + offset, static_cast<int>(length + 9))) {
                 auto tree = juce::ValueTree::fromXml(*xml);
-                auto parameter = tree.getChildWithProperty("id", "gillQuality");
+                auto parameter = tree.getChildWithProperty("id", id);
                 if (parameter.isValid()) return static_cast<float>(parameter.getProperty("value").toString().getDoubleValue());
             }
         }
         return std::nullopt;
+    }
+    std::optional<float> savedQuality(Item& item){return savedParameter(item,"gillQuality");}
+    void measureLiveSignalTiming() {
+        phase("measure actual LIVE signal timing through real normal VST3 process calls");
+        std::vector<juce::AudioProcessorParameter*> bypass(items.size(),nullptr);
+        std::vector<float> previous(items.size(),0);
+        for(size_t k=0;k<items.size();++k){auto& item=*items[k];
+            // MIX/LINK expose a native BYPASS separately from the synthetic
+            // wrapper "Bypass" flag. BUSS has nine explicit BYPASS controls.
+            // Select a unique explicit candidate, otherwise require the native
+            // global flag to identify one of them. Confirm its APVTS id below.
+            std::vector<juce::AudioProcessorParameter*> candidates;
+            for(auto* parameter:item.processor->getParameters())if(parameter->getName(128)=="BYPASS")candidates.push_back(parameter);
+            auto* flagged=item.processor->getBypassParameter();
+            const bool flaggedExplicit=std::find(candidates.begin(),candidates.end(),flagged)!=candidates.end();
+            bypass[k]=item.name=="GILLCONTROL"?nullptr:(candidates.size()==1?candidates.front():(flaggedExplicit?flagged:nullptr));
+            if(item.name!="GILLCONTROL")check(bypass[k]!=nullptr&&
+                std::count(item.processor->getParameters().begin(),item.processor->getParameters().end(),bypass[k])==1,
+                item.name+" exposes one actual global plugin BYPASS parameter");
+            if(bypass[k]){previous[k]=bypass[k]->getValue();bypass[k]->setValueNotifyingHost(1);}
+        }
+        std::thread audio([&]{
+            for(size_t k=0;k<items.size();++k){auto& item=*items[k];
+                if(!bypass[k]&&item.name!="GILLCONTROL")continue;
+                // Let the native parameter queue, bypass ramps and mode ramps
+                // settle using normal effect processing. Never ask the JUCE host
+                // to synthesize a bypass through processBlockBypassed().
+                // The slowest native bypass ramp uses a 15-ms one-pole and
+                // reaches its exact endpoint by 173 ms; preserve margin.
+                const int flushBlocks=std::max(64,int(std::ceil(sampleRate*.25/128)));
+                for(int b=0;b<flushBlocks;++b){item.buffer.clear();item.midi.clear();item.processor->processBlock(item.buffer,item.midi);}
+                double maximumError=0;int impulseOffset=0;bool finite=true;
+                for(int position:{0,37,127}){
+                    item.buffer.clear();item.buffer.setSample(0,position,.75f);item.buffer.setSample(1,position,-.625f);item.midi.clear();
+                    item.processor->processBlock(item.buffer,item.midi);
+                    int peakPosition=0;float peak=0;
+                    for(int c=0;c<2;++c)for(int n=0;n<128;++n){const float actual=item.buffer.getSample(c,n),expected=n==position?(c==0?.75f:-.625f):0;
+                        finite=finite&&std::isfinite(actual);maximumError=std::max(maximumError,std::abs(double(actual)-expected));
+                        if(c==0&&std::abs(actual)>peak){peak=std::abs(actual);peakPosition=n;}}
+                    if(peak<.5f)impulseOffset=-999;else if(impulseOffset!=-999&&peakPosition!=position)impulseOffset=peakPosition-position;
+                }
+                std::uint32_t random=0x137abc29u;
+                for(int block=0;block<32;++block){float expected[2][128]{};
+                    for(int c=0;c<2;++c)for(int n=0;n<128;++n){random^=random<<13;random^=random>>17;random^=random<<5;
+                        expected[c][n]=float((double(random)/4294967295.-.5)*.40);item.buffer.setSample(c,n,expected[c][n]);}
+                    item.midi.clear();item.processor->processBlock(item.buffer,item.midi);
+                    for(int c=0;c<2;++c)for(int n=0;n<128;++n){const float actual=item.buffer.getSample(c,n);finite=finite&&std::isfinite(actual);maximumError=std::max(maximumError,std::abs(double(actual)-expected[c][n]));}
+                }
+                item.measuredLiveImpulseOffset=impulseOffset;item.measuredLiveDryError=maximumError;item.liveSignalMeasured=finite;
+            }
+        });audio.join();
+        for(size_t k=0;k<items.size();++k){auto& item=*items[k];const auto actualBypass=savedParameter(item,"bypass");
+            item.nativeBypassVerified=item.name=="GILLCONTROL"||(bypass[k]&&actualBypass&&*actualBypass>.5f);
+            check(item.nativeBypassVerified,item.name+" actual plugin state confirms native BYPASS during timing probe");
+            check(item.liveSignalMeasured&&item.measuredLiveImpulseOffset==0&&item.measuredLiveDryError<=1e-7,
+                  item.name+" LIVE measured impulse offset0 and same-sample stereo random signal (max error "+juce::String(item.measuredLiveDryError,10)+")");
+            check(item.processor->getLatencySamples()==0,item.name+" reported PDC agrees with measured zero-delay native route");
+            if(bypass[k])bypass[k]->setValueNotifyingHost(previous[k]);
+        }
+        phase("actual LIVE signal timing measurement complete");
     }
     void verify(int expected, bool oneLocalException = false) {
         for (int i = 0; i < static_cast<int>(items.size()); ++i) {
@@ -165,17 +232,7 @@ public:
             if (item.name == "GILLCONTROL") check(latency == 0, "controller has zero PDC in both modes");
             if (!oneLocalException) {
                 if (mode == 0) item.liveLatency = latency; else item.proLatency = latency;
-                if (mode == 0) {
-                    if (item.name == "GILLTUNE" || item.name == "GILLTUNE LIVE")
-                        check(latency == static_cast<int>(std::ceil(sampleRate * .016)), item.name + " LIVE PDC is its 16 ms analysis window");
-                    else if (item.name == "GILLFORM")
-                        check(latency > 0 && latency < sampleRate * .025, item.name + " LIVE PDC is a positive window below 25 ms");
-                    else if (item.name == "GILLHARMONY")
-                        check(latency == static_cast<int>(std::ceil(sampleRate * .025)) + 80, item.name + " LIVE PDC matches causal harmony window");
-                    else if (item.name == "GILLRESCUE")
-                        check(latency == static_cast<int>(std::ceil(sampleRate * .004)), item.name + " LIVE PDC matches 4 ms repair context");
-                    else check(latency == 0, item.name + " LIVE PDC is zero");
-                }
+                if (mode == 0) { check(latency == 0, item.name + " LIVE PDC is exactly zero without exceptions"); }
                 if (mode == 1 && item.liveLatency >= 0) check(latency >= item.liveLatency, item.name + " PRO PDC is not below LIVE");
                 if (mode == 1) {
                     if (item.name == "GILLCEILING") check(latency == static_cast<int>(std::ceil(sampleRate * .003)) + 32, item.name + " PRO reports limiter lookahead plus FIR delay");
@@ -259,7 +316,7 @@ public:
             case 0: items[static_cast<std::size_t>(master)]->quality->setValueNotifyingHost(0); break;
             case 1: verify(0); items[static_cast<std::size_t>(local)]->quality->setValueNotifyingHost(1); break;
             case 2: verify(0, true); clickGlobal(0); break;
-            case 3: verify(0); phase("controller editor close begin"); editor.reset(); phase("controller editor close end"); items[static_cast<std::size_t>(master)]->quality->setValueNotifyingHost(1); break;
+            case 3: verify(0); measureLiveSignalTiming(); phase("controller editor close begin"); editor.reset(); phase("controller editor close end"); items[static_cast<std::size_t>(master)]->quality->setValueNotifyingHost(1); break;
             case 4: verify(1); items[static_cast<std::size_t>(master)]->processor->getStateInformation(savedMaster); clickGlobal(0); break;
             case 5: {
                 verify(0); editor.reset(); auto& item = *items[static_cast<std::size_t>(master)];
@@ -282,7 +339,10 @@ public:
             p->setProperty("factory_uid", juce::String::toHexString(item->description.uniqueId));
             p->setProperty("factory_deprecated_uid", juce::String::toHexString(item->description.deprecatedUid));
             p->setProperty("manufacturer", item->description.manufacturerName);
-            p->setProperty("live_latency_samples", item->liveLatency); p->setProperty("pro_latency_samples", item->proLatency); products.add(juce::var(p));
+            p->setProperty("live_latency_samples", item->liveLatency); p->setProperty("pro_latency_samples", item->proLatency);
+            p->setProperty("live_signal_measurement", "Normal VST3 processBlock with confirmed plugin BYPASS; impulses at0/37/127 and4096 stereo random samples");
+            p->setProperty("live_impulse_offset_samples",item->measuredLiveImpulseOffset);p->setProperty("live_dry_maximum_error",item->measuredLiveDryError);
+            p->setProperty("live_signal_measured",item->liveSignalMeasured);p->setProperty("live_native_bypass_verified",item->nativeBypassVerified);products.add(juce::var(p));
         }
         auto* result = new juce::DynamicObject; result->setProperty("passed", failures == 0 && finished);
         result->setProperty("sample_rate", sampleRate);

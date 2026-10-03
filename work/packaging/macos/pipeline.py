@@ -32,8 +32,8 @@ GROUPS = sorted({p["group"] for p in PRODUCTS})
 PRODUCT_COUNT = len(PRODUCTS)
 JUCE_COMMIT = "29396c22c93392d6738e021b83196283d6e4d850"
 MIN_MACOS = "11.0"
-RELEASE = "12"
-SUITE_VERSION = "0.12.0"
+RELEASE = "14"
+SUITE_VERSION = "0.14.0"
 QUALITY_SAMPLE_RATES = (44100, 48000, 96000, 192000)
 PLUGINVAL_URL = "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip"
 PLUGINVAL_SHA256 = "3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f"
@@ -45,6 +45,25 @@ MACHO_MAGICS = {b"\xfe\xed\xfa\xce", b"\xce\xfa\xed\xfe", b"\xfe\xed\xfa\xcf",
 def require(condition, message):
     if not condition:
         raise RuntimeError(message)
+
+
+SIGNING_SECRET_NAMES = (
+    "GILL_APPLICATION_IDENTITY", "GILL_APP_CERT_P12_BASE64", "GILL_APP_CERT_PASSWORD",
+    "GILL_INSTALLER_IDENTITY", "GILL_INSTALLER_CERT_P12_BASE64", "GILL_INSTALLER_CERT_PASSWORD",
+    "GILL_NOTARY_KEY_P8_BASE64", "GILL_NOTARY_KEY_ID", "GILL_NOTARY_ISSUER",
+)
+
+
+def signing_preflight(environment=None):
+    """Presence/identity-format gate only; never print or persist secret values."""
+    environment = os.environ if environment is None else environment
+    missing = [name for name in SIGNING_SECRET_NAMES if not environment.get(name, "").strip()]
+    require(not missing, "Missing signing secrets: " + ", ".join(missing))
+    for name, prefix in (("GILL_APPLICATION_IDENTITY", "Developer ID Application:"),
+                         ("GILL_INSTALLER_IDENTITY", "Developer ID Installer:")):
+        require(environment[name].strip().startswith(prefix), f"Invalid signing identity type: {name}")
+    return {"required_secret_count": len(SIGNING_SECRET_NAMES), "present": True,
+            "certificate_validity_verified": False}
 
 
 def sha(path):
@@ -140,7 +159,7 @@ def source_check(source):
                      "Tests/MacQualityHost.mm", "Tests/QualityHostCMake/CMakeLists.txt"):
         require((common / required).is_file(), f"Missing shared source: GILLCommon/{required}")
     for path in sorted(common.rglob("*")):
-        if path.is_file() and path.suffix.lower() in (".h", ".hpp", ".cpp", ".c", ".mm", ".md", ".txt"):
+        if path.is_file() and path.suffix.lower() in (".h", ".hpp", ".cpp", ".c", ".mm", ".md", ".txt", ".png"):
             selected[path.relative_to(source).as_posix()] = sha(path)
     for group in GROUPS:
         root = source / group
@@ -317,6 +336,13 @@ def verify_quality_result(result, rate, bundle_paths=None):
         live, pro = product.get("live_latency_samples"), product.get("pro_latency_samples")
         require(type(live) is int and type(pro) is int and 0 <= live <= pro < rate,
                 f"QualityHost latency evidence invalid: {name}")
+        require(product.get("live_signal_measured") is True and product.get("live_native_bypass_verified") is True,
+                f"QualityHost measured LIVE bypass evidence missing: {name}")
+        offset = product.get("live_impulse_offset_samples")
+        error = product.get("live_dry_maximum_error")
+        require(type(offset) is int and offset == 0 and type(error) in (int, float)
+                and math.isfinite(error) and 0 <= error <= 1e-7,
+                f"QualityHost measured LIVE signal differs: {name}")
         if name == "GILLCONTROL":
             require(pro == 0, "QualityHost controller must have zero latency in both modes")
         if name == "GILLCEILING":
@@ -325,18 +351,12 @@ def verify_quality_result(result, rate, bundle_paths=None):
             require((live, pro) == (0, 32), "QualityHost Weight PDC differs")
         if name in ("GILLLOW", "GILLGLUE", "GILLWIDTH", "GILLPUNCH", "GILLDELTA", "GILLDELIVER", "GILLRISE", "GILLASSIST", "GILLMIX", "GILLLINK", "GILLREFERENCE"):
             require(live == pro == 0, f"QualityHost monitor/gain path must have zero latency in both modes: {name}")
-        if name in ("GILLTUNE", "GILLTUNE LIVE"):
-            require(live == math.ceil(rate * .016), f"QualityHost Tune LIVE latency differs: {name}")
-        elif name == "GILLFORM":
-            require(0 < live < rate * .025, "QualityHost Form LIVE window exceeds 25 ms")
-        elif name == "GILLHARMONY":
-            require(live == math.ceil(rate * .025) + 80 and pro == math.ceil(rate * .068) + 112,
-                    "QualityHost Harmony causal/grain-window latency differs")
+        require(live == 0, f"QualityHost LIVE is not zero latency: {name}")
+        if name == "GILLHARMONY":
+            require(pro == math.ceil(rate*.068)+112, "Harmony PRO context differs")
         elif name == "GILLRESCUE":
-            require(live == math.ceil(rate * .004) and pro == math.ceil(rate * .012),
-                    "QualityHost Rescue repair-context latency differs")
-        else:
-            require(live == 0, f"QualityHost LIVE is not zero latency: {name}")
+            require(pro == max(64, math.ceil(rate*.012)), "Rescue PRO context differs")
+
 
 
 def verify_native_quality_gate(report, evidence_root=None):
@@ -829,7 +849,7 @@ def package(args):
     shutil.copytree(universal / "plugins", plugin_dir, symlinks=True)
     docs = payload / "Library/Application Support/GILLPRODUCTION"
     docs.mkdir(parents=True)
-    for name in ("MAC-INSTALLATION.txt", "products.json", "GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-12-ANLEITUNG.md"):
+    for name in ("MAC-INSTALLATION.txt", "products.json", "GILL-PLUGINS-UEBERSICHT.txt", f"GILL-UPDATE-{RELEASE}-ANLEITUNG.md"):
         shutil.copy2(HERE / name, docs / name)
     source = Path(args.source).resolve()
     for group in GROUPS:
@@ -900,7 +920,7 @@ def package(args):
     disk.mkdir()
     shutil.copy2(pkg, disk / pkg.name)
     shutil.copy2(HERE / "MAC-INSTALLATION.txt", disk / "ZUERST-LESEN.txt")
-    for name in ("GILL-PLUGINS-UEBERSICHT.txt", "GILL-UPDATE-12-ANLEITUNG.md"):
+    for name in ("GILL-PLUGINS-UEBERSICHT.txt", f"GILL-UPDATE-{RELEASE}-ANLEITUNG.md"):
         shutil.copy2(HERE / name, disk / name)
     shutil.copy2(source_archive, disk / "GILL-QUELLCODE.zip")
     if not args.notarize:
@@ -931,6 +951,7 @@ def package(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("signing-preflight", help="Check required signing secret names without exposing values")
     check = sub.add_parser("check-source")
     check.add_argument("--source", default=str(HERE.parents[1]))
     source_pack = sub.add_parser("source-archive")
@@ -959,7 +980,9 @@ def main():
     pack.add_argument("--notarize", action="store_true")
     pack.add_argument("--test-install", action="store_true", help="Test the actual PKG installation on a disposable GitHub-hosted Mac; required for DMG output")
     args = parser.parse_args()
-    if args.command == "check-source":
+    if args.command == "signing-preflight":
+        print(json.dumps(signing_preflight(), indent=2))
+    elif args.command == "check-source":
         result = source_check(args.source)
         print(json.dumps({k: v for k, v in result.items() if k != "files"}, indent=2))
     else:

@@ -1,6 +1,6 @@
 # GILL Mac – Build und Installer
 
-Diese Pipeline baut alle 56 Plugins von Update 12 als echte Universal-VST3 für Apple Silicon
+Diese Pipeline baut alle 60 Plugins von Update 14 als echte Universal-VST3 für Apple Silicon
 und Intel. Die Oberfläche bleibt in den gleichen kompakten logischen Größen wie
 unter Windows. Die Abmessungen sind in `products.json` festgeschrieben; frische
 Mac-Screenshots der nativen Tests müssen für jedes Plugin genau diese Größe
@@ -17,13 +17,14 @@ Windows-DLLs werden niemals nur umbenannt oder als DMG ausgegeben.
 
 DMG öffnen → PKG doppelt anklicken → Installieren → in FL Studio
 **Options → Manage plugins → Find installed plugins**. Anschließend stehen alle
-56 Plugins in **More plugins** unter GILL. Alle verwenden Version 0.12.0; die
-Kennungen der 47 bisherigen Plugins bleiben erhalten. GILLRISE und GILLASSIST
-sind neu. Es wird keine Downloader-App benötigt.
+60 Plugins in **More plugins** unter GILL. Alle verwenden Version 0.14.0; die
+Kennungen der 57 bisherigen Plugins bleiben erhalten. GILLVOCODE, GILLGRAIN und GILLPULSE
+sind neu. Alle Plugins müssen in LIVE null zusätzliche Audiosamples melden und
+im nativen Host die unverzögerte Impuls- und Dry-Signalprüfung bestehen. Es wird keine Downloader-App benötigt.
 Die Dateien liegen in `/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION`.
 Der Installer ändert keine FL-Projekte, Audioeinstellungen oder Gatekeeper-Regeln.
 
-Die Anleitung `GILL-UPDATE-12-ANLEITUNG.md` beschreibt die Aufnahme ganzer
+Die Anleitung `GILL-UPDATE-14-ANLEITUNG.md` beschreibt die Aufnahme ganzer
 Songbereiche bis fünf Minuten, die anschließende Bearbeitung und den WAV-Export.
 GILLRISE erzeugt einen Riser aus einem kurzen Vocal-Einsatz; GILLASSIST bietet
 eine editierbare Pegelvorbereitung. GILLALIGN bleibt auf einzelne Takes bis
@@ -48,20 +49,29 @@ ist auf 600 MB begrenzt, Ergebnisartefakte werden 14 Tage aufbewahrt.
 
 Der Ablauf ist:
 
-1. Native ARM- und Intel-Kompilierung, sämtliche registrierten DSP-/GUI-CTest.
-2. Versions-, Bundle-ID-, Mach-O-, Systembibliotheken- und UI-Größenprüfung.
-3. Ein separat gebauter nativer VST3-Host lädt alle 56 fertigen Bundles gemeinsam.
+1. Lokale Paketierungsprüfungen; nur bei `notarize=true` zuerst Prüfung, ob alle
+   neun Signierungs-Secrets vorhanden sind. Fehlende Namen stoppen vor den
+   Mac-Builds; geheime Werte werden nie ausgegeben. Zertifikatgültigkeit wird
+   anschließend erst beim tatsächlichen Signieren geprüft.
+2. Native ARM- und Intel-Kompilierung, alle 73 vorgeschriebenen DSP-/GUI-CTest
+   sowie zusätzlich registrierte Tests. Der Windows-spezifische Dereverb-Test
+   `VST3_HOST` ist auf Mac nicht registriert; dort werden echte VST3 durch den
+   nativen QualityHost und pluginval geprüft.
+3. Versions-, Bundle-ID-, Mach-O-, Systembibliotheken- und UI-Größenprüfung.
+4. Ein separat gebauter nativer VST3-Host lädt alle 60 fertigen Bundles gemeinsam.
    Bei 44,1/48/96/192 kHz prüft er echte LIVE/PRO-Parameterzustände, Host-Latenz,
    globale und lokale Umschaltung, wiederholte Controller-Klicks und State-Recall.
+   Für jedes Plugin sind bestätigter nativer Bypass, null Samples Impulsversatz
+   und höchstens `1e-7` Dry-Signalabweichung zwingend.
    JSON-Berichte liegen unter `test-evidence/QUALITY_HOST`, vollständige Logs
    unter `logs/QualityHost-*`. Ein fehlender oder fehlgeschlagener Lauf verhindert
    bereits `native-build.json`; Merge und Veröffentlichung prüfen dieses Gate erneut.
-4. Ressourcenvergleich beider Builds, Universal-Zusammenführung, Signierung.
-5. Genau diese Universal-Bundles durchlaufen pluginval Stufe 10 nativ auf ARM
+5. Ressourcenvergleich beider Builds, Universal-Zusammenführung, Signierung.
+6. Genau diese Universal-Bundles durchlaufen pluginval Stufe 10 nativ auf ARM
    und Intel: fünf Abtastraten und acht Puffergrößen, einschließlich GUI-Tests.
-6. Erst wenn die Berichte zu den unveränderten Bundle-Hashes passen: PKG.
-7. Der normale Apple Installer installiert das PKG tatsächlich auf dem temporären
-   GitHub-Mac. Alle 56 installierten Bundles müssen bytegenau zu den validierten
+7. Erst wenn die Berichte zu den unveränderten Bundle-Hashes passen: PKG.
+8. Der normale Apple Installer installiert das PKG tatsächlich auf dem temporären
+   GitHub-Mac. Alle 60 installierten Bundles müssen bytegenau zu den validierten
    Universal-Bundles passen. Erst danach wird die DMG erstellt.
 
 Ein GitHub-Job ist kein FL-Studio-Hörtest. Native GUI-Screenshots liegen in den
@@ -82,6 +92,10 @@ DMG vorgesehen. Die internen Mach-O-Dateien erhalten zur Codeintegrität eine
 lokale Ad-hoc-Signatur; das ist keine Developer-ID-Freigabe. Gatekeeper kann die
 Installation blockieren. Die Pipeline entfernt keine Quarantäneattribute und
 deaktiviert keine Sicherheitsprüfung.
+
+Eine neue Developer-ID-Identität erfordert die Mitgliedschaft im Apple Developer
+Program und die Erstellung der Zertifikate durch den Account Holder. Der erste
+Update-14-Lauf ist ausdrücklich mit `notarize=false` vorgesehen.
 
 Für eine normal verteilbare signierte Version werden folgende GitHub-Secrets
 vorab vom Eigentümer eingerichtet. Keine Passwörter oder Zertifikate ins
@@ -121,6 +135,6 @@ macOS 15. Er behauptet damit keinen realen FL-Test auf jeder älteren macOS-Vers
 - [GitHub: Native ARM- und Intel-Runner](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)
 - [Tracktion: pluginval](https://github.com/Tracktion/pluginval)
 
-Der offizielle pluginval-1.0.4-Download ist auf SHA256
+Der offizielle pluginval-1.0.4-Download ist auf SHA260
 `3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f`
 festgelegt. Der Workflow prüft diesen Hash vor dem Start.

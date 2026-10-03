@@ -12,6 +12,7 @@
 #include <vector>
 #include <cstdlib>
 #include <new>
+#include <set>
 
 namespace { thread_local bool watchNativeAudio=false;std::uint64_t nativeAudioAllocations=0; }
 void* operator new(std::size_t size){if(watchNativeAudio)++nativeAudioAllocations;if(void* p=std::malloc(size?size:1))return p;throw std::bad_alloc();}
@@ -36,7 +37,7 @@ void check(bool passed, const std::string& description) {
 std::vector<juce::String> ids(GillKind kind) {
     if (kind == GillKind::Flow) return {"amount", "mode", "autogain", "bypass"};
     if (kind == GillKind::Heat) return {"low", "mid", "high", "style", "mix", "output", "bypass"};
-    return {"key", "scale", "retune", "humanize", "mix", "bypass"};
+    return {"key", "scale", "retune", "humanize", "mix", "bypass", "formant"};
 }
 std::vector<float> values(GillVocalProcessor& p) {
     std::vector<float> result;
@@ -162,6 +163,61 @@ void metadataAndState(GillKind kind, bool liveTune = false) {
     bool partialCorrect = afterPartial[0] == p.apvts.getParameter(parameterIds.front())->getNormalisableRange().start;
     for (std::size_t n = 1; n < beforePartial.size(); ++n) partialCorrect = partialCorrect && beforePartial[n] == afterPartial[n];
     check(partialCorrect, "partial state changes only the supplied known parameter");
+    if(kind==GillKind::Tune){
+        auto legacy=p.apvts.copyState();legacy.setProperty("version",1,nullptr);
+        legacy.removeChild(legacy.getChildWithProperty("id","formant"),nullptr);
+        set(p,"formant",7.25f);stateFromTree(p,legacy);
+        check(p.value("formant")==0,"complete pre-formant project restores neutral formant rather than leaking the previous instance setting");
+    }
+}
+
+// Populate the native pitch view from a complete, genuinely processed phrase.
+// No meter or editor history is set directly. The 256 real 25-Hz timer updates
+// fill the 240-point history with held notes, transitions and actual silence.
+void feedPitchScreenshotPhrase(GillVocalProcessor& p) {
+    constexpr std::array<double, 8> notes{57,60,62,65,64,67,59,62};
+    constexpr double noteSeconds=1.28, tickSeconds=.04;
+    const double rate=p.uiRate.load();
+    const int samplesPerTick=static_cast<int>(std::lround(tickSeconds*rate));
+    juce::AudioBuffer<float> buffer(p.getTotalNumOutputChannels(),128);
+    juce::MidiBuffer midi;double phase=0;std::int64_t position=0;
+    std::set<int> measuredNotes;int quietTicks=0,voicedTicks=0;
+    for(int frame=0;frame<256;++frame){
+        float frameInputPeak=0;
+        for(int at=0;at<samplesPerTick;at+=128){
+            const int count=std::min(128,samplesPerTick-at);buffer.setSize(buffer.getNumChannels(),count,false,false,true);
+            for(int n=0;n<count;++n,++position){
+                const double seconds=position/rate;
+                const int note=std::min(7,static_cast<int>(seconds/noteSeconds));
+                const double local=seconds-note*noteSeconds;
+                const bool finalNote=note==7;
+                const double voiceEnd=finalNote?noteSeconds:noteSeconds-.10;
+                double envelope=std::clamp(local/.015,0.,1.)*std::clamp((voiceEnd-local)/.020,0.,1.);
+                if(finalNote&&local>voiceEnd-.020)envelope=1;
+                double midiNote=notes[static_cast<size_t>(note)]+.16;
+                if(note>0&&local<.12){const double x=local/.12,s=x*x*(3-2*x);midiNote=notes[static_cast<size_t>(note-1)]+.16+s*(notes[static_cast<size_t>(note)]-notes[static_cast<size_t>(note-1)]);}
+                midiNote+=.11*std::sin(2*pi*5.2*seconds);
+                phase+=2*pi*440*std::pow(2.,(midiNote-69)/12.)/rate;
+                if(phase>2*pi)phase-=2*pi;
+                const double voice=(.72*std::sin(phase)+.30*std::sin(2*phase)+.20*std::sin(3*phase)+.12*std::sin(4*phase)+.075*std::sin(5*phase));
+                const float sample=static_cast<float>((.32+.035*std::sin(2*pi*2.1*seconds))*envelope*voice);
+                frameInputPeak=std::max(frameInputPeak,std::abs(sample));
+                for(int c=0;c<buffer.getNumChannels();++c)buffer.setSample(c,n,sample*(c==0?1.f:.87f));
+            }
+            audioCall(p,buffer,midi);
+        }
+        // The processor's inputPeak has a 120-ms release hold, so it cannot
+        // represent exact silence during these 100-ms pauses. Measure the
+        // actual entire input frame, retaining real processor pitch evidence.
+        const float hz=p.pitchHz.load(),confidence=p.pitchConfidence.load(),peak=frameInputPeak;
+        if(peak<1e-7f)++quietTicks;
+        if(hz>70&&confidence>.5f&&peak>.01f){++voicedTicks;measuredNotes.insert(static_cast<int>(std::lround(69+12*std::log2(hz/440))));}
+        juce::Thread::sleep(41);juce::Timer::callPendingTimersSynchronously();
+    }
+    std::cout << "DIAG actual pitch phrase notes=" << measuredNotes.size()
+              << " silentFrames=" << quietTicks << " voicedFrames=" << voicedTicks << '\n';
+    check(measuredNotes.size()>=6&&quietTicks>=8&&voicedTicks>150,
+          "native pitch screenshot history comes from at least six measured notes, glissandi, vibrato and real pauses");
 }
 
 void programs(bool liveTune = false) {
@@ -202,7 +258,7 @@ void dryRoutes(GillKind kind, bool liveTune = false) {
             const int delay = p.getLatencySamples();
             validLatency = validLatency && delay >= 0 && p.getTailLengthSeconds() >= delay / rate &&
                 (kind != GillKind::Flow || delay == 0) && (kind != GillKind::Heat || delay == 24) &&
-                (!liveTune || std::abs(delay-rate*.016)<=1.0);
+                (!liveTune || delay==0);
             silence(p, static_cast<int>(rate * 0.03) + delay, route == 2);
             const int total = delay + 4096;
             std::vector<std::vector<float>> source(static_cast<std::size_t>(channels), std::vector<float>(static_cast<std::size_t>(total)));
@@ -397,9 +453,9 @@ void ui(GillKind kind, bool liveTune = false) {
     check(editor != nullptr, "native editor constructs"); if (!editor) return;
     editor->setVisible(true);
     Components components; components.collect(*editor);
-    const int width = kind == GillKind::Flow ? 340 : kind == GillKind::Heat ? 580 : 600;
-    const int height = kind == GillKind::Flow ? 480 : kind == GillKind::Heat ? 380 : 560;
-    const int expectedSliders = kind == GillKind::Flow ? 1 : kind == GillKind::Heat ? 5 : 3;
+    const int width = kind == GillKind::Flow ? 340 : kind == GillKind::Heat ? 580 : 760;
+    const int height = kind == GillKind::Flow ? 480 : kind == GillKind::Heat ? 380 : 430;
+    const int expectedSliders = kind == GillKind::Flow ? 1 : kind == GillKind::Heat ? 5 : 4;
     const auto* limits = editor->getConstrainer();
     check(editor->getWidth() == width && editor->getHeight() == height && limits &&
           limits->getMinimumWidth() == width && limits->getMaximumWidth() == 2 * width &&
@@ -451,16 +507,17 @@ void ui(GillKind kind, bool liveTune = false) {
         if (key) { key->setSelectedId(10, juce::sendNotificationSync); ++uiEdits; }
         if (scale) { scale->setSelectedId(3, juce::sendNotificationSync); ++uiEdits; }
         bool combosCorrect = key && scale && p.value("key") == 9 && p.value("scale") == 2;
+        auto* preset=components.combo("PRESET");
         for (int index = 0; index < 5; ++index) {
-            auto* preset=components.button("PRESET "+p.getProgramName(index));if(preset)click(*preset);
-            combosCorrect = combosCorrect && waitForVisualState([&]{return preset&&preset->getToggleState();}) && p.getCurrentProgram() == index && p.presetMatches() && p.value("key") == 9 && p.value("scale") == 2;
+            if(preset){preset->setSelectedId(index+1,juce::sendNotificationSync);++uiEdits;}
+            combosCorrect = combosCorrect && waitForVisualState([&]{return preset&&preset->getSelectedId()==index+1;}) && p.getCurrentProgram() == index && p.presetMatches() && p.value("key") == 9 && p.value("scale") == 2;
         }
-        check(combosCorrect, "real key/scale controls and five preset buttons apply all programs without changing musical key");
+        check(combosCorrect, "real key/scale controls and header preset selector apply all five programs without changing musical key");
         set(p, "retune", 21.1f);
-        check(waitForVisualState([&]{for(int i=0;i<5;++i){auto* b=components.button("PRESET "+p.getProgramName(i));if(!b||b->getToggleState())return false;}return true;}),"custom settings clear every preset highlight");
+        check(waitForVisualState([&]{return preset&&preset->getText().endsWith(" *");}),"custom settings are marked in the preset selector");
         for(auto* ring:components.sliders)if(ring->getName()=="RETUNE"){
             const auto area=ring->getLookAndFeel().getSliderLayout(*ring).sliderBounds;const auto centre=area.getCentre();
-            check(!ring->hitTest(centre.x,centre.y)&&ring->hitTest(centre.x,area.getY()+18),"command wheel hit testing excludes the cents display and includes the outer retune ring");
+            check(ring->hitTest(centre.x,centre.y)&&ring->hitTest(centre.x,area.getY()+18),"Prism retune dial accepts direct centre or rim grabs; pitch view is a separate component");
             for(int scaleFactor:{1,2}){
                 editor->setSize(width*scaleFactor,height*scaleFactor);tick();
                 const auto bounds=ring->getLookAndFeel().getSliderLayout(*ring).sliderBounds;
@@ -502,9 +559,11 @@ void ui(GillKind kind, bool liveTune = false) {
     set(p, "bypass", 0);
     if (kind == GillKind::Flow) { set(p, "amount", 65); set(p, "mode", 1); set(p, "autogain", 1); }
     if (kind == GillKind::Heat) { set(p, "low", 5); set(p, "mid", 9); set(p, "high", 4); set(p, "style", 0); set(p, "mix", 85); set(p, "output", 0); }
-    if (kind == GillKind::Tune) { p.setCurrentProgram(1); set(p, "key", 0); set(p, "scale", 1); }
-    // Fill the display's 100-point history using its real timer and meters.
-    feedVocal(p, 6.4, true); tick();
+    if (kind == GillKind::Tune) { p.setCurrentProgram(1); set(p, "key", 0); set(p, "scale", 1); set(p,"gillQuality",1); silence(p,128); }
+    // Pitch uses its actual 240-point timer history; the other displays retain
+    // the existing 100-point level-meter fixture.
+    if(kind==GillKind::Tune)feedPitchScreenshotPhrase(p);else feedVocal(p,6.4,true);
+    tick();
     check(p.inputPeak.load() > 0.0f && p.outputPeak.load() > 0.0f &&
           (kind != GillKind::Tune || (p.pitchHz.load() > 70 && p.targetHz.load() > 70 && p.pitchConfidence.load() > 0.5f)),
           "screenshot meters derive from actually processed synthetic vocal");

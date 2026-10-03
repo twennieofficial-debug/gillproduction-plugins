@@ -1,0 +1,111 @@
+{
+  "GILLDEESSER": [
+    "DEESSER_DSP",
+    "DEESSER_INTEGRATION"
+  ],
+  "GILLDEREVERB": [
+    "DSP",
+    "PLUGIN_INTEGRATION",
+    "AUTO_QUALITY"
+  ],
+  "GILLDYNAMICS": [
+    "DYNAMICS_REALTIME",
+    "EFFECTS_INTEGRATION",
+    "VocalDynamics_DSP",
+    "Buss_DSP",
+    "Quad_DSP",
+    "Stage_DSP"
+  ],
+  "GILLEFFECTS": [
+    "EFFECTS_INTEGRATION",
+    "Air_DSP",
+    "Space_DSP",
+    "Echo_DSP",
+    "Balance_DSP",
+    "Update_DSP",
+    "BALANCE_FULL_SONG"
+  ],
+  "GILLEQ": [
+    "DSP",
+    "PLUGIN_INTEGRATION",
+    "DYNAMIC_DSP"
+  ],
+  "GILLFINISH": [
+    "EFFECTS_INTEGRATION",
+    "Character_DSP",
+    "Spectral_DSP"
+  ],
+  "GILLNEXT": [
+    "NEXT_INTEGRATION",
+    "ALIGN_WRAPPER",
+    "NEXT_Ride_DSP",
+    "NEXT_CleanLoudness_DSP",
+    "NEXT_CleanSpecific_DSP",
+    "NEXT_Pocket_DSP",
+    "NEXT_FormAlign_DSP",
+    "NEXT_FormAlignEdge_DSP",
+    "NEXT_Finish_DSP",
+    "NEXT_OutputPeakMeter_DSP",
+    "LIVE_QUALITY_DSP",
+    "FINISH_SONG",
+    "STRICT_LIVE_13"
+  ],
+  "GILLRESTORATION": [
+    "RESTORATION_DSP",
+    "RESTORATION_INTEGRATION"
+  ],
+  "GILLVOCAL": [
+    "VOCAL_INTEGRATION",
+    "Flow_DSP",
+    "Heat_DSP",
+    "Tune_DSP",
+    "FLOW_FULL_SONG",
+    "AUDIO_REPAIR_13"
+  ],
+  "GILLCONTROL": [
+    "QUALITY_CROSS_DLL_IPC",
+    "CONTROL_INTEGRATION"
+  ],
+  "GILLCREATIVE": [
+    "CREATIVE_INTEGRATION",
+    "Creative_DSP",
+    "CREATIVE_FULL_SONG",
+    "PHRASE_DELAY_STEMS"
+  ],
+  "GILLSMARTDEESSER": [
+    "DSP",
+    "LEARNING",
+    "PLUGIN_INTEGRATION",
+    "SMARTDEESSER_FULL_SONG"
+  ],
+  "GILLMIX": [
+    "MIX_CORE",
+    "MIX_INTEGRATION",
+    "MIX_CROSS_DLL"
+  ],
+  "GILLTOOLS": [
+    "TOOLS_INTEGRATION",
+    "Harmony_DSP",
+    "Rescue_DSP",
+    "REFERENCE_DSP"
+  ],
+  "GILLMASTER": [
+    "MASTER_INTEGRATION",
+    "MASTER_CORE",
+    "MASTER_DELTA",
+    "MASTER_CEILING"
+  ],
+  "GILLRISE": [
+    "RISE_DSP",
+    "RISE_INTEGRATION"
+  ],
+  "GILLASSIST": [
+    "ASSIST_INTEGRATION"
+  ],
+  "GILLMOTION": [
+    "MOTION_INTEGRATION"
+  ],
+  "GILLNOTE": [
+    "NOTE_INTEGRATION"
+  ]
+}

@@ -1,24 +1,14 @@
 #include "PluginEditor.h"
+#include "../../GILLCommon/PrismUi.h"
 #include "../../GILLCommon/MaterialUi.h"
 
 namespace {
-const juce::Colour cream(0xffefe7d7),gold(0xffb9955d),ink(0xff171817);
-void labelText(juce::Graphics&g,juce::String text,juce::Rectangle<int>bounds,float size=11,juce::Colour colour=cream,int align=juce::Justification::centred){g.setFont(juce::FontOptions(size));g.setColour(colour);g.drawFittedText(text,bounds,align,1);}
-struct MotionLook:juce::LookAndFeel_V4 {
- MotionLook(){setColour(juce::Slider::textBoxTextColourId,cream);setColour(juce::Slider::textBoxBackgroundColourId,ink);setColour(juce::Slider::textBoxOutlineColourId,juce::Colour(0xff665442));setColour(juce::ComboBox::backgroundColourId,ink);setColour(juce::ComboBox::textColourId,cream);setColour(juce::ComboBox::outlineColourId,gold);setColour(juce::PopupMenu::backgroundColourId,ink);setColour(juce::PopupMenu::textColourId,cream);setColour(juce::PopupMenu::highlightedBackgroundColourId,juce::Colour(0xff67513b));}
- void drawRotarySlider(juce::Graphics&g,int x,int y,int w,int h,float value,float start,float end,juce::Slider&)override{
-   float radius=std::min(w,h)*.38f,cx=x+w*.5f,cy=y+h*.5f;auto r=juce::Rectangle<float>(cx-radius,cy-radius,2*radius,2*radius);
-   for(int n=0;n<27;++n){float a=start+(end-start)*n/26;auto p=juce::Point<float>(cx,cy).getPointOnCircumference(radius+6,a),q=juce::Point<float>(cx,cy).getPointOnCircumference(radius+9,a);g.setColour(n<=value*26?gold:juce::Colour(0xff4c4c43));g.drawLine({p,q},n%4==0?1.7f:.7f);}
-   gill::material::disc(g,r,juce::Colour(0xfff1e8d8));
-   float a=start+(end-start)*value;auto p=juce::Point<float>(cx,cy).getPointOnCircumference(radius*.36f,a),q=juce::Point<float>(cx,cy).getPointOnCircumference(radius*.7f,a);g.setColour(juce::Colours::white.withAlpha(.75f));g.drawLine({p.translated(1,1),q.translated(1,1)},3.5f);g.setColour(juce::Colour(0xff3a3328));g.drawLine({p,q},2.6f);
- }
- void drawButtonBackground(juce::Graphics&g,juce::Button&b,const juce::Colour&,bool over,bool down)override{auto r=b.getLocalBounds().toFloat().reduced(1);bool bright=b.getToggleState()||b.getName()=="PRIMARY";auto a=bright?juce::Colour(0xffefddbf):juce::Colour(0xff45433c),z=bright?juce::Colour(0xffa17c49):juce::Colour(0xff1a1b18);if(down){a=a.darker(.3f);z=z.darker(.3f);}else if(over)a=a.brighter(.1f);g.setColour(juce::Colours::black.withAlpha(.7f));g.fillRoundedRectangle(r.translated(0,2),4);g.setGradientFill(juce::ColourGradient(a,r.getX(),r.getY(),z,r.getX(),r.getBottom(),false));g.fillRoundedRectangle(r,4);g.setColour(bright?cream:gold.withAlpha(.5f));g.drawRoundedRectangle(r.reduced(.5f),4,.8f);g.setColour(juce::Colours::black.withAlpha(.5f));g.drawRoundedRectangle(r.reduced(2),3,.8f);}
- void drawButtonText(juce::Graphics&g,juce::TextButton&b,bool,bool)override{labelText(g,b.getButtonText(),b.getLocalBounds().reduced(4),b.getWidth()<70?10:11,(b.getToggleState()||b.getName()=="PRIMARY")?ink:cream.withAlpha(b.isEnabled()?1.f:.4f));}
- void drawLinearSlider(juce::Graphics&g,int x,int y,int w,int h,float pos,float,float,juce::Slider::SliderStyle,juce::Slider&)override{const float cy=y+h*.5f;g.setColour(juce::Colour(0xff090a08));g.fillRoundedRectangle(float(x),cy-3,float(w),6,3);g.setColour(gold.withAlpha(.65f));g.fillRoundedRectangle(float(x),cy-1,std::max(0.f,pos-x),2,1);gill::material::disc(g,{pos-5,cy-7,10,14});}
-};
+const juce::Colour cream(0xffe2ecf6),gold(0xff72cde9),ink(0xff102237);
+void labelText(juce::Graphics&g,juce::String text,juce::Rectangle<int>bounds,float size=11,juce::Colour colour=ink,int align=juce::Justification::centred){g.setFont(juce::FontOptions(size));g.setColour(colour);g.drawFittedText(text,bounds,align,1);}
+class MotionLook final : public gill::prism::Look {  };
 struct Dial:juce::Component {juce::String title;juce::Slider slider;juce::AudioProcessorValueTreeState::SliderAttachment attachment;
  Dial(GillMotionProcessor&p,const char*id,const char*name,const char*suffix):title(name),attachment(p.apvts,id,slider){slider.setSliderStyle(juce::Slider::Rotary);slider.setRotaryParameters(juce::MathConstants<float>::pi*1.2f,juce::MathConstants<float>::pi*2.8f,true);slider.setTextBoxStyle(juce::Slider::TextBoxBelow,false,82,20);slider.setTextValueSuffix(suffix);slider.setDoubleClickReturnValue(true,p.apvts.getParameter(id)->convertFrom0to1(p.apvts.getParameter(id)->getDefaultValue()));slider.setName(name);addAndMakeVisible(slider);}
- void resized()override{slider.setBounds(getLocalBounds().withTrimmedTop(18));}void paint(juce::Graphics&g)override{labelText(g,title,getLocalBounds().withHeight(17),10);}
+ void resized()override{slider.setBounds(getLocalBounds().withTrimmedTop(18));}void paint(juce::Graphics&g)override{labelText(g,title=="PITCH MOTION"?juce::String("PITCH"):title,getLocalBounds().withHeight(17),10);}
 };
 struct Drag:juce::TextButton {std::function<void()>drag;bool fired=false;Drag():juce::TextButton("DRAG WAV"){}void mouseDown(const juce::MouseEvent&e)override{fired=false;juce::TextButton::mouseDown(e);}void mouseDrag(const juce::MouseEvent&e)override{if(!fired&&e.getDistanceFromDragStart()>5){fired=true;if(drag)drag();}}};
 }
@@ -61,18 +51,15 @@ struct GillMotionEditor::Impl:juce::Component,private juce::Timer {
   play.setBounds(22,height-53,105,27);save.setBounds(134,height-53,86,27);drag.setBounds(227,height-53,100,27);preset.setBounds(337,height-53,width-359,27);direct.setBounds(width-121,y-32,99,24);bpm.setBounds(23,y-32,170,24);
  }
  void paint(juce::Graphics&g)override{
-  const juce::Colour woods[]{juce::Colour(0xff765137),juce::Colour(0xff59362e),juce::Colour(0xff79644b),juce::Colour(0xff4e3426),juce::Colour(0xff49403a),juce::Colour(0xff865b36),juce::Colour(0xff654b34)};
-  g.setGradientFill(juce::ColourGradient(woods[int(p.kind)].brighter(.2f),0,0,woods[int(p.kind)].darker(.6f),float(width),float(height),false));g.fillAll();for(int y=0;y<height;y+=3){juce::Path grain;grain.startNewSubPath(0,float(y));for(int x=0;x<=width;x+=10)grain.lineTo(float(x),float(y+2.3*std::sin(x*.021+y*.015)));g.setColour(juce::Colours::black.withAlpha(.1f));g.strokePath(grain,juce::PathStrokeType(.7f));}
-  auto body=getLocalBounds().toFloat().reduced(10);g.setColour(juce::Colours::black.withAlpha(.6f));g.fillRoundedRectangle(body.translated(0,3),6);g.setGradientFill(juce::ColourGradient(juce::Colour(0xff393b38),0,12,juce::Colour(0xff101210),0,float(height),false));g.fillRoundedRectangle(body,6);g.setColour(gold.withAlpha(.6f));g.drawRoundedRectangle(body,6,1);
-  juce::Path gp;gp.startNewSubPath(28,5);gp.lineTo(15,5);gp.cubicTo(-3,5,-3,30,15,30);gp.lineTo(29,30);gp.lineTo(29,19);gp.lineTo(17,19);gp.startNewSubPath(24,39);gp.lineTo(24,13);gp.lineTo(40,13);gp.cubicTo(55,13,55,31,40,31);gp.lineTo(24,31);gp.applyTransform(juce::AffineTransform::scale(.72f,.72f).translated(26,18));g.setColour(juce::Colours::black);g.strokePath(gp,juce::PathStrokeType(4));g.setColour(gold);g.strokePath(gp,juce::PathStrokeType(2.3f));labelText(g,p.getName(),{72,17,width-276,29},21,cream,juce::Justification::centredLeft);labelText(g,"GILLPRODUCTION",{74,43,240,12},8,gold,juce::Justification::centredLeft);
+    gill::prism::chassis(g,float(width),float(height),float(height-184));gill::prism::title(g,p.getName(),{72,17,float(width-276),29},21);
   auto display=juce::Rectangle<float>(22,105,float(width-44),float(height-344));g.setColour(juce::Colour(0xff080b0a));g.fillRoundedRectangle(display,5);g.setColour(gold.withAlpha(.45f));g.drawRoundedRectangle(display,5,.7f);
   if(wave){const float centre=display.getCentreY(),amplitude=display.getHeight()*.30f;for(int x=0;x<int(peaks.size());++x){const float value=peaks[x]/std::max(.001f,wave->peak)*amplitude;g.setColour(gold.withAlpha(.85f));g.drawVerticalLine(32+x,centre-value,centre+value);}labelText(g,juce::String(wave->left.size()/wave->rate,2)+" s",{32,111,80,17},10,gold,juce::Justification::centredLeft);}
   else if(p.kind==MotionKind::Stutter){for(int i=0;i<16;++i){float x=display.getX()+12+i*(display.getWidth()-24)/16,h=10+i*3;g.setColour(gold.withAlpha(.15f+i*.04f));g.fillRoundedRectangle(x,display.getBottom()-22-h,(display.getWidth()-48)/16,h,2);}}
   else if(p.kind==MotionKind::Crowd){const int people=int(p.value("voices"));for(int i=0;i<people;++i){float x=display.getX()+20+(display.getWidth()-40)*(i+.5f)/people,y=display.getCentreY()+float(std::sin(i*2.1)*15);g.setColour((i%3==0?cream:i%3==1?gold:juce::Colour(0xffa4b5ac)).withAlpha(.8f));g.fillEllipse(x-4,y-12,8,8);g.fillRoundedRectangle(x-6,y-2,12,18,3);}}
   else{labelText(g,gill::motion::designer(p.kind)?"CAPTURE YOUR VOCAL TO SHAPE THE EFFECT":"LIVE VOCAL EFFECT / ARM FOR WAV EXPORT",display.toNearestInt(),11,gold);}
-  labelText(g,p.statusText(),{30,int(display.getBottom())-21,width-60,16},9,cream);const int y=height-201;labelText(g,"IN",{21,y,29,22},9);labelText(g,"OUT",{width/2+1,y,35,22},9);
+  labelText(g,p.statusText(),{30,int(display.getBottom())-21,width-60,16},9,cream);const int y=height-201;labelText(g,"IN",{21,y,29,22},9,cream);labelText(g,"OUT",{width/2+1,y,35,22},9,cream);
   labelText(g,p.hostTempo?juce::String(p.tempo.load(),1)+" BPM / HOST":"MANUAL TEMPO",{205,y-30,width-340,20},9,gold);
-  labelText(g,message.isNotEmpty()?message:p.kind==MotionKind::Stutter?"ALIGN WAV END TO VOCAL START":"ALIGN WAV START TO CAPTURED VOCAL",{22,height-23,width-44,15},8,gold);
+  labelText(g,message.isNotEmpty()?message:p.kind==MotionKind::Stutter?"ALIGN WAV END TO VOCAL START":"ALIGN WAV START TO CAPTURED VOCAL",{22,height-23,width-44,15},8,ink);
  }
 };
 GillMotionEditor::GillMotionEditor(GillMotionProcessor&p):AudioProcessorEditor(p),ui(std::make_unique<Impl>(p)){addAndMakeVisible(*ui);setResizable(true,true);getConstrainer()->setFixedAspectRatio(double(ui->width)/ui->height);setResizeLimits(ui->width,ui->height,ui->width*2,ui->height*2);setSize(ui->width,ui->height);}

@@ -63,11 +63,17 @@ class Engine {
 public:
  explicit Engine(Kind k):kind(k){}
  void prepare(double rate){fs=rate;for(auto&v:ring)v.assign(size_t(kind==Kind::Trail?std::ceil(fs*6.2):4),0);reset();}
+ // Transport seeks also clear effect memory. Preserve the current bypass ramp
+ // so an already bypassed effect cannot reappear when the playhead loops.
  void reset(){for(auto&v:ring)std::fill(v.begin(),v.end(),0);lp={};hp={};envelope={};phase=0;position=0;delaySmooth=0;smoothed=Settings{};seed=0x947ab31u;}
  void process(float*l,float*r,int n,const Settings&s){
   if(designer(kind))return;const float smooth=float(1-std::exp(-1/(fs*.015))),tk=float(1-std::exp(-2*pi*(1100+s.tone*9000)/fs));
   const double requested=fs*60/std::clamp(s.bpm,20.,400.)*division(s.rhythm);if(delaySmooth==0)delaySmooth=requested;
-  for(int i=0;i<n;++i){smoothed.amount+=smooth*(s.amount-smoothed.amount);smoothed.mix+=smooth*(s.mix-smoothed.mix);smoothed.dry+=smooth*(s.dry-smoothed.dry);smoothed.width+=smooth*(s.width-smoothed.width);smoothed.level+=smooth*(s.level-smoothed.level);bypass+=smooth*((s.bypass?1.f:0.f)-bypass);
+  for(int i=0;i<n;++i){smoothed.amount+=smooth*(s.amount-smoothed.amount);smoothed.mix+=smooth*(s.mix-smoothed.mix);smoothed.dry+=smooth*(s.dry-smoothed.dry);smoothed.width+=smooth*(s.width-smoothed.width);smoothed.level+=smooth*(s.level-smoothed.level);
+   // A float accumulator stalls before reaching even 1e-5 at high rates.
+   // Keep the 15-ms ramp, then reach an exact, fully dry bypass endpoint.
+   const double bypassTarget=s.bypass?1.:0.;bypass+=smooth*(bypassTarget-bypass);
+   if(std::abs(bypassTarget-bypass)<1.e-5)bypass=bypassTarget;
    const float a=clean(l[i]),b=r?clean(r[i]):a;std::array<float,2>in{a,b},wet{};
    if(kind==Kind::Wire){const double low=s.style==1?500:s.style==2?650:280,high=s.style==1?2400:s.style==2?1800:3400;
     const float hc=float(1-std::exp(-2*pi*low/fs)),lc=float(1-std::exp(-2*pi*(high*(.65+.7*s.tone))/fs)),drive=1+smoothed.amount*15;
@@ -84,7 +90,7 @@ public:
   }
  }
 private:
- Kind kind;double fs=48000,phase=0,delaySmooth=0;int position=0;unsigned seed=0;float bypass=0;Settings smoothed;
+ Kind kind;double fs=48000,phase=0,delaySmooth=0,bypass=0;int position=0;unsigned seed=0;Settings smoothed;
  std::array<std::vector<float>,2>ring;std::array<float,2>lp{},hp{},envelope{};
 };
 

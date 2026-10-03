@@ -47,7 +47,8 @@
     "NEXT_Finish_DSP",
     "NEXT_OutputPeakMeter_DSP",
     "LIVE_QUALITY_DSP",
-    "FINISH_SONG"
+    "FINISH_SONG",
+    "STRICT_LIVE_13"
   ],
   "GILLRESTORATION": [
     "RESTORATION_DSP",
@@ -58,7 +59,8 @@
     "Flow_DSP",
     "Heat_DSP",
     "Tune_DSP",
-    "FLOW_FULL_SONG"
+    "FLOW_FULL_SONG",
+    "AUDIO_REPAIR_13"
   ],
   "GILLCONTROL": [
     "QUALITY_CROSS_DLL_IPC",
@@ -102,5 +104,12 @@
   ],
   "GILLMOTION": [
     "MOTION_INTEGRATION"
+  ],
+  "GILLNOTE": [
+    "NOTE_INTEGRATION"
+  ],
+  "GILLTEXTURE": [
+    "TEXTURE_DSP",
+    "TEXTURE_INTEGRATION"
   ]
 }

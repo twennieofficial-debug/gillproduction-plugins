@@ -26,6 +26,28 @@ inline const juce::Image& enamelGrain()
     return grain;
 }
 
+inline const juce::Image& brushedMetal()
+{
+    static const juce::Image grain = [] {
+        juce::Image result (juce::Image::ARGB, 512, 128, true, juce::SoftwareImageType());
+        juce::Image::BitmapData pixels (result, juce::Image::BitmapData::writeOnly);
+        unsigned seed = 0x53d128u;
+        for (int y = 0; y < 128; ++y)
+        {
+            seed = seed * 1664525u + 1013904223u;
+            const float line = float ((seed >> 18) & 255) / 255.f - .5f;
+            for (int x = 0; x < 512; ++x)
+            {
+                const float brushed = line * .018f + std::sin (x * .071f + y * .91f) * .003f;
+                pixels.setPixelColour (x, y, (brushed > 0 ? juce::Colours::white : juce::Colours::black)
+                    .withAlpha (std::abs (brushed)));
+            }
+        }
+        return result;
+    }();
+    return grain;
+}
+
 inline void panel(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour base,
                   float radius = 12.0f, bool inset = false)
 {
@@ -36,14 +58,16 @@ inline void panel(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour base
         g.setColour(juce::Colours::black.withAlpha(inset ? 0.03f : 0.036f));
         g.fillRoundedRectangle(r.expanded(i * 0.6f).translated(0, inset ? -0.6f : i * 0.8f), radius + i * 0.4f);
     }
-    g.setColour(juce::Colour(0xff514b40));
+    g.setColour(juce::Colour(0xff10233a));
     g.fillRoundedRectangle(r.translated(0, 1.5f), radius);
-    juce::ColourGradient face(base.interpolatedWith(juce::Colours::white, inset ? 0.06f : 0.52f),
+    const bool metal = base.getPerceivedBrightness() > .48f;
+    juce::ColourGradient face(base.interpolatedWith(juce::Colours::white, inset ? 0.04f : metal ? 0.52f : 0.10f),
                               r.getX(), r.getY(), base.darker(inset ? 0.10f : 0.16f),
                               r.getX() + r.getWidth() * 0.20f, r.getBottom(), false);
-    face.addColour(0.045, base.brighter(0.14f));
-    face.addColour(0.25, base.brighter(0.04f));
-    face.addColour(0.70, base);
+    face.addColour(0.045, base.brighter(metal ? .30f : .07f));
+    face.addColour(0.25, base.brighter(metal ? .02f : .035f));
+    face.addColour(0.58, metal ? base.darker(.09f) : base);
+    face.addColour(0.84, base.brighter(metal ? .08f : .02f));
     face.addColour(0.975, base.darker(0.11f));
     g.setGradientFill(face);
     g.fillRoundedRectangle(r, radius);
@@ -51,20 +75,20 @@ inline void panel(juce::Graphics& g, juce::Rectangle<float> r, juce::Colour base
         juce::Graphics::ScopedSaveState save(g);
         juce::Path clip; clip.addRoundedRectangle(r.reduced(1), std::max(1.0f, radius - 1));
         g.reduceClipRegion(clip);
-        g.setTiledImageFill(enamelGrain(), juce::roundToInt(r.getX()), juce::roundToInt(r.getY()), 0.40f);
+        g.setTiledImageFill(brushedMetal(), juce::roundToInt(r.getX()), juce::roundToInt(r.getY()), metal ? .85f : .45f);
         g.fillRect(r);
         // Broad softbox reflection, with no distracting hard shine across text.
-        g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(0.16f),
+        g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(metal ? .19f : .04f),
             r.getX() + r.getWidth() * 0.20f, r.getY() - r.getHeight() * 0.15f,
             juce::Colours::white.withAlpha(0.0f), r.getRight(), r.getBottom(), true));
         g.fillRect(r);
     }
-    g.setColour(juce::Colour(0xff625440).withAlpha(0.46f));
+    g.setColour(juce::Colour(0xff010713).withAlpha(0.9f));
     g.drawRoundedRectangle(r.reduced(0.45f), radius, edge);
     g.setGradientFill(juce::ColourGradient(juce::Colours::white.withAlpha(inset ? 0.25f : 0.92f),
                                           r.getX(), r.getY(), juce::Colours::black.withAlpha(0.15f),
                                           r.getX(), r.getBottom(), false));
-    g.drawRoundedRectangle(r.reduced(1.6f), std::max(1.0f, radius - 1.4f), edge);
+    g.drawRoundedRectangle(r.reduced(1.6f), std::max(1.0f, radius - 1.4f), edge * 1.15f);
     g.setColour(juce::Colours::white.withAlpha(0.19f));
     g.drawRoundedRectangle(r.reduced(2.8f), std::max(1.0f, radius - 2.4f), 0.7f);
 }
@@ -109,30 +133,31 @@ inline juce::Image ivoryDisc(juce::Colour base)
         if (rad >= 1.0f) continue;
         const float theta = std::atan2(py, px);
         float light;
-        juce::Colour pigment = base;
-        if (rad > 0.88f)
+        juce::Colour pigment = juce::Colour(0xffcbd7e7);
+        (void) base;
+        if (rad > 0.84f)
         {
             // Machined nickel rim: ridged side wall and a polished top chamfer.
-            const float ridges = std::sin(theta * 128) * 0.05f;
-            const float directional = -0.38f * px - 0.50f * py;
-            light = 0.64f + directional + ridges;
-            light += 0.32f * std::exp(-std::pow((rad - 0.927f) / 0.018f, 2.0f));
-            light -= 0.24f * std::exp(-std::pow((rad - 0.985f) / 0.009f, 2.0f));
-            pigment = juce::Colour(0xffc1b7a3);
+            const float directional = -.17f * px - .26f * py;
+            light = .77f + directional + std::sin(theta * 160) * .017f;
+            light += .43f * std::exp(-std::pow((rad - .891f) / .015f, 2.f));
+            light -= .48f * std::exp(-std::pow((rad - .944f) / .020f, 2.f));
+            light += .27f * std::exp(-std::pow((rad - .977f) / .010f, 2.f));
+            light -= .42f * std::exp(-std::pow((rad - .998f) / .008f, 2.f));
+            pigment = juce::Colour(0xffbbd8ef).interpolatedWith(juce::Colour(0xffffd1ed),std::max(0.f,px+py)*.14f);
         }
         else
         {
-            // Slight convex ceramic face and a rolled edge lit from upper left.
-            const float slope = 0.19f + 0.82f * std::pow(rad / 0.88f, 12.0f);
-            const float nx = px * slope, ny = py * slope;
-            const float nz = std::sqrt(std::max(0.04f, 1 - nx * nx - ny * ny));
-            const float diffuse = std::max(0.0f, -0.35f * nx - 0.49f * ny + 0.798f * nz);
-            const float reflection = std::pow(std::max(0.0f, -0.18f * nx - 0.27f * ny + 0.946f * nz), 45.0f);
+            // Flat, machine-turned aluminium: conical light bands, not a sphere.
             const unsigned grain = static_cast<unsigned>(x * 1973 + y * 9277) * 26699u;
-            light = 0.31f + 0.76f * diffuse + 0.11f * reflection;
-            light += (static_cast<float>((grain >> 15) & 255) / 255 - 0.5f) * 0.012f;
-            light += std::sin(rad * 2100) * 0.0035f;
-            light -= 0.14f * std::exp(-std::pow((rad - 0.875f) / 0.010f, 2.0f));
+            light = .81f + .22f * std::cos(theta * 2.f - .75f)
+                         + .09f * std::cos(theta * 4.f + .32f) - .035f * py;
+            pigment = juce::Colour(0xffdce5f0).interpolatedWith(juce::Colour(0xffe8c8e6),std::max(0.f,px+py)*.24f)
+                .interpolatedWith(juce::Colour(0xff94cbea),std::max(0.f,-px-py)*.11f);
+            light += (float((grain >> 15) & 255) / 255.f - .5f) * .008f;
+            light += std::sin(rad * 2800.f + theta*.12f) * .013f;
+            light -= .15f * std::exp(-std::pow((rad - .83f) / .008f,2.f));
+            light += .10f * std::exp(-rad * rad / .0012f);
         }
         const auto channel = [light](float c) { return juce::jlimit(0.0f, 1.0f, c * light); };
         pixels.setPixelColour(x, y, juce::Colour::fromFloatRGBA(channel(pigment.getFloatRed()),
@@ -144,7 +169,7 @@ inline juce::Image ivoryDisc(juce::Colour base)
 }
 
 inline void disc(juce::Graphics& g, juce::Rectangle<float> r,
-                 juce::Colour base = juce::Colour(0xfff4f0e5))
+                 juce::Colour base = juce::Colour(0xffc5d2e2))
 {
     if (r.isEmpty()) return;
     const float s = juce::jlimit(0.35f, 3.0f, r.getWidth() / 110.0f);
@@ -153,7 +178,7 @@ inline void disc(juce::Graphics& g, juce::Rectangle<float> r,
         g.setColour(juce::Colours::black.withAlpha(0.026f + (6-i)*0.012f));
         g.fillEllipse(r.expanded(i * 0.6f * s).translated(0.8f * s, (i * 0.55f + 2.0f) * s));
     }
-    g.setColour(juce::Colour(0xff3a342b));
+    g.setColour(juce::Colour(0xff071727));
     g.fillEllipse(r.translated(0, 1.6f * s));
     g.setImageResamplingQuality(juce::Graphics::highResamplingQuality);
     g.drawImage(ivoryDisc(base), r);
@@ -171,16 +196,19 @@ inline void grooveArc(juce::Graphics& g, juce::Point<float> centre, float radius
                                                                 juce::PathStrokeType::rounded); };
     g.setColour(juce::Colours::white.withAlpha(0.58f));
     g.strokePath(rail, stroke(thickness + 2.0f), juce::AffineTransform::translation(0, 0.9f));
-    g.setColour(juce::Colour(0xff635c4d).withAlpha(0.52f));
+    g.setColour(juce::Colour(0xff112b46).withAlpha(0.52f));
     g.strokePath(rail, stroke(thickness + 1.2f));
-    g.setColour(juce::Colour(0xffd9d0bd).withAlpha(0.72f));
+    g.setColour(juce::Colour(0xff487491).withAlpha(0.72f));
     g.strokePath(rail, stroke(std::max(1.0f, thickness - 1.4f)), juce::AffineTransform::translation(0, 0.4f));
     if (value <= 0.0f) return;
-    g.setColour(accent.darker(0.48f));
+    g.setColour(accent.withAlpha(.14f));g.strokePath(active,stroke(thickness+5.0f));
+    g.setColour(accent.withAlpha(.19f));g.strokePath(active,stroke(thickness+2.4f));
+    g.setColour(juce::Colour(0xff06101e));
     g.strokePath(active, stroke(thickness));
     juce::ColourGradient enamel(accent.brighter(0.42f), centre.x, centre.y - radius,
                                 accent.darker(0.10f), centre.x, centre.y + radius, false);
-    enamel.addColour(0.45, accent.brighter(0.12f));
+    enamel.addColour(0.45, juce::Colour(0xffdbedff));
+    enamel.addColour(0.83, juce::Colour(0xffd8b7ed));
     g.setGradientFill(enamel);
     g.strokePath(active, stroke(std::max(1.0f, thickness - 1.3f)));
     g.setColour(juce::Colours::white.withAlpha(0.35f));
@@ -204,13 +232,13 @@ inline void rotary(juce::Graphics& g, juce::Rectangle<float> bounds, float value
             const float a = startAngle + (endAngle-startAngle)*i/20.0f;
             const float outer = radius + thickness * 0.70f;
             const float length = i%5==0 ? size*0.022f : size*0.012f;
-            g.setColour(juce::Colour(0xff493f31).withAlpha(i%5==0 ? 0.43f : 0.2f));
+            g.setColour(juce::Colour(0xff132d44).withAlpha(i%5==0 ? 0.43f : 0.2f));
             g.drawLine(centre.x+std::sin(a)*outer, centre.y-std::cos(a)*outer,
                        centre.x+std::sin(a)*(outer+length), centre.y-std::cos(a)*(outer+length),
                        juce::jlimit(0.7f, 1.4f, size/180.0f));
         }
     }
-    disc(g, juce::Rectangle<float>(size*0.73f, size*0.73f).withCentre(centre));
+    disc(g, juce::Rectangle<float>(size*0.79f, size*0.79f).withCentre(centre));
     const float angle = startAngle + juce::jlimit(0.0f, 1.0f, value)*(endAngle-startAngle);
     const auto point = [&](float r) { return juce::Point<float>(centre.x+std::sin(angle)*r,
                                                               centre.y-std::cos(angle)*r); };
@@ -220,9 +248,9 @@ inline void rotary(juce::Graphics& g, juce::Rectangle<float> bounds, float value
     auto edge = line;
     edge.applyTransform(juce::AffineTransform::translation(0, 0.8f));
     g.drawLine(edge, width+1.0f);
-    g.setColour(accent.darker(0.44f));
+    g.setColour(juce::Colour(0xff081323));
     g.drawLine(line, width);
-    g.setColour(accent.brighter(0.12f));
+    g.setColour(juce::Colour(0xff203a51));
     g.drawLine(line, std::max(1.0f, width-1.6f));
 }
 }

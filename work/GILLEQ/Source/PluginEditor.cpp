@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "../../GILLCommon/PrismUi.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
 #include "../../GILLCommon/MaterialUi.h"
@@ -8,8 +9,8 @@
 
 namespace
 {
-const juce::Colour ink (0xff26362e), sage (0xff527561), sageLight (0xff8ca18d);
-const juce::Colour ivory (0xffe9e6dc), muted (0xff747b70), line (0xffbab9ad);
+const juce::Colour ink(0xff102237), sage(0xff54b8d5), sageLight(0xff97ddec);
+const juce::Colour ivory(0xffd0dcea), muted(0xff4b5c72), line(0xff91adc5);
 juce::Font font (float size, bool bold = false)
 {
     return juce::Font (juce::FontOptions (gillInterfaceFontName(), size, bold ? juce::Font::bold : juce::Font::plain));
@@ -34,88 +35,7 @@ juce::String frequencyText (double v)
     return v >= 1000.0 ? juce::String (v / 1000.0, 2) + " KHZ" : juce::String (v, 1) + " HZ";
 }
 
-class OakLookAndFeel final : public juce::LookAndFeel_V4
-{
-public:
-    OakLookAndFeel()
-    {
-        setColour (juce::Slider::textBoxTextColourId, ink);
-        setColour (juce::Slider::textBoxBackgroundColourId, juce::Colour (0xfff4f2e9));
-        setColour (juce::Slider::textBoxOutlineColourId, juce::Colour (0xffadb2a5));
-        setColour (juce::Slider::textBoxHighlightColourId, sage.withAlpha (0.2f));
-        setColour (juce::TextEditor::textColourId, ink);
-        setColour (juce::TextEditor::backgroundColourId, juce::Colour (0xfff4f2e9));
-        setColour (juce::TextEditor::outlineColourId, sage);
-        setColour (juce::TextEditor::highlightColourId, sage.withAlpha (0.25f));
-        setColour (juce::TextEditor::highlightedTextColourId, ink);
-        setColour (juce::ComboBox::textColourId, ink);
-        setColour (juce::ComboBox::backgroundColourId, ivory);
-        setColour (juce::ComboBox::outlineColourId, line);
-        setColour (juce::PopupMenu::backgroundColourId, ivory);
-        setColour (juce::PopupMenu::textColourId, ink);
-        setColour (juce::PopupMenu::highlightedBackgroundColourId, sage);
-        setColour (juce::PopupMenu::highlightedTextColourId, juce::Colours::white);
-        setColour (juce::Label::textColourId, ink);
-        setColour (juce::TextButton::textColourOffId, ink);
-        setColour (juce::TextButton::textColourOnId, juce::Colours::white);
-        setColour (juce::ToggleButton::textColourId, ink);
-        setColour (juce::TooltipWindow::backgroundColourId, ivory);
-        setColour (juce::TooltipWindow::textColourId, ink);
-    }
-    juce::Font getTextButtonFont (juce::TextButton&, int height) override { return font (juce::jlimit (10.0f, 14.0f, height * 0.37f), true); }
-    juce::Font getComboBoxFont (juce::ComboBox&) override { return font (15.0f); }
-    juce::Font getLabelFont (juce::Label&) override { return font (16.0f); }
-    juce::Slider::SliderLayout getSliderLayout (juce::Slider& s) override
-    {
-        if (s.getProperties().getWithDefault ("GRAPH VALUE", false))
-            return { {}, s.getLocalBounds() };
-        return juce::LookAndFeel_V4::getSliderLayout (s);
-    }
-    void drawLinearSlider (juce::Graphics& g, int x, int y, int width, int height, float position, float, float, juce::Slider::SliderStyle, juce::Slider& slider) override
-    {
-        const auto cy = (float) y + (float) height * 0.5f;
-        const auto alpha = slider.isEnabled() ? 1.0f : 0.35f;
-        g.setColour (line.withAlpha (alpha)); g.fillRoundedRectangle ((float) x, cy - 2, (float) width, 4, 2);
-        g.setColour (sage.withAlpha (alpha)); g.fillRoundedRectangle ((float) x, cy - 2, juce::jmax (1.0f, position - (float) x), 4, 2);
-        g.setOpacity(alpha);gill::material::disc(g,{position-6,cy-6,12,12},ivory);g.setOpacity(1.0f);
-    }
-    void drawButtonBackground (juce::Graphics& g, juce::Button& b, const juce::Colour&, bool over, bool down) override
-    {
-        auto r = b.getLocalBounds().toFloat().reduced (1.5f);
-        const bool on = b.getToggleState();
-        const auto base = on ? sage : ivory;
-        g.setColour (juce::Colours::black.withAlpha (0.10f));
-        g.fillRoundedRectangle (r.translated (0.0f, 1.5f), 6.0f);
-        g.setGradientFill (juce::ColourGradient (base.brighter (down ? 0.0f : 0.12f), r.getX(), r.getY(), base.darker (down ? 0.10f : 0.02f), r.getX(), r.getBottom(), false));
-        g.fillRoundedRectangle (r, 6.0f);
-        g.setColour (on ? sage.darker (0.25f) : line);
-        g.drawRoundedRectangle (r, 6.0f, 1.0f);
-        g.setColour (juce::Colours::white.withAlpha (on ? 0.25f : 0.75f));
-        g.drawRoundedRectangle (r.reduced (1.0f), 5.0f, 0.75f);
-        if (over) { g.setColour (sage.withAlpha (0.08f)); g.fillRoundedRectangle (r, 6.0f); }
-        if (! b.isEnabled()) { g.setColour (ivory.withAlpha (0.55f)); g.fillRoundedRectangle (r, 6.0f); }
-    }
-    void drawComboBox (juce::Graphics& g, int width, int height, bool down, int, int, int, int, juce::ComboBox&) override
-    {
-        auto r = juce::Rectangle<float> (1.0f, 1.0f, (float) width - 2.0f, (float) height - 2.0f);
-        g.setColour (juce::Colours::black.withAlpha (0.08f)); g.fillRoundedRectangle (r.translated (0, 1), 6);
-        g.setGradientFill (juce::ColourGradient (ivory.brighter (0.08f), 0, 0, ivory.darker (down ? 0.08f : 0.03f), 0, (float) height, false));
-        g.fillRoundedRectangle (r, 6);
-        g.setColour (line); g.drawRoundedRectangle (r, 6, 1);
-        g.setColour (juce::Colours::white.withAlpha (0.65f)); g.drawRoundedRectangle (r.reduced (1), 5, 0.8f);
-        juce::Path arrow;
-        const auto x = (float) width - 20.0f, y = (float) height * 0.45f;
-        arrow.startNewSubPath (x - 4, y); arrow.lineTo (x, y + 4); arrow.lineTo (x + 4, y);
-        g.setColour (ink); g.strokePath (arrow, juce::PathStrokeType (1.5f));
-    }
-    void drawRotarySlider (juce::Graphics& g, int x, int y, int width, int height, float pos, float start, float end, juce::Slider& slider) override
-    {
-        const juce::Graphics::ScopedSaveState saved(g);
-        g.beginTransparencyLayer(slider.isEnabled() ? 1.0f : 0.38f);
-        gill::material::rotary(g, {static_cast<float>(x), static_cast<float>(y), static_cast<float>(width), static_cast<float>(height)}, pos, start, end, sage);
-        g.endTransparencyLayer();
-    }
-};
+class OakLookAndFeel final : public gill::prism::Look { public: juce::Slider::SliderLayout getSliderLayout(juce::Slider& s)override{if(s.getProperties().getWithDefault("GRAPH VALUE",false))return {{},s.getLocalBounds()};return gill::prism::Look::getSliderLayout(s);} };
 
 class GraphValue final : public juce::Slider
 {
@@ -266,7 +186,7 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto r = plot();
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffd5d9cc), r.getX(), r.getY(), juce::Colour (0xffc5cebd), r.getRight(), r.getBottom(), false));
+        g.setGradientFill (juce::ColourGradient (juce::Colour (0xff142e47), r.getX(), r.getY(), juce::Colour (0xff081a2c), r.getRight(), r.getBottom(), false));
         g.fillRoundedRectangle (r, 11);
         g.setColour (juce::Colours::white.withAlpha (0.7f)); g.drawRoundedRectangle (r.translated (0, 1), 11, 1.0f);
         g.setFont (font (14.0f));
@@ -274,7 +194,7 @@ public:
         {
             auto y = yFor ((double) db);
             g.setColour (sage.withAlpha (db == 0 ? 0.34f : 0.10f)); g.drawHorizontalLine ((int) y, r.getX(), r.getRight());
-            g.setColour (muted); g.drawText ((db > 0 ? "+" : "") + juce::String (db), 0, (int) y - 8, 32, 16, juce::Justification::right);
+            g.setColour (gill::prism::silver); g.drawText ((db > 0 ? "+" : "") + juce::String (db), 0, (int) y - 8, 32, 16, juce::Justification::right);
         }
         for (int decade = 10; decade <= 10000; decade *= 10)
             for (int multiple = 1; multiple <= 9; ++multiple)
@@ -287,11 +207,11 @@ public:
         const std::array<int, 10> frequencies { 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000 };
         for (int hz : frequencies)
         {
-            g.setColour (muted);
+            g.setColour (gill::prism::silver);
             const auto label = hz >= 1000 ? juce::String (hz / 1000) + "K" : juce::String (hz);
             g.drawText (label, (int) xFor (hz) - 21, (int) r.getBottom() + 7, 42, 15, juce::Justification::centred);
         }
-        g.setFont (font (12.0f, true)); g.setColour (muted); g.drawText ("DB", 6, 0, 28, 13, juce::Justification::right);
+        g.setFont (font (12.0f, true)); g.setColour (gill::prism::silver); g.drawText ("DB", 6, 0, 28, 13, juce::Justification::right);
         {
             juce::Graphics::ScopedSaveState save (g);
             g.reduceClipRegion (r.toNearestInt());
@@ -330,11 +250,11 @@ public:
             juce::PathStrokeType (1.2f).createDashedStroke (dashedSelected, selectedResponse, dashes, 2);
             g.setColour (sage.withAlpha (0.58f)); g.fillPath (dashedSelected);
             g.setColour (juce::Colours::white.withAlpha (0.65f)); g.strokePath (response, juce::PathStrokeType (4.5f));
-            g.setColour (ink); g.strokePath (response, juce::PathStrokeType (2.2f));
+            g.setColour (gill::prism::white); g.strokePath (response, juce::PathStrokeType (2.2f));
             if (sampleRate() * 0.5 < 20000.0)
             {
                 g.setColour (ivory.withAlpha (0.72f)); g.fillRect (r.withLeft (nyquistX));
-                g.setColour (muted); g.setFont (font (12)); g.drawText ("NYQUIST", r.withLeft (nyquistX).reduced (3), juce::Justification::centred, false);
+                g.setColour (gill::prism::silver); g.setFont (font (12)); g.drawText ("NYQUIST", r.withLeft (nyquistX).reduced (3), juce::Justification::centred, false);
             }
             for (int i = 0; i < 8; ++i)
             {
@@ -348,7 +268,7 @@ public:
                     g.setColour (sage.withAlpha (0.25f)); g.drawLine (pos.x, pos.y, pos.x, limitY, active ? 8.0f : 5.0f);
                     g.setColour (sage.withAlpha (0.6f)); g.drawHorizontalLine ((int) limitY, pos.x - 5, pos.x + 5);
                     const juce::Point<float> livePosition { xFor (liveBand.frequency), yFor (liveBand.gainDb) };
-                    g.setColour (ink); g.fillEllipse (juce::Rectangle<float> (6, 6).withCentre (livePosition));
+                    g.setColour (gill::prism::white); g.fillEllipse (juce::Rectangle<float> (6, 6).withCentre (livePosition));
                     g.setColour (ivory); g.drawEllipse (juce::Rectangle<float> (6, 6).withCentre (livePosition), 1);
                 }
                 const float radius = active ? 10.0f : 7.0f;
@@ -360,7 +280,7 @@ public:
             }
         }
         g.setColour (sage.withAlpha (0.23f)); g.drawRoundedRectangle (r, 11, 1.0f);
-        g.setFont (font (14, true)); g.setColour (muted);
+        g.setFont (font (14, true)); g.setColour (gill::prism::silver);
         auto status = juce::String (frozen ? "FROZEN | LEFT CHANNEL" : analyzing ? "PRE / POST | LEFT CHANNEL | -96 TO 0 DBFS" : "ANALYZER OFF");
         const auto channel = (int) value (p, selected, "channel");
         const auto displayedBands = p.getBands();
@@ -372,7 +292,7 @@ public:
         g.drawText (status, r.toNearestInt().reduced (12, 7).removeFromTop (17), juce::Justification::topRight);
         if (gill::dynamicsActive (displayedBands[(size_t) selected]))
         {
-            g.setFont (font (12, true)); g.setColour (ink.withAlpha (0.8f));
+            g.setFont (font (12, true)); g.setColour (gill::prism::silver.withAlpha (0.8f));
             g.drawText ("LIVE CURVE | NODE: GAIN | DIAMOND: RANGE", r.toNearestInt().reduced (12, 7).removeFromBottom (15), juce::Justification::bottomLeft);
         }
         if (overlay != nullptr)
@@ -498,9 +418,9 @@ public:
     void paint (juce::Graphics& g) override
     {
         auto r = getLocalBounds().toFloat();
-        g.setFont (font (13, true)); g.setColour (muted); g.drawText ("OUT", r.removeFromTop (20), juce::Justification::centred);
+        g.setFont (font (13, true)); g.setColour (gill::prism::silver); g.drawText ("OUT", r.removeFromTop (20), juce::Justification::centred);
         auto reading = r.removeFromBottom (23);
-        g.setFont (font (13)); g.setColour (db > 0.0f ? juce::Colour (0xffab4b34) : ink);
+        g.setFont (font (13)); g.setColour (db > 0.0f ? gill::prism::pink : gill::prism::white);
         g.drawText (db < -90.0f ? "-INF" : juce::String (db, 1), reading, juce::Justification::centred);
         r = r.reduced (12, 1);
         constexpr int count = 42;
@@ -806,27 +726,8 @@ struct GilleqAudioProcessorEditor::Impl final : private juce::Timer
     void paint (juce::Graphics& g)
     {
         auto all = owner.getLocalBounds().toFloat();
-        g.fillAll (juce::Colour (0xffbba583));
-        g.setGradientFill (juce::ColourGradient (juce::Colour (0xffd9bd92), 0, 0, juce::Colour (0xffb8956c), all.getRight(), all.getBottom(), false));
-        g.fillRoundedRectangle (all.reduced (1), 9);
-        if (wood.isValid())
-        {
-            // The user's original oak and GP emblem are embedded unchanged.
-            for (int y = 8; y < header.getBottom(); y += 22)
-                g.drawImage (wood, 10, y, owner.getWidth() - 20, 22, 52, 51, 1430, 28);
-            g.drawImage (wood, 3, 7, 12, owner.getHeight() - 14, 34, 175, 16, 760);
-            g.drawImage (wood, owner.getWidth() - 15, 7, 12, owner.getHeight() - 14, 1489, 175, 17, 760);
-            g.drawImage (wood, 15, owner.getHeight() - 19, owner.getWidth() - 30, 16, 54, 945, 1430, 23);
-        }
-        g.setColour (juce::Colour (0xff745a3c).withAlpha (0.6f)); g.drawRoundedRectangle (all.reduced (1.5f), 8, 1.0f);
-        auto face = all.reduced (15).withTop ((float) header.getBottom());
-        gill::material::panel(g,face,juce::Colour(0xffeeeade),9);
-        if (wood.isValid()) g.drawImage (wood, 28, 16, 61, 41, 95, 80, 105, 70);
-        else { g.setFont (font (28, true)); g.setColour (juce::Colour (0xff60482d)); g.drawText ("GP", 28, 16, 61, 41, juce::Justification::centred); }
-        g.setColour (juce::Colour (0xff80633e)); g.drawVerticalLine (105, 17, 57);
-        g.setFont (font (26.0f)); g.setColour (juce::Colour (0xff332e23)); g.drawText ("GILLEQ", 123, 15, 160, 31, juce::Justification::centredLeft);
-        g.setFont (font (12.0f, true)); g.setColour (juce::Colour (0xff67563d)); g.drawText ("GILLPRODUCTION", 124, 46, 240, 15, juce::Justification::centredLeft);
-        gill::material::panel(g,controlPanel.toFloat(),juce::Colour(0xfff5f1e6),8,true);
+        gill::prism::chassis(g,all.getWidth(),all.getHeight(),float(controlPanel.getY()-10),68);
+        gill::prism::title(g,"GILLEQ",{76,18,240,35},25);
         labelAbove (g, frequency, "FREQUENCY"); labelAbove (g, gain, "GAIN"); labelAbove (g, q, "Q");
         labelAbove (g, channel, "CHANNEL"); labelAbove (g, slope, "SLOPE");
         g.setFont (font (13, true)); g.setColour (muted);

@@ -1,31 +1,34 @@
-GILLPRODUCTION – UPDATE 12 / 56 PLUGINS FÜR MAC
+GILLPRODUCTION – UPDATE 14 / 60 PLUGINS FÜR MAC
 
 1. Dein Projekt speichern und FL Studio schließen.
 2. Die DMG-Datei öffnen und „GILL-PLUGINS…pkg“ doppelt anklicken.
 3. Im normalen Mac-Installationsfenster auf „Fortfahren“ und „Installieren“ klicken.
    Das Mac-Administratorpasswort wird ausschließlich von macOS abgefragt.
 4. FL Studio öffnen: Options → Manage plugins → Find installed plugins.
-5. In „More plugins“ nach GILL suchen. Fertig.
+5. In „More plugins“ nach GILL suchen.
 
 Installationsort:
 /Library/Audio/Plug-Ins/VST3/GILLPRODUCTION
 
-Alle 56 VST3-Plugins sind gemeinsam enthalten und verwenden Version 0.12.0.
-Die Kennungen aller bisherigen Plugins bleiben erhalten.
-Auch die sieben kreativen Effekte aus Windows-Update11 sind enthalten. Es wird keine zusätzliche
-Downloader-App installiert. Nach dem Download funktioniert die Installation
-offline. Deine Projekte, Audioeinstellungen und Aufnahmen werden nicht verändert.
-Die gleiche Installer-Datei unterstützt Apple Silicon und Intel.
+Alle 60 VST3-Plugins sind gemeinsam enthalten und verwenden Version 0.14.0.
+Die Kennungen der 57 bisherigen Plugins bleiben erhalten. Neu sind GILLVOCODE,
+GILLGRAIN und GILLPULSE. GILLNOTE und die Änderungen aus Update 13 sind enthalten.
+Nach dem Download funktioniert die Installation offline. Deine Projekte,
+Audioeinstellungen und Aufnahmen werden nicht verändert. Die gleiche
+Installer-Datei unterstützt Apple Silicon und Intel. Es wird keine zusätzliche
+Downloader-App installiert.
 
 Die Fenster starten in den kompakten Größen des Windows-Bundles. macOS-Retina
 ändert die Pixeldichte, nicht die beabsichtigte Größe der Bedienoberfläche.
 FL Studios eigener äußerer Fensterrahmen bleibt vom Host vorgegeben.
 
-Zusätzliche Plugin-Latenz bei 48 kHz (LIVE / PRO):
-GILLTUNE und GILLTUNE LIVE: 16 / 42,67 ms.
-GILLFORM: 17,33 / 129,33 ms. GILLHARMONY: 26,67 / 70,35 ms.
-GILLRESCUE: 4 / 12 ms. GILLMIX, GILLLINK und GILLREFERENCE: 0 / 0 Samples.
+In LIVE fügen alle 60 Plugins null zusätzliche Audiosamples hinzu. Das gilt
+auch für GILLTUNE, GILLTUNE LIVE, GILLFORM, GILLHARMONY und GILLRESCUE.
+PRO kann je nach Effekt eine verzögerte Analyse oder Verarbeitung verwenden.
+Bei 48 kHz melden GILLHARMONY PRO 3377 Samples, GILLRESCUE PRO 576 Samples,
+GILLCEILING PRO 176 Samples und GILLWEIGHT PRO 32 Samples.
 Für die Gesamtlatenz kommen Audiointerface- und FL-Studio-Puffer hinzu.
+Aufnahme, Analyse und Export benötigen weiterhin Rechenzeit.
 
 Für GILLMIX: GILLLINK als letzten Insert auf jede gewünschte Quellspur setzen,
 FL-Spurfader zunächst auf 0 dB. Gewünschte Links auswählen, CONNECT SELECTED,
@@ -34,10 +37,6 @@ fünf Minuten abspielen; anschließend den Vorschlag mit APPLY übernehmen.
 STOP beendet den Durchlauf früher, ein Transportsprung beendet den bisherigen
 zusammenhängenden Abschnitt. Die Lautstärke verändert sich in den LINK-Plugins,
 nicht durch automatisches Verschieben der FL-Mixerfader.
-GILLCEILING PRO benötigt bei 48 kHz 176 Samples, GILLWEIGHT PRO 32 Samples.
-Die acht Master-Plugins aus Update 09 haben in LIVE keine zusätzliche Audioverzögerung.
-Auch GILLRISE und GILLASSIST melden in beiden Modi null zusätzliche Audiosamples;
-Aufnahme, Analyse und Export benötigen trotzdem Rechenzeit.
 
 GILLRISE: ARM aktivieren, die erste Vocal-Silbe aufnehmen lassen, NORMAL oder
 TREMOLO und den Klang einstellen. Nach dem Rendern die WAV in die Playlist
@@ -47,12 +46,17 @@ importieren, danach Pegelbereiche bearbeiten und eine WAV exportieren.
 Gerenderte Dateien zusammen mit dem Projekt aufbewahren. GILLALIGN bleibt
 auf einzelne Takes bis 20 Sekunden ausgelegt.
 
-Weitere Bedienung und Presets stehen in GILL-UPDATE-12-ANLEITUNG.md;
-GILL-PLUGINS-UEBERSICHT.txt erklärt alle 56 Plugins in Stichpunkten.
+Weitere Bedienung steht in GILL-UPDATE-14-ANLEITUNG.md;
+GILL-PLUGINS-UEBERSICHT.txt erklärt alle 60 Plugins in Stichpunkten.
 
 Die vollständigen Quellen und Lizenztexte liegen in der DMG bei.
 Zusätzliche Lizenztexte liegen nach Installation unter
 /Library/Application Support/GILLPRODUCTION/Lizenzen.
+
+Das Build-Ziel ist macOS 11 oder neuer. Native automatisierte Prüfungen laufen
+auf macOS 15 für Apple Silicon und Intel. Das belegt keine FL-Studio-Hörprüfung
+auf jeder macOS-Version. Die abschließende Sicht- und Hörprüfung auf Mac bleibt
+erforderlich.
 
 Falls der Dateiname „UNSIGNIERT-TESTVERSION“ enthält:
 Dies ist eine echte kompilierte Mac-Testversion, aber noch keine mit Apple

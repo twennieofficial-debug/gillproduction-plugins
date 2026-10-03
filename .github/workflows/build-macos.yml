@@ -26,7 +26,34 @@ env:
   CCACHE_MAXSIZE: 600M
 
 jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify packaging release gates
+        run: python3 -B -m unittest discover -s work/packaging/macos -p test_pipeline.py
+      - name: Check required signing secret names before native builds
+        if: inputs.notarize
+        env:
+          GILL_APPLICATION_IDENTITY: ${{ secrets.GILL_APPLICATION_IDENTITY }}
+          GILL_APP_CERT_P12_BASE64: ${{ secrets.GILL_APP_CERT_P12_BASE64 }}
+          GILL_APP_CERT_PASSWORD: ${{ secrets.GILL_APP_CERT_PASSWORD }}
+          GILL_INSTALLER_IDENTITY: ${{ secrets.GILL_INSTALLER_IDENTITY }}
+          GILL_INSTALLER_CERT_P12_BASE64: ${{ secrets.GILL_INSTALLER_CERT_P12_BASE64 }}
+          GILL_INSTALLER_CERT_PASSWORD: ${{ secrets.GILL_INSTALLER_CERT_PASSWORD }}
+          GILL_NOTARY_KEY_P8_BASE64: ${{ secrets.GILL_NOTARY_KEY_P8_BASE64 }}
+          GILL_NOTARY_KEY_ID: ${{ secrets.GILL_NOTARY_KEY_ID }}
+          GILL_NOTARY_ISSUER: ${{ secrets.GILL_NOTARY_ISSUER }}
+        run: python3 "$PIPELINE" signing-preflight
+
   native-build:
+    needs: preflight
     strategy:
       fail-fast: false
       max-parallel: 2

@@ -1,8 +1,9 @@
 #pragma once
 #include "../../GILLCommon/HostKeyboardPolicy.h"
 #include "PluginProcessor.h"
+#include "../../GILLCommon/PrismUi.h"
 
-class GillControlLookAndFeel final : public juce::LookAndFeel_V4 {
+class GillControlLookAndFeel final : public gill::prism::Look {
 public:
     void drawButtonBackground(juce::Graphics&, juce::Button&, const juce::Colour&, bool, bool) override;
 };

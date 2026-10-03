@@ -25,28 +25,27 @@ struct Params {
     double preserve = 0.75;
     double lowHz = 80.0;
     double highHz = 16000.0;
-    //1.0 preserves the original model exactly. Automatic upper-range settings
-    //can deliberately overestimate late energy for stronger suppression.
+    // 1.0 uses the unweighted statistical late-energy estimate. Automatic
+    // upper-range settings deliberately overestimate late energy moderately.
     double lateWeight = 1.0;
 };
 inline double finiteClamp(double x, double lo, double hi, double fallback) noexcept {
     return std::isfinite(x) ? std::clamp(x, lo, hi) : fallback;
 }
-// Single-control mode for new instances. The original Params defaults and
-// processing path remain available unchanged for saved legacy projects.
-// Protection relaxes progressively near the top of the control, where stronger
-// room removal is prioritised over transparent preservation of every phoneme.
+// Single-control mode for new instances. Legacy parameter values remain valid;
+// Update13's smoother masks and voice protection also repair existing sessions.
+// Protection relaxes near the top, but retains a conservative vocal safeguard.
 inline Params autoParameters(double amount) noexcept {
     const double a = finiteClamp(amount, 0.0, 1.0, 0.55);
     Params p;
     p.amount = a;
-    p.preserve = 0.97 - 0.82 * std::pow(a, 1.6);
+    p.preserve = 0.97 - 0.32 * std::pow(a, 1.6);
     // Keep the guide fixed while Amount moves: room decay itself is learned
     // from the input, and a moving guide would repeatedly clear that learning.
     p.roomMs = 450.0;
     p.lowHz = 30.0;
     p.highHz = 20000.0;
-    p.lateWeight = 1.0 + 0.9 * a * a * a;
+    p.lateWeight = 1.0 + 0.50 * a * a * a;
     return p;
 }
 inline double validSampleRate(double fs) noexcept {
@@ -148,8 +147,8 @@ public:
         rampSamples = std::max(1, static_cast<int>(std::lround(0.020 * sampleRate)));
         predictionDelay = std::clamp(static_cast<int>(std::lround(0.050 * sampleRate / hopSize)), 1, detail::Storage::historyFrames - 1);
         powerAlpha = std::exp(-static_cast<double>(hopSize) / (0.018 * sampleRate));
-        closeAlpha = std::exp(-static_cast<double>(hopSize) / (0.016 * sampleRate));
-        openAlpha = std::exp(-static_cast<double>(hopSize) / (0.002 * sampleRate));
+        closeAlpha = std::exp(-static_cast<double>(hopSize) / (0.030 * sampleRate));
+        openAlpha = std::exp(-static_cast<double>(hopSize) / (0.006 * sampleRate));
         frameParamAlpha = std::exp(-static_cast<double>(hopSize) / (0.030 * sampleRate));
         initialized = false;
         reset();
@@ -279,19 +278,20 @@ private:
                 neighbouring += s.power[static_cast<std::size_t>(std::clamp(k + offset, 0, numBins - 1))];
             neighbouring /= 7.0;
             const double tonalConfidence = detail::smoothStep((s.power[i] / (neighbouring + 1.0e-24) - 1.0) / 2.5);
-            const double protect = std::max(onsetConfidence, directConfidence * (0.4 + 0.6 * tonalConfidence));
+            const double stableTonal=tonalConfidence*detail::smoothStep(now/(past+1e-24));
+            const double protect = std::max({onsetConfidence, directConfidence * (0.4 + 0.6 * tonalConfidence),stableTonal*.80});
             const double estimatedLate = late * (1.0 - 0.88 * current.preserve * protect) * current.lateWeight;
             const double residualFraction = 1.0 - estimatedLate / (now + 1.0e-24);
             // Nonzero floor plus smoothing prevents isolated musical-noise bins.
-            const double rawGain = now > 1.0e-24 ? std::sqrt(std::max(0.0064, std::min(1.0, residualFraction))) : 1.0;
+            const double gainFloor=.12+.24*current.preserve*protect;
+            const double rawGain = now > 1.0e-24 ? std::sqrt(std::max(gainFloor*gainFloor, std::min(1.0, residualFraction))) : 1.0;
             s.targetGain[i] = 1.0 + s.focus[i] * (rawGain - 1.0);
         }
         double totalPower = 0.0, remainingPower = 0.0;
         for (int k = 0; k < numBins; ++k) {
             const auto i = static_cast<std::size_t>(k);
-            const double target = 0.20 * s.targetGain[static_cast<std::size_t>(std::max(0, k - 1))]
-                                + 0.60 * s.targetGain[i]
-                                + 0.20 * s.targetGain[static_cast<std::size_t>(std::min(numBins - 1, k + 1))];
+            double target = 0;for(int q=-3;q<=3;++q)target+=(4-std::abs(q))*s.targetGain[static_cast<std::size_t>(std::clamp(k+q,0,numBins-1))];target/=16;
+
             const double alpha = target > s.smoothedGain[i] ? openAlpha : closeAlpha;
             s.smoothedGain[i] = alpha * s.smoothedGain[i] + (1.0 - alpha) * target;
             s.gain[i] = std::clamp(s.smoothedGain[i], 0.08, 1.0);

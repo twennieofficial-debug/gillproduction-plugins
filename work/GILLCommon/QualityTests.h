@@ -27,8 +27,7 @@ template<class Factory,class Check>void qualityRoutes(Factory factory,Check chec
    p->qualityClient.pollOnMessageThread();
    const int latency=p->getLatencySamples();
    expect(latency>=0&&latency<=proLatency,"runtime latency is bounded by PRO");
-   const bool pitch=name=="GILLTUNE"||name=="GILLTUNE LIVE"||name=="GILLFORM";
-   if(mode==0)expect(pitch?latency>0&&latency<fs*.025:latency==0,"LIVE delay is truthful and minimized");
+   if(mode==0)expect(latency==0,"LIVE reports exactly zero samples without product exceptions");
    // Flush the largest previous history, then measure one asymmetric impulse.
    for(int j=0;j<(proLatency+1024)/127+2;++j){b.clear();p->processBlockBypassed(b,midi);}
    bool exact=true;int at=0;const int total=latency+512;

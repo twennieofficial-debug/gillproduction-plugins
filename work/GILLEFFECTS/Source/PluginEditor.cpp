@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "../../GILLCommon/PrismUi.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
 #include "../../GILLCommon/MaterialUi.h"
@@ -6,30 +7,12 @@
 #include <cmath>
 #include <complex>
 namespace {
-const juce::Colour ink(0xff293d31),sage(0xff65836b),cream(0xfff7f3e9),dark(0xff263e32);
+const juce::Colour ink(0xff102237),sage(0xff54b8d5),cream(0xffe2ecf6),dark(0xff091d31);
 juce::Font font(float h,bool bold=false){return juce::Font(juce::FontOptions(gillInterfaceFontName(),std::max(12.f,h),bold?juce::Font::bold:juce::Font::plain));}
 class GestureSlider final:public juce::Slider{
 public:bool keyPressed(const juce::KeyPress& k)override{if(k==juce::KeyPress::upKey||k==juce::KeyPress::downKey||k==juce::KeyPress::leftKey||k==juce::KeyPress::rightKey){juce::Slider::ScopedDragNotification g(*this);return Slider::keyPressed(k);}return Slider::keyPressed(k);}
 };
-class OakLook final:public juce::LookAndFeel_V4{
-public:OakLook(){setColour(juce::Slider::textBoxTextColourId,ink);setColour(juce::Slider::textBoxBackgroundColourId,cream.withAlpha(.72f));setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);setColour(juce::TextButton::buttonColourId,cream.withAlpha(.8f));setColour(juce::TextButton::buttonOnColourId,sage);setColour(juce::TextButton::textColourOffId,ink);setColour(juce::TextButton::textColourOnId,cream);setColour(juce::ComboBox::backgroundColourId,cream);setColour(juce::ComboBox::textColourId,ink);setColour(juce::ComboBox::outlineColourId,sage.withAlpha(.6f));setColour(juce::ComboBox::arrowColourId,ink);setColour(juce::PopupMenu::backgroundColourId,cream);setColour(juce::PopupMenu::textColourId,ink);setColour(juce::PopupMenu::highlightedBackgroundColourId,sage);setColour(juce::TooltipWindow::backgroundColourId,cream);setColour(juce::TooltipWindow::textColourId,ink);}
-    juce::Font getTextButtonFont(juce::TextButton&,int height)override{return font(std::clamp(height*.42f,12.f,14.f),true);}
-    juce::Font getComboBoxFont(juce::ComboBox&)override{return font(13,true);}
-    juce::Font getLabelFont(juce::Label& l)override{return l.getFont();}
-    juce::Label* createSliderTextBox(juce::Slider& slider)override{auto* label=juce::LookAndFeel_V4::createSliderTextBox(slider);label->setFont(font(13,true));label->setColour(juce::Label::textColourId,ink);label->setColour(juce::Label::backgroundColourId,cream.withAlpha(.9f));label->setColour(juce::Label::outlineColourId,juce::Colours::transparentBlack);label->setColour(juce::TextEditor::textColourId,ink);label->setColour(juce::TextEditor::backgroundColourId,cream);return label;}
-    void drawButtonBackground(juce::Graphics& g,juce::Button& b,const juce::Colour&,bool over,bool down)override{auto r=b.getLocalBounds().toFloat().reduced(1);if(b.getName()=="LEARN"){g.setColour(juce::Colours::black.withAlpha(.22f));g.fillRoundedRectangle(r.translated(0,3),8);g.setGradientFill(juce::ColourGradient(juce::Colour(0xffdfbf8f),0,0,juce::Colour(0xff987249),0,r.getHeight(),false));g.fillRoundedRectangle(r,8);g.setColour(ink.withAlpha(.16f));for(int y=4;y<r.getHeight();y+=5)g.drawLine(7,static_cast<float>(y),r.getRight()-7,static_cast<float>(y)+1,.6f);g.setColour(cream.withAlpha(.7f));g.drawRoundedRectangle(r.reduced(1),7,1);return;}g.setColour(juce::Colours::black.withAlpha(.13f));g.fillRoundedRectangle(r.translated(0,2),6);gill::material::panel(g,r,b.getToggleState()?sage:(over?cream.brighter(.05f):cream),6,down);}
-    void drawLinearSlider(juce::Graphics& g,int x,int y,int w,int h,float pos,float,float,const juce::Slider::SliderStyle style,juce::Slider&)override{
-        const bool vertical=style==juce::Slider::LinearVertical;const float cx=x+w*.5f,cy=y+h*.5f;
-        auto track=vertical?juce::Rectangle<float>(cx-5,static_cast<float>(y),10,static_cast<float>(h)):juce::Rectangle<float>(static_cast<float>(x),cy-4,static_cast<float>(w),8);
-        g.setColour(juce::Colour(0xff756956));g.fillRoundedRectangle(track.expanded(3),7);g.setColour(dark);g.fillRoundedRectangle(track,4);
-        g.setColour(sage.brighter(.25f));if(vertical)g.fillRoundedRectangle(cx-2,pos,4,std::max(0.f,y+h-pos),2);else g.fillRoundedRectangle(static_cast<float>(x),cy-2,std::max(0.f,pos-x),4,2);
-        auto thumb=vertical?juce::Rectangle<float>(cx-29,pos-14,58,28):juce::Rectangle<float>(pos-10,cy-18,20,36);
-        gill::material::fader(g,thumb,vertical,cream,sage);
-    }
-    void drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,float value,float start,float end,juce::Slider&)override{
-        gill::material::rotary(g, {static_cast<float>(x),static_cast<float>(y),static_cast<float>(w),static_cast<float>(h)}, value, start, end, sage);
-    }
-};
+class OakLook final : public gill::prism::Look {  };
 struct Binding {
     GestureSlider slider;juce::Label label;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
@@ -59,7 +42,7 @@ public:explicit Display(GillEffectProcessor& processor):p(processor){}
         g.setFont(font(10,true));g.setColour(cream.withAlpha(.8f));g.drawText("IN "+juce::String(juce::Decibels::gainToDecibels(p.inputPeak.load(),-90.f),1)+" DBFS",16,getHeight()-25,170,20,juce::Justification::left);g.drawText("OUT "+juce::String(juce::Decibels::gainToDecibels(p.outputPeak.load(),-90.f),1)+" DBFS",getWidth()-186,getHeight()-25,170,20,juce::Justification::right);
     }
 private:
-    static void background(juce::Graphics& g,juce::Rectangle<float> r){g.setGradientFill(juce::ColourGradient(dark,0,0,juce::Colour(0xff192c23),0,r.getHeight(),false));g.fillRoundedRectangle(r,12);g.setColour(cream.withAlpha(.22f));g.drawRoundedRectangle(r.reduced(1),11,1);}
+    static void background(juce::Graphics& g,juce::Rectangle<float> r){g.setGradientFill(juce::ColourGradient(dark,0,0,juce::Colour(0xff071727),0,r.getHeight(),false));g.fillRoundedRectangle(r,12);g.setColour(cream.withAlpha(.22f));g.drawRoundedRectangle(r.reduced(1),11,1);}
     void paintBalance(juce::Graphics& g){
         background(g,{0,0,720,270});g.setFont(font(15,true));g.setColour(cream.withAlpha(.78f));g.drawText("EQ / DB",17,10,120,17,juce::Justification::left);g.drawText(view.fine.enabled?juce::String(view.fine.count)+" RESONANCES  /  8 DYNAMIC BANDS":"LEGACY TONAL PROFILE",255,10,438,17,juce::Justification::right);g.drawText("IN / OUT BAND LEVEL",17,198,220,16,juce::Justification::left);
         if(!p.rateSupported.load()){g.drawText("SAMPLE RATE UNSUPPORTED / BYPASS",100,70,530,50,juce::Justification::centred);return;}
@@ -120,10 +103,11 @@ struct GillEffectEditor::Impl:private juce::Timer {
             const float y=baseHeight-43.f;bounds(previous,22,y,30,29);bounds(preset,61,y,baseWidth-242.f,29);bounds(next,baseWidth-172.f,y,30,29);bounds(mixlock,baseWidth-133.f,y,111,29);
         }
     }
-    void paint(juce::Graphics& g){const float s=owner.getWidth()/static_cast<float>(baseWidth),w=static_cast<float>(owner.getWidth()),h=static_cast<float>(owner.getHeight());g.fillAll(juce::Colour(0xffc9ac85));if(wood.isValid()){g.drawImage(wood,0,0,static_cast<int>(w),static_cast<int>(h),950,285,170,805);g.setColour(cream.withAlpha(.16f));g.fillAll();g.setOpacity(1.f);g.drawImage(wood,juce::roundToInt(21*s),juce::roundToInt(15*s),juce::roundToInt(46*s),juce::roundToInt(33*s),224,146,174,122);}
-        g.setColour(juce::Colour(0xff65543c).withAlpha(.52f));g.drawRoundedRectangle({3*s,3*s,w-6*s,h-6*s},15*s,5*s);g.setColour(cream.withAlpha(.5f));g.drawRoundedRectangle({7*s,7*s,w-14*s,h-14*s},12*s,s);g.setColour(ink.withAlpha(.4f));g.drawLine(80*s,17*s,80*s,49*s,s);g.setColour(ink);g.setFont(font(22*s));g.drawText(p.getName(),juce::Rectangle<float>(94*s,17*s,(baseWidth-332)*s,33*s),juce::Justification::centredLeft,false);
-        if(p.kind==GillKind::Space||p.kind==GillKind::Echo){g.setColour(ink.withAlpha(.22f));g.drawLine(35*s,(baseHeight-54)*s,(baseWidth-35)*s,(baseHeight-54)*s,s);}
-        if(p.kind==GillKind::Balance){g.setFont(font(12*s,true));g.setColour(ink.withAlpha(.72f));g.drawText("VOCAL PROFILE",juce::Rectangle<float>(26*s,292*s,110*s,18*s),juce::Justification::left,false);g.drawText("TARGET",juce::Rectangle<float>(146*s,292*s,290*s,18*s),juce::Justification::left,false);}
+    void paint(juce::Graphics& g){
+g.addTransform(juce::AffineTransform::scale(owner.getWidth()/static_cast<float>(baseWidth)));
+ const float top=p.kind==GillKind::Air?140.f:p.kind==GillKind::Balance?255.f:202.f;
+ gill::prism::chassis(g,float(baseWidth),float(baseHeight),top);
+ gill::prism::title(g,p.getName(),{75,16,baseWidth-313.f,32},22);
     }
 };
 GillEffectEditor::GillEffectEditor(GillEffectProcessor& p):AudioProcessorEditor(&p){impl=std::make_unique<Impl>(*this,p);const int w=impl->baseWidth,h=impl->baseHeight;setResizable(true,true);setResizeLimits(w,h,w*2,h*2);if(auto* c=getConstrainer())c->setFixedAspectRatio(static_cast<double>(w)/h);setSize(w,h);}

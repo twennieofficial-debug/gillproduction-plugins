@@ -67,7 +67,7 @@ public:
             check(descriptions.size() == 1, "one native VST3 factory"); if (descriptions.size() != 1) return false;
             item.description = *descriptions[0];
             check(item.description.name == (i ? "GILLLINK" : "GILLMIX"), "expected factory identity");
-            check(item.description.version == "0.12.0", "actual factory version 0.12.0");
+            check(item.description.version == "0.14.0", "actual factory version 0.14.0");
             juce::String error; item.processor = format.createInstanceFromDescription(item.description, sampleRate, 256, error);
             check(item.processor != nullptr, "native VST3 instance: " + error); if (!item.processor) return false;
             for (auto* p : item.processor->getParameters()) { if (p->getName(128) == "TRACK LEVEL") item.gain = p; if (p->getName(128) == "QUALITY") item.quality = p; }
@@ -171,3 +171,4 @@ int main(int argc, char** argv) {
     std::thread watchdog([&] { for (int i = 0; i < 1200 && !host.finished; ++i) juce::Thread::sleep(100); if (!host.finished) juce::MessageManager::callAsync([&] { host.check(false, "native test exceeded 120 seconds"); host.finish(); }); });
     host.startTimer(60); juce::MessageManager::getInstance()->runDispatchLoop(); host.finished = true; watchdog.join(); host.report(report); return host.failures ? 1 : 0;
 }
+

@@ -79,7 +79,9 @@ public:
             channel.pending.fill({});
         }
     }
-    int latencySamples() const noexcept { return live_ ? liveLatency_ : proLatency_; }
+    // LIVE retains current-sample monitoring, metering and LEARN. Actual peak
+    // reconstruction needs the right-hand boundary and is therefore PRO-only.
+    int latencySamples() const noexcept { return live_ ? 0 : proLatency_; }
     int maximumLatencySamples() const noexcept { return proLatency_; }
     void setParameters(const RescueParameters& parameters) noexcept { parameters_ = parameters; }
     void requestLearn() noexcept { learnRequest_.store(1, std::memory_order_release); }
@@ -124,7 +126,7 @@ public:
                 detect(channel, positive, negative);
                 for (auto& pending : channel.pending) {
                     if (pending.start < 0 || clock_ < pending.end + 3) continue;
-                    repair(channel, pending, boost);
+                    if(!live_) repair(channel, pending, boost);
                     pending = {};
                 }
                 const auto outputAt = clock_ - latencySamples();

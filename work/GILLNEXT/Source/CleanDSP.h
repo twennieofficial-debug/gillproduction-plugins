@@ -10,7 +10,7 @@ class CleanProDSP {
 public:
  void prepare(double rate,int,int channels){fs=std::clamp(detail::finite(rate,48000),8000.,192000.);ch=std::clamp(channels,1,2);size=256;while(size<fs*.018&&size<4096)size*=2;hop=size/4;
   for(auto&a:input)a.assign(size,0);for(auto&stage:removed)for(auto&a:stage)a.assign(size*2,0);for(auto&a:spectrum)a.resize(size);scratch.resize(size);masks.resize(size/2+1);
-  floor.assign(size/2+1,1e-10);power.resize(size/2+1);smooth.assign(size/2+1,{1,1,1});win.resize(size);reverse.resize(size);twiddle.resize(size/2);
+  floor.assign(size/2+1,1e-10);power.resize(size/2+1);smooth.assign(size/2+1,{1,1,1});targetsByBin.resize(size/2+1);win.resize(size);reverse.resize(size);twiddle.resize(size/2);
   int bits=0;while((1<<bits)<size)++bits;for(int i=0;i<size;++i){win[i]=std::sin(detail::pi*i/size);int v=i,r=0;for(int b=0;b<bits;++b){r=(r<<1)|(v&1);v>>=1;}reverse[i]=r;}for(int i=0;i<size/2;++i)twiddle[i]=std::polar(1.,-2*detail::pi*i/size);meter.prepare(fs);reset();
  }
  void reset()noexcept{for(auto&a:input)std::fill(a.begin(),a.end(),0);for(auto&stage:removed)for(auto&a:stage)std::fill(a.begin(),a.end(),0);std::fill(floor.begin(),floor.end(),1e-10);for(auto&a:smooth)a={1,1,1};pos=out=until=frames=0;bodyHistory=lowHistory=0;for(auto&a:reductions)a=0;weights={};weights[p.listen]=1;meter.reset();}
@@ -38,12 +38,23 @@ private:
   std::array<float,3> maxima{};
   for(int k=0;k<=bins;++k){const double hz=k*fs/size;
    // Noise floor follows minima rapidly, and rises slowly only on diffuse frames.
-   const double rise=(flatness>.2?.45:8.0),a=1-std::exp(-rate/(power[k]<floor[k]?.045:rise));floor[k]+=a*(power[k]-floor[k]);
-   const double snr=power[k]/std::max(floor[k],1e-12);const double noiseDb=(p.noise*.22)*std::clamp((4-snr)/3.,0.,1.);
+   double neighbourhood=0;for(int j=std::max(0,k-3);j<=std::min(bins,k+3);++j)neighbourhood+=power[j];neighbourhood/=std::min(bins,k+3)-std::max(0,k-3)+1;
+   const double tonal=std::clamp((power[k]/(neighbourhood+1e-20)-1.5)/2.,0.,1.);
+   // Do not eventually learn a sustained vowel as background noise. A tonal
+   // frame can lower the floor, but only diffuse frames can raise it.
+   const double a=power[k]<floor[k]?1-std::exp(-rate/.045):flatness>.2?(1-std::exp(-rate/.60))*(1-tonal):0;
+   floor[k]+=a*(power[k]-floor[k]);
+   const double snr=power[k]/std::max(floor[k],1e-12);const double noiseDb=(p.noise*.22)*std::clamp((4-snr)/3.,0.,1.)*(1-.92*tonal);
    const double plosiveDb=p.plosives*.24*plosive*std::clamp((240-hz)/180.,0.,1.);
    const double breathDb=p.breaths*.18*breath*std::clamp((hz-500)/2000.,0.,1.);
-   const std::array<double,3> targets{detail::gain(-noiseDb),detail::gain(-plosiveDb),detail::gain(-breathDb)};
-   for(int j=0;j<3;++j){const double aGain=1-std::exp(-rate/(targets[j]<smooth[k][j]?.012:.10));smooth[k][j]+=aGain*(targets[j]-smooth[k][j]);if(std::abs(smooth[k][j]-targets[j])<1e-9)smooth[k][j]=targets[j];maxima[j]=std::max(maxima[j],float(-detail::db(smooth[k][j])));}
+   targetsByBin[k]={-noiseDb,-plosiveDb,-breathDb};
+  }
+  for(int k=0;k<=bins;++k){
+   // Smooth the actual masks across frequency, not just the displayed meters.
+   // Independent bin gates otherwise leave short random tonal holes (musical noise).
+   for(int j=0;j<3;++j){double dbTarget=0,weight=0;for(int q=-3;q<=3;++q){const double w=4-std::abs(q);dbTarget+=w*targetsByBin[std::clamp(k+q,0,bins)][j];weight+=w;}
+    const double target=detail::gain(dbTarget/weight),aGain=1-std::exp(-rate/(target<smooth[k][j]?.035:.018));smooth[k][j]+=aGain*(target-smooth[k][j]);if(std::abs(smooth[k][j]-target)<1e-9)smooth[k][j]=target;maxima[j]=std::max(maxima[j],float(-detail::db(smooth[k][j])));}
+
    const double gn=smooth[k][0],gp=smooth[k][1],gb=smooth[k][2];masks[k]={1-gn,gn*(1-gp),gn*gp*(1-gb)};
   }
   for(int j=0;j<3;++j)reductions[j]=maxima[j];
@@ -52,7 +63,7 @@ private:
  }
  CleanParameters p;double fs=48000,bodyHistory=0,lowHistory=0;int ch=2,size=1024,hop=256,pos=0,out=0,until=0,frames=0;
  std::array<std::vector<double>,2>input;std::array<std::array<std::vector<double>,2>,3>removed;std::array<double,4>weights{1,0,0,0};std::vector<std::complex<double>>scratch;std::vector<std::array<double,3>>masks;std::array<std::vector<std::complex<double>>,2>spectrum;
- std::vector<double>floor,power,win;std::vector<int>reverse;std::vector<std::complex<double>>twiddle;std::vector<std::array<double,3>>smooth;
+ std::vector<double>floor,power,win;std::vector<int>reverse;std::vector<std::complex<double>>twiddle;std::vector<std::array<double,3>>smooth,targetsByBin;
  std::array<std::atomic<float>,3>reductions{};detail::Meter meter;
 };
 class CleanDSP {

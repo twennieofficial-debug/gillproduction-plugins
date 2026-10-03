@@ -1,0 +1,83 @@
+#include "PluginEditor.h"
+#include "../../GILLCommon/PrismUi.h"
+
+namespace {
+void drawNoteText(juce::Graphics&g,const juce::String&t,juce::Rectangle<int>r,float size,juce::Colour c,int alignment=juce::Justification::centredLeft){g.setColour(c);g.setFont(gill::prism::font(size));g.drawText(t,r,alignment);}
+juce::String pitchName(float value){static const char*names[]{"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"};int n=int(std::round(value));return juce::String(names[(n%12+12)%12])+juce::String(n/12-1);}
+}
+struct GillNoteEditor::Impl final:juce::Component,private juce::Timer,private juce::ScrollBar::Listener {
+ struct Roll final:juce::Component {
+  Impl&ui;int dragId=-1,edge=0;gill::note::Note initial{},dragged{};juce::Point<float>down;
+  explicit Roll(Impl&i):ui(i){setName("NOTE ROLL");setMouseCursor(juce::MouseCursor::PointingHandCursor);}
+  juce::Rectangle<float>grid()const{return getLocalBounds().toFloat().withTrimmedLeft(43).withTrimmedTop(23).withTrimmedRight(6).withTrimmedBottom(6);}
+  float x(double t)const{return grid().getX()+float((t-ui.offset)/ui.span)*grid().getWidth();}
+  float y(float midi)const{return grid().getBottom()-(midi-ui.low+.5f)*grid().getHeight()/(ui.high-ui.low+1);}
+  juce::Rectangle<float>blob(const gill::note::Note&n)const{float h=grid().getHeight()/(ui.high-ui.low+1);return {x(n.start),y(n.target)-h*.36f,std::max(5.f,x(n.end)-x(n.start)),h*.72f};}
+  void paint(juce::Graphics&g)override{
+   using namespace gill::prism;glass(g,getLocalBounds().toFloat());auto r=grid();g.saveState();g.reduceClipRegion(r.toNearestInt());
+   const bool auditioning=ui.p.engine.previewing.load();
+   const double previewTime=ui.p.engine.previewSeconds.load();
+   float previewEnergy=0;
+   const auto previewFrame=int(previewTime/gill::note::hop);
+   if(auditioning&&previewFrame>=0&&previewFrame<int(ui.display.frames.size())){
+    const auto frame=ui.display.frames[std::size_t(previewFrame)];
+    previewEnergy=std::clamp((juce::Decibels::gainToDecibels(frame.rms,-60.f)+60.f)/50.f,0.f,1.f);
+   }
+   for(int n=ui.low;n<=ui.high;++n){bool black=n%12==1||n%12==3||n%12==6||n%12==8||n%12==10;g.setColour(black?juce::Colour(0xff11283f):juce::Colour(0xff16314a));float h=r.getHeight()/(ui.high-ui.low+1);g.fillRect(juce::Rectangle<float>(r.getX(),y(float(n))-h*.5f,r.getWidth(),h));g.setColour(white.withAlpha(.07f));g.drawHorizontalLine(int(y(float(n))+h*.5f),r.getX(),r.getRight());}
+   double step=ui.span>40?10:ui.span>15?5:1;for(double t=std::ceil(ui.offset/step)*step;t<=ui.offset+ui.span;t+=step){g.setColour(white.withAlpha(.10f));g.drawVerticalLine(int(x(t)),r.getY(),r.getBottom());}
+   for(auto n:ui.display.notes){if(n.end<ui.offset||n.start>ui.offset+ui.span)continue;if(n.id==dragId)n=dragged;
+    const bool selected=n.id==ui.selected,active=auditioning&&previewTime>=n.start&&previewTime<n.end;
+    // Luminous glass is always readable. Extra energy follows the actual
+    // rendered preview; selection is a stable tint, never a fake audio pulse.
+    auto b=blob(n);g.saveState();g.reduceClipRegion(b.expanded(5.f,std::max(1.f,b.getHeight()*.2f)).toNearestInt());
+    noteGlass(g,b,selected?pink:cyan,active?previewEnergy:0.f,selected);g.restoreState();
+   }
+   juce::Path path,activeTrace;bool started=false,activeStarted=false;int first=std::max(0,int(ui.offset/gill::note::hop)),last=std::min(int(ui.display.frames.size()),int((ui.offset+ui.span)/gill::note::hop)+1);
+   for(int i=first;i<last;++i){auto f=ui.display.frames[std::size_t(i)];if(f.confidence<.8f){started=activeStarted=false;continue;}const double time=(i+.5)*gill::note::hop;float px=x(time),py=y(f.midi);if(!started)path.startNewSubPath(px,py);else path.lineTo(px,py);started=true;
+    if(auditioning&&time>=previewTime-.08&&time<=previewTime){if(activeStarted)activeTrace.lineTo(px,py);else activeTrace.startNewSubPath(px,py);activeStarted=true;}else activeStarted=false;
+   }
+   electricTrace(g,path,pink,.32f,1.15f);
+   if(auditioning)electricTrace(g,activeTrace,cyan,previewEnergy,1.4f);
+   // Labels and edge handles sit above the glow, preserving precise note edits.
+   for(auto n:ui.display.notes){if(n.end<ui.offset||n.start>ui.offset+ui.span)continue;if(n.id==dragId)n=dragged;auto b=blob(n);
+    if(b.getWidth()>28){auto caption=b.withX(b.getX()+4).withWidth(std::min(30.f,b.getWidth()-8));g.setColour(dark.withAlpha(.86f));g.fillRoundedRectangle(caption.reduced(0,.4f),2);drawNoteText(g,pitchName(n.target),caption.toNearestInt().reduced(2,0),10,white);}
+    if(n.id==ui.selected){g.setColour(white);g.fillRoundedRectangle(b.withWidth(3).reduced(0,2),1);g.fillRoundedRectangle(b.withX(b.getRight()-3).withWidth(3).reduced(0,2),1);}
+   }
+   if(auditioning&&previewTime>=ui.offset&&previewTime<=ui.offset+ui.span){const float px=x(previewTime);juce::Path head;head.startNewSubPath(px,r.getY());head.lineTo(px,r.getBottom());electricTrace(g,head,cyan,.55f+.45f*previewEnergy,1.f);}
+   g.restoreState();
+   if(auditioning&&previewTime>=ui.offset&&previewTime<=ui.offset+ui.span){const float px=x(previewTime);juce::Path marker;marker.addTriangle(px-4,r.getY()-8,px+4,r.getY()-8,px,r.getY()-1);g.setColour(white);g.fillPath(marker);}
+   for(int n=ui.low;n<=ui.high;++n)if(n%12==0||ui.high-ui.low<18)drawNoteText(g,pitchName(float(n)),{4,int(y(float(n)))-7,34,14},10,white.withAlpha(.7f));for(double t=std::ceil(ui.offset/step)*step;t<ui.offset+ui.span-step*.1;t+=step)drawNoteText(g,juce::String(t,0)+"s",{int(x(t))+3,2,40,18},10,white.withAlpha(.7f));
+   if(ui.display.notes.empty())drawNoteText(g,ui.p.engine.state==gill::note::Engine::Analysing?"NOTEN WERDEN ERKANNT ...":"LEARN + PLAY  /  WAV IMPORTIEREN",getLocalBounds(),16,white.withAlpha(.65f),juce::Justification::centred);
+  }
+  void mouseDown(const juce::MouseEvent&e)override{for(auto it=ui.display.notes.rbegin();it!=ui.display.notes.rend();++it)if(blob(*it).expanded(2).contains(e.position)){ui.selected=it->id;initial=dragged=*it;dragId=it->id;down=e.position;auto b=blob(*it);edge=e.position.x<b.getX()+7?1:e.position.x>b.getRight()-7?2:0;ui.updateSelected();repaint();return;}ui.selected=-1;ui.updateSelected();repaint();}
+  void mouseDrag(const juce::MouseEvent&e)override{if(dragId<0)return;dragged=initial;if(edge){double dt=(e.position.x-down.x)*ui.span/grid().getWidth();if(edge==1)dragged.start=std::clamp(initial.start+dt,0.,initial.end-.025);else dragged.end=std::clamp(initial.end+dt,initial.start+.025,ui.display.duration);}else{float delta=(down.y-e.position.y)*(ui.high-ui.low+1)/grid().getHeight();if(!e.mods.isShiftDown())delta=std::round(delta);dragged.target=std::clamp(initial.target+delta,initial.detected-24,initial.detected+24);}repaint();}
+  void mouseUp(const juce::MouseEvent&)override{if(dragId>=0){ui.p.engine.edit(dragged);dragId=-1;ui.display=ui.p.engine.plan();ui.updateSelected();repaint();}}
+  void mouseDoubleClick(const juce::MouseEvent&)override{if(ui.selected>=0){auto n=ui.selectedNote();ui.p.audition(n.start);}}
+  void mouseWheelMove(const juce::MouseEvent&,const juce::MouseWheelDetails&w)override{ui.scroll.setCurrentRangeStart(std::clamp(ui.offset-w.deltaY*ui.span*.5,0.,std::max(0.,ui.display.duration-ui.span)));}
+ }roll{*this};
+ GillNoteProcessor&p;gill::prism::Look look;gill::note::Plan display;int selected=-1,low=45,high=76;double offset=0,span=12;
+ juce::TextButton learn{"LEARN"},stop{"STOP"},import{"IMPORT WAV"},audition{"AUDITION"},undo{"UNDO"},redo{"REDO"},snapOne{"SNAP NOTE"},snapAll{"SNAP ALL"},render{"RENDER"},save{"SAVE WAV"},drag{"DRAG WAV"},live{"LIVE"},pro{"PRO"},bypass{"BYPASS"};
+ juce::ToggleButton formant{"FORMANTS"};juce::ComboBox key,scale;juce::Slider pitch,strength,begin,end,zoom;juce::ScrollBar scroll{false};std::unique_ptr<juce::FileChooser>chooser;
+ using Attachment=juce::AudioProcessorValueTreeState::ComboBoxAttachment;std::unique_ptr<Attachment>keyAttach,scaleAttach;std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>formantAttach;
+ explicit Impl(GillNoteProcessor&processor):p(processor){setLookAndFeel(&look);for(auto*c:std::initializer_list<juce::Component*>{&roll,&learn,&stop,&import,&audition,&undo,&redo,&snapOne,&snapAll,&render,&save,&drag,&live,&pro,&bypass,&formant,&key,&scale,&pitch,&strength,&begin,&end,&zoom,&scroll})addAndMakeVisible(c);
+  formant.setColour(juce::ToggleButton::tickColourId,gill::prism::ink);formant.setColour(juce::ToggleButton::tickDisabledColourId,gill::prism::ink.withAlpha(.35f));
+  key.addItemList({"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"},1);scale.addItemList({"CHROMATIC","MAJOR","MINOR"},1);keyAttach=std::make_unique<Attachment>(p.apvts,"key",key);scaleAttach=std::make_unique<Attachment>(p.apvts,"scale",scale);formantAttach=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"formant",formant);
+  auto slider=[&](juce::Slider&s,double a,double b,double step,const juce::String&suffix){s.setSliderStyle(juce::Slider::LinearHorizontal);s.setTextBoxStyle(juce::Slider::TextBoxBelow,false,82,19);s.setRange(a,b,step);s.setTextValueSuffix(suffix);s.setColour(juce::Slider::textBoxTextColourId,gill::prism::ink);};slider(pitch,-24,24,.01," st");slider(strength,0,100,1," %");slider(begin,0,300,.001," s");slider(end,.025,300,.001," s");slider(zoom,2,300,1," s");zoom.setValue(span);zoom.onValueChange=[this]{span=std::min(zoom.getValue(),std::max(2.,display.duration));zoom.setValue(span,juce::dontSendNotification);offset=std::min(offset,std::max(0.,display.duration-span));scroll.setRangeLimits(0,std::max(span,display.duration));scroll.setCurrentRange(offset,span);roll.repaint();};scroll.addListener(this);
+  auto changed=[this]{if(selected<0)return;auto n=selectedNote();n.target=n.detected+float(pitch.getValue());n.strength=float(strength.getValue()/100);n.start=begin.getValue();n.end=end.getValue();p.engine.edit(n);display=p.engine.plan();updateSelected();};pitch.onDragEnd=changed;strength.onDragEnd=changed;begin.onDragEnd=changed;end.onDragEnd=changed;
+  // Text-box commits also update notes, while programmatic synchronisation is silent.
+  pitch.onValueChange=[this,changed]{if(!pitch.isMouseButtonDown())changed();};strength.onValueChange=[this,changed]{if(!strength.isMouseButtonDown())changed();};begin.onValueChange=[this,changed]{if(!begin.isMouseButtonDown())changed();};end.onValueChange=[this,changed]{if(!end.isMouseButtonDown())changed();};
+  learn.onClick=[this]{selected=-1;p.engine.arm();};stop.onClick=[this]{p.engine.stop();};import.onClick=[this]{chooser=std::make_unique<juce::FileChooser>("Vocal importieren",juce::File{},"*.wav;*.aif;*.aiff;*.flac");juce::Component::SafePointer<Impl> safe(this);chooser->launchAsync(juce::FileBrowserComponent::openMode|juce::FileBrowserComponent::canSelectFiles,[safe](const juce::FileChooser&fc){if(safe&&fc.getResult().existsAsFile()){safe->selected=-1;safe->p.engine.importFile(fc.getResult());}});};
+  audition.onClick=[this]{if(p.engine.previewing)p.engine.stopAudition();else p.audition(selected>=0?selectedNote().start:offset);};undo.onClick=[this]{p.engine.undo();display=p.engine.plan();updateSelected();};redo.onClick=[this]{p.engine.redo();display=p.engine.plan();updateSelected();};snapOne.onClick=[this]{p.engine.snapNotes(int(p.value("key")),int(p.value("scale")),false,selected);display=p.engine.plan();updateSelected();};snapAll.onClick=[this]{p.engine.snapNotes(int(p.value("key")),int(p.value("scale")),true,selected);display=p.engine.plan();updateSelected();};formant.onClick=[this]{p.engine.setFormants(p.value("formant")>.5f);};render.onClick=[this]{p.engine.setFormants(p.value("formant")>.5f);p.engine.render();};
+  save.onClick=[this]{auto file=p.engine.exportFile();if(!file.existsAsFile())return;chooser=std::make_unique<juce::FileChooser>("Bearbeitete WAV speichern",juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("GILLNOTE.wav"),"*.wav");juce::Component::SafePointer<Impl> safe(this);chooser->launchAsync(juce::FileBrowserComponent::saveMode|juce::FileBrowserComponent::canSelectFiles|juce::FileBrowserComponent::warnAboutOverwriting,[safe,file](const juce::FileChooser&fc){if(safe&&fc.getResult()!=juce::File{})file.copyFileTo(fc.getResult().withFileExtension("wav"));});};drag.onClick=[this]{auto f=p.engine.exportFile();if(f.existsAsFile())juce::DragAndDropContainer::performExternalDragDropOfFiles({f.getFullPathName()},false,this);};
+  live.onClick=[this]{p.setValue("gillQuality",0);p.engine.stopAudition();};pro.onClick=[this]{p.setValue("gillQuality",1);};bypass.onClick=[this]{p.setValue("bypass",p.value("bypass")>.5f?0:1);};updateSelected();timerCallback();startTimerHz(12);
+ }
+ ~Impl()override{stopTimer();setLookAndFeel(nullptr);}
+ gill::note::Note selectedNote()const{for(auto&n:display.notes)if(n.id==selected)return n;return {};}
+ void updateSelected(){for(const auto&note:display.notes){low=std::min(low,int(std::floor(note.target-3)));high=std::max(high,int(std::ceil(note.target+3)));}bool exists=false;for(auto&n:display.notes)if(n.id==selected){exists=true;pitch.setValue(n.target-n.detected,juce::dontSendNotification);strength.setValue(n.strength*100,juce::dontSendNotification);begin.setValue(n.start,juce::dontSendNotification);end.setValue(n.end,juce::dontSendNotification);}for(auto*c:std::initializer_list<juce::Component*>{&pitch,&strength,&begin,&end,&snapOne})c->setEnabled(exists);repaint();}
+ void scrollBarMoved(juce::ScrollBar*,double start)override{offset=start;roll.repaint();}
+ void timerCallback()override{auto next=p.engine.plan();bool changed=next.duration!=display.duration||next.notes.size()!=display.notes.size();display=std::move(next);if(changed){offset=0;float a=55,b=70;for(auto&n:display.notes){a=std::min(a,n.detected-4);b=std::max(b,n.detected+4);}low=int(std::floor(a));high=int(std::ceil(b));span=std::min(zoom.getValue(),std::max(2.,display.duration));zoom.setValue(span,juce::dontSendNotification);scroll.setRangeLimits(0,std::max(span,display.duration));scroll.setCurrentRange(offset,span);updateSelected();}bool available=p.engine.exportFile().existsAsFile();save.setEnabled(available);drag.setEnabled(available);audition.setEnabled(available);render.setEnabled(!display.frames.empty()&&p.engine.state!=gill::note::Engine::Rendering);undo.setEnabled(p.engine.canUndo());redo.setEnabled(p.engine.canRedo());live.setToggleState(p.quality.mode()==gill::liveQuality,juce::dontSendNotification);pro.setToggleState(p.quality.mode()!=gill::liveQuality,juce::dontSendNotification);bypass.setToggleState(p.value("bypass")>.5f,juce::dontSendNotification);audition.setButtonText(p.engine.previewing?"STOP PREVIEW":"AUDITION");roll.repaint();repaint();}
+ void paint(juce::Graphics&g)override{using namespace gill::prism;chassis(g,float(getWidth()),float(getHeight()),394);title(g,"GILLNOTE",{82,12,208,34},23);drawNoteText(g,"VOCAL NOTE EDITOR",{278,18,235,24},11,white.withAlpha(.65f));drawNoteText(g,"KEY",{55,397,55,17},10,ink);drawNoteText(g,"SCALE",{122,397,85,17},10,ink);drawNoteText(g,"PITCH",{230,403,120,19},10,ink);drawNoteText(g,"CORRECTION",{390,403,120,19},10,ink);drawNoteText(g,"NOTE START",{550,403,120,19},10,ink);drawNoteText(g,"NOTE END",{710,403,120,19},10,ink);drawNoteText(g,selected>=0?pitchName(selectedNote().target)+"  /  NOTE "+juce::String(selected+1):"SELECT A NOTE",{55,470,155,22},12,ink);drawNoteText(g,"ZOOM",{55,514,45,20},10,ink);auto text=p.engine.status();if(p.engine.state==gill::note::Engine::Capturing)text="AUFNAHME  "+juce::String(p.engine.capturedSeconds.load(),1)+" / 300 s";drawNoteText(g,text,{237,512,getWidth()-255,30},11,ink);}
+ void resized()override{int w=getWidth();live.setBounds(w-215,17,54,25);pro.setBounds(w-155,17,54,25);bypass.setBounds(w-94,17,78,25);learn.setBounds(18,64,77,27);stop.setBounds(101,64,62,27);import.setBounds(169,64,106,27);audition.setBounds(281,64,122,27);undo.setBounds(w-146,64,61,27);redo.setBounds(w-79,64,61,27);roll.setBounds(18,101,w-36,267);scroll.setBounds(61,371,w-85,11);key.setBounds(55,416,60,24);scale.setBounds(122,416,85,24);formant.setBounds(55,444,150,24);pitch.setBounds(225,425,139,48);strength.setBounds(385,425,139,48);begin.setBounds(545,425,139,48);end.setBounds(705,425,139,48);snapOne.setBounds(234,483,106,27);snapAll.setBounds(349,483,97,27);render.setBounds(457,483,106,27);save.setBounds(575,483,118,27);drag.setBounds(705,483,139,27);zoom.setBounds(104,508,102,42);}
+};
+GillNoteEditor::GillNoteEditor(GillNoteProcessor&p):AudioProcessorEditor(p),ui(std::make_unique<Impl>(p)){addAndMakeVisible(*ui);setSize(864,560);setResizable(false,false);}
+GillNoteEditor::~GillNoteEditor()=default;void GillNoteEditor::resized(){if(ui)ui->setBounds(getLocalBounds());}

@@ -18,7 +18,7 @@ inline std::vector<MasterParam> masterParams(MasterKind kind){
     auto b=[&](const char*id,const char*label,bool initial){p.push_back({id,label,0,1,1,initial?1.f:0.f,"",{},true});};
     auto c=[&](const char*id,const char*label,juce::StringArray choices,int initial){p.push_back({id,label,0,float(choices.size()-1),1,float(initial),"",choices,false});};
     switch(kind){
-    case MasterKind::Ceiling:n("drive","DRIVE",0,24,0," dB");n("ceiling","CEILING",-12,0,-1," dB",.01f);n("release","RELEASE",20,500,150," ms",1);c("character","CHARACTER",{"CLEAN","PUNCH","LOUD"},0);b("match","GAIN MATCH",false);break;
+    case MasterKind::Ceiling:n("drive","DRIVE",0,24,0," dB");n("ceiling","CEILING",-12,6,-1," dB",.01f);n("release","RELEASE",20,500,150," ms",1);c("character","CHARACTER",{"CLEAN","PUNCH","LOUD"},0);b("match","GAIN MATCH",false);break;
     case MasterKind::Low:n("amount","TIGHT",0,100,30," %");n("frequency","LOW BAND",40,300,140," Hz",1);n("threshold","THRESHOLD",-48,0,-18," dB");n("protect","PUNCH PROTECT",0,100,60," %");n("width","BASS WIDTH",0,100,100," %");b("listen","SUB LISTEN",false);break;
     case MasterKind::Glue:n("amount","GLUE",0,100,30," %");n("attack","ATTACK",1,100,30," ms");n("release","RELEASE",30,1000,180," ms",1);n("detector","BASS FILTER",20,300,90," Hz",1);c("character","MODE",{"TRANSPARENT","GROOVE","DENSE"},0);b("match","GAIN MATCH",false);break;
     case MasterKind::Width:n("low","LOW",0,150,100," %");n("mid","MID",0,200,100," %");n("high","HIGH",0,200,100," %");n("lowHz","LOW SPLIT",60,500,160," Hz",1);n("highHz","HIGH SPLIT",1500,12000,4000," Hz",1);b("guard","CORRELATION GUARD",true);b("mono","MONO CHECK",false);break;

@@ -1,33 +1,14 @@
 #include "PluginEditor.h"
+#include "../../GILLCommon/PrismUi.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
 #include "../../GILLCommon/QualityUi.h"
 #include "../../GILLCommon/MaterialUi.h"
 
 namespace {
-const juce::Colour ink(0xff263a30),cream(0xfff2ecdd),sage(0xff74947e),amber(0xffc99549),dark(0xff142b23);
+const juce::Colour ink(0xff102237),cream(0xffe2ecf6),sage(0xff54b8d5),amber(0xffd5afd7),dark(0xff091d31);
 juce::Font font(float size,bool bold=false){return juce::Font(juce::FontOptions(gillInterfaceFontName(),size,bold?juce::Font::bold:juce::Font::plain));}
-class Look final:public juce::LookAndFeel_V4 {
-public:
-    Look(){setColour(juce::Slider::textBoxTextColourId,ink);setColour(juce::Slider::textBoxBackgroundColourId,cream);setColour(juce::Slider::textBoxOutlineColourId,juce::Colours::transparentBlack);setColour(juce::ComboBox::backgroundColourId,cream);setColour(juce::ComboBox::textColourId,ink);setColour(juce::ComboBox::outlineColourId,sage.darker());setColour(juce::ComboBox::arrowColourId,ink);setColour(juce::PopupMenu::backgroundColourId,cream);setColour(juce::PopupMenu::textColourId,ink);setColour(juce::PopupMenu::highlightedBackgroundColourId,sage);}
-    juce::Font getTextButtonFont(juce::TextButton&,int)override{return font(11,true);}
-    juce::Font getComboBoxFont(juce::ComboBox&)override{return font(11,true);}
-    void drawButtonBackground(juce::Graphics& g,juce::Button& b,const juce::Colour&,bool over,bool down)override{
-        const auto face=b.getToggleState()?sage:b.getName()=="LEARN LEVEL"?juce::Colour(0xffc6a377):cream;
-        gill::material::panel(g,b.getLocalBounds().toFloat().reduced(1),face,7,down);
-        if(over){g.setColour(juce::Colours::white.withAlpha(.1f));g.fillRoundedRectangle(b.getLocalBounds().toFloat().reduced(1),7);}
-        b.setColour(juce::TextButton::textColourOffId,ink);b.setColour(juce::TextButton::textColourOnId,ink);
-    }
-    void drawRotarySlider(juce::Graphics& g,int x,int y,int w,int h,float value,float start,float end,juce::Slider&)override{
-        gill::material::rotary(g,{float(x+3),float(y+3),float(w-6),float(h-6)},value,start,end,accent);
-    }
-    void drawLinearSlider(juce::Graphics& g,int x,int y,int w,int h,float position,float,float,juce::Slider::SliderStyle style,juce::Slider&)override{
-        const bool vertical=style==juce::Slider::LinearVertical;
-        if(vertical){const float cx=x+w*.5f;gill::material::panel(g,{cx-5,float(y),10,float(h)},dark,5,true);g.setColour(accent);g.fillRoundedRectangle(cx-2,position,4,std::max(0.f,float(y+h)-position),2);gill::material::fader(g,{cx-18,position-10,36,20},true,cream,ink);}
-        else{const float cy=y+h*.5f;gill::material::panel(g,{float(x),cy-4,float(w),8},dark,4,true);g.setColour(accent);g.fillRoundedRectangle(float(x),cy-2,std::max(0.f,position-x),4,2);gill::material::disc(g,juce::Rectangle<float>(15,15).withCentre({position,cy}));}
-    }
-    juce::Colour accent=sage;
-};
+class Look final : public gill::prism::Look { public: juce::Colour accent=gill::prism::cyan; };
 struct Dial {
     juce::Slider slider;juce::Label label;
     std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment> attachment;
@@ -66,7 +47,7 @@ struct GillToolsEditor::Impl:private juce::Timer {
         preset.setName("PRESET");preset.setComponentID("preset");for(int i=0;i<p.getNumPrograms();++i)preset.addItem(p.getProgramName(i),i+1);
         preset.onChange=[this]{if(!syncing&&preset.getSelectedId()>0)p.selectPreset(preset.getSelectedId()-1);};
         previous.onClick=[this]{p.selectPreset((p.getCurrentProgram()+5)%6);};next.onClick=[this]{p.selectPreset((p.getCurrentProgram()+1)%6);};
-        status.setFont(font(10.5f,true));status.setColour(juce::Label::textColourId,cream);
+        status.setFont(font(10.5f,true));status.setColour(juce::Label::textColourId,ink);
         if(p.harmony){
             addCombo("key","KEY",{"C","C#","D","D#","E","F","F#","G","G#","A","A#","B"});
             addCombo("scale","SCALE",{"MAJOR","MINOR","HARM. MINOR","PENTATONIC"});
@@ -110,7 +91,7 @@ struct GillToolsEditor::Impl:private juce::Timer {
         }else if(p.reference){
             toggles[0]->setBounds(267,105,126,55);toggles[1]->setBounds(278,172,104,31);toggles[2]->setBounds(278,210,104,31);toggles[3]->setBounds(278,248,104,29);
             combos[0]->setBounds(24,297,91,27);load.setBounds(121,297,65,27);clear.setBounds(192,297,65,27);combos[1]->setBounds(404,297,101,27);combos[2]->setBounds(511,297,123,27);
-            dialBounds(0,267,278,126,49);loopStart.setBounds(25,330,239,22);loopEnd.setBounds(396,330,239,22);
+            dialBounds(0,267,278,126,49);dials[0]->label.setColour(juce::Label::textColourId,cream);loopStart.setBounds(25,330,239,22);loopEnd.setBounds(396,330,239,22);
         }else{
             dialBounds(0,18,204,147,121);dialBounds(1,172,214,77,109);dialBounds(2,258,214,78,109);dialBounds(3,340,214,78,109);dialBounds(4,423,214,97,109);
             learn.setBounds(353,84,160,30);toggles[0]->setBounds(353,121,160,30);
@@ -124,14 +105,12 @@ struct GillToolsEditor::Impl:private juce::Timer {
         text(g,value>1e-6f?juce::String(db,1)+" DBFS":"-INF",box.withY(box.getBottom()-28).withHeight(23),13,true);
     }
     void paint(juce::Graphics& g){
-        const auto bounds=owner.getLocalBounds().toFloat();const juce::Colour tint=p.harmony?juce::Colour(0xffd2b27c):p.reference?juce::Colour(0xff3f2c20):juce::Colour(0xff685645);
-        g.fillAll(tint);if(wood.isValid()){g.drawImage(wood,0,0,width,height,950,285,170,805);g.setColour(tint.withAlpha(p.harmony?.35f:.68f));g.fillAll();g.setOpacity(1);g.drawImage(wood,20,18,40,28,224,146,174,122);}
-        g.setColour(cream.withAlpha(.6f));g.drawRoundedRectangle(bounds.reduced(3),p.rescue?26.f:16.f,2);g.setColour(juce::Colours::black.withAlpha(.4f));g.drawRoundedRectangle(bounds.reduced(7),p.rescue?23.f:12.f,1);
-        text(g,p.getName(),{74,17,float(width-282),30},21,false,p.harmony?ink:cream);
+        gill::prism::chassis(g,float(width),float(height),p.harmony?83.f:p.reference?293.f:203.f);
+        gill::prism::title(g,p.getName(),{74,17,float(width-280),30},21);
         if(p.harmony){
             for(int i=0;i<3;++i)gill::material::panel(g,{float(22+i*130),88,118,287},cream,14);
             gill::material::panel(g,{412,88,112,287},cream,14);text(g,"KEY / SCALE",{420,88,97,20},10,true,ink);
-            const float hz=p.harmony->detectedHz();text(g,hz>0?juce::String(hz,1)+" HZ  /  "+juce::String(p.harmony->confidence()*100,0)+" %":"PLAY ONE VOICE",{24,61,370,20},11,true,ink);
+            const float hz=p.harmony->detectedHz();text(g,hz>0?juce::String(hz,1)+" HZ  /  "+juce::String(p.harmony->confidence()*100,0)+" %":"PLAY ONE VOICE",{24,61,370,20},11,true,cream);
         }else if(p.reference){
             meter(g,{22,87,231,198},referenceView.rmsMix*std::pow(10.f,referenceView.mixGainDb/20.f),"MIX / LEARNED LEVEL");meter(g,{407,87,231,198},referenceView.rmsRef*std::pow(10.f,referenceView.matchGainDb/20.f),"REF / LEARNED LEVEL");
             text(g,referenceView.fileName.isEmpty()?"LOAD YOUR REFERENCE":referenceView.fileName,{24,61,612,21},11,true);
@@ -153,7 +132,7 @@ struct GillToolsEditor::Impl:private juce::Timer {
                 if(int(intervals[i].getProperties().getWithDefault("itemsTag",-1))!=tag){intervals[i].clear(juce::dontSendNotification);for(int value=-limit;value<=limit;++value){juce::String label;if(mode)label=juce::String(value)+" SEMITONES";else if(value==0)label="UNISON";else if(std::abs(value)==limit)label=value>0?"OCTAVE UP":"OCTAVE DOWN";else if(scale==3)label=juce::String(value)+" SCALE NOTES";else{const char* ordinal[]{"UNISON","SECOND","THIRD","FOURTH","FIFTH","SIXTH","SEVENTH","OCTAVE"};label=juce::String(ordinal[std::abs(value)])+(value>0?" UP":" DOWN");}intervals[i].addItem(label,value+20);}intervals[i].getProperties().set("itemsTag",tag);}
                 intervals[i].setSelectedId(wanted+20,juce::dontSendNotification);
             }
-            status.setText("ONE VOICE  /  "+juce::String(1000.*p.getLatencySamples()/p.rateView.load(),1)+" MS",juce::dontSendNotification);
+            status.setText((p.value("gillQuality")<.5f?juce::String("LIVE / DRY MONITOR  /  "):juce::String("ONE VOICE  /  "))+juce::String(1000.*p.getLatencySamples()/p.rateView.load(),1)+" MS",juce::dontSendNotification);
         }else if(p.reference){referenceView=p.reference->snapshot();
             toggles[0]->setButtonText(referenceView.referenceActive?"REF PLAYING":p.value("reference")>.5f?"REF ARMED":"MIX / REF");
             const auto matchStatus=p.value("match")<.5f?juce::String("MATCH OFF"):referenceView.mixMeasuring?juce::String("MEASURING ")+juce::String(referenceView.mixAnalysisSeconds,0)+" / 300 S":referenceView.mixComplete?(referenceView.loudnessValid?juce::String("MATCH READY"):juce::String("NEED 3 ACTIVE SECONDS")):juce::String("PLAY TO MEASURE");

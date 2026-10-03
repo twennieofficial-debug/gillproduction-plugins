@@ -210,11 +210,11 @@ int main() {
             }
             double error=0;bool endpointExact=true;
             for(int i=0;i<static_cast<int>(actual.size());++i) {
-                const double progress=std::clamp((i-change+1)/static_cast<double>(ramp),0.0,1.0);
+                const double progress=std::clamp((i-change-dsp.formantLatencySamples()+1)/static_cast<double>(ramp),0.0,1.0);
                 const double mix=rising?progress:1.0-progress;
                 const double expected=dry[i]+mix*(wet[i]-dry[i]);
                 error=std::max(error,std::abs(actual[i]-expected));
-                if(i>=change+ramp)endpointExact &= actual[i]==(rising?wet[i]:dry[i]);
+                if(i>=change+dsp.formantLatencySamples()+ramp)endpointExact &= actual[i]==(rising?wet[i]:dry[i]);
             }
             const double hardDelta=std::abs(wet[change]-dry[change]);
             const double firstAutomationStep=std::abs(actual[change]-(rising?dry[change]:wet[change]));
@@ -235,8 +235,8 @@ int main() {
     }
     { // An upper-bound sample rate must also retain its actual clock.
         TestTuneDSP dsp;dsp.prepare(768000,512,1);dsp.setParameters(0,0,0,0,0);
-        std::vector<float> data(65536,0);data[0]=1;process(dsp,data,512);
-        check(data[dsp.latencySamples()]==1 && dsp.latencySamples()==(GILL_TUNE_TEST_LIVE?12288:32768),"768 kHz actual-rate delay");
+        std::vector<float> data(static_cast<size_t>(dsp.latencySamples())+65536,0);data[0]=1;process(dsp,data,512);
+        check(data[dsp.latencySamples()]==1 && dsp.latencySamples()==(GILL_TUNE_TEST_LIVE?0:32768+dsp.formantLatencySamples()),"768 kHz actual-rate delay");
     }
     { // Whole-engine stereo CPU measurement, informative rather than machine-specific gate.
         TestTuneDSP dsp;dsp.prepare(48000,128,2);dsp.setParameters(0,0,0,0,100);

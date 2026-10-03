@@ -1,5 +1,6 @@
 #pragma once
 #include "QualityBus.h"
+#include "PrismUi.h"
 #include <juce_gui_basics/juce_gui_basics.h>
 
 namespace gill {
@@ -37,13 +38,13 @@ private:
         live.setToggleState(isLive, juce::dontSendNotification); pro.setToggleState(!isLive, juce::dontSendNotification);
         const auto samples = processor.getLatencySamples(); const auto rate = processor.getSampleRate();
         const auto latency = juce::String(samples) + " samples" + (rate > 0 ? " / " + juce::String(samples * 1000.0 / rate, 2) + " ms" : juce::String{});
-        live.setTooltip("LIVE: recording mode. Reported latency: " + latency);
+        live.setTooltip("LIVE: zero plug-in delay; analysis/pitch/lookahead processing may be bypassed. Audio interface and host buffering remain. Reported latency: " + latency);
         pro.setTooltip("PRO: processing quality. Reported latency: " + latency);
     }
     void timerCallback() override { refresh(); }
     juce::AudioProcessor& processor;
     juce::AudioProcessorValueTreeState& apvts;
-    juce::LookAndFeel_V4 lookAndFeel;
+    gill::prism::Look lookAndFeel;
     juce::TextButton live, pro;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(QualitySelector)
 };

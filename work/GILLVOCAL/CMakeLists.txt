@@ -9,7 +9,7 @@ if(CMAKE_HOST_APPLE OR CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum supported macOS")
     endif()
 endif()
-project(GILLVOCAL VERSION 0.12.0 LANGUAGES C CXX)
+project(GILLVOCAL VERSION 0.14.0 LANGUAGES C CXX)
 # Keep each Mach-O image's JUCE implementation private, including custom
 # static runtimes and Objective-C++ units. VST3 entry points stay explicit exports.
 if(APPLE)
@@ -49,6 +49,9 @@ set(runtime_defs JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_USE_WIN_WEBVIEW2=0 JUCE
 foreach(m audio_basics audio_devices audio_formats audio_processors audio_processors_headless audio_utils core data_structures events graphics gui_basics gui_extra)
   list(APPEND runtime_defs JUCE_MODULE_AVAILABLE_juce_${m}=1)
 endforeach()
+
+add_executable(GillAudioRepair13Tests Tests/AudioRepair13Tests.cpp)
+add_test(NAME AUDIO_REPAIR_13 COMMAND GillAudioRepair13Tests)
 if(WIN32 AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Tests/Vst3HostTests.cpp")
   add_executable(GillVocalVst3HostTests Tests/Vst3HostTests.cpp)
   target_link_libraries(GillVocalVst3HostTests PRIVATE GillVocalRuntime juce::juce_audio_processors)

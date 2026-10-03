@@ -95,7 +95,14 @@ void quality(const std::filesystem::path& fixtureDir, const std::filesystem::pat
     for (const auto& fixture : fixtures) {
         const auto oldOutput = renderLegacy(fixture.wet, dry.rate);
         const auto legacyApiOutput = render(fixture.wet, dry.rate, gilldereverb::Params{});
-        require(legacyApiOutput == oldOutput, "current legacy Params API is bit-identical to archived0.1 engine");
+        // Update13 deliberately repairs the spectral masks for existing states.
+        // Retain the archived render as a quality comparator, not a demand that
+        // the user-requested DSP correction return the previous buggy samples.
+        const auto revised=measure(fixture.label,.55,fixture.wet,legacyApiOutput,fixture.early,dry.rate);
+        const auto baseline=measure(fixture.label,.55,fixture.wet,oldOutput,fixture.early,dry.rate);
+        require(revised.activeImprovement>0&&revised.activeSdr>=baseline.activeSdr-.25,
+                "existing parameter API retains active-room intelligibility after mask smoothing");
+        require(revised.tailNormalized>1,"existing parameter API still suppresses normalized room tails");
         auto old = measure(fixture.label, 0.55, fixture.wet, oldOutput, fixture.early, dry.rate); old.drySdr = oldDrySdr; old.dryLevel = oldDryLevel; legacyResults.push_back(old);
     }
     for (double amountValue : {0.0, 0.25, 0.55, 0.65, 0.85, 1.0}) {
