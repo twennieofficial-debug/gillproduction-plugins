@@ -50,7 +50,8 @@ def selected_sources(work):
         guide = path.name.startswith("GILL-UPDATE-") and path.name.endswith("-ANLEITUNG.md")
         allowed = ((len(relative.parts) == 1 and (guide or path.name in {
             "pipeline.py", "products.json", "ctest-matrix.json", "ci_signing.py", "github-actions.yml",
-            "README.md", "MAC-INSTALLATION.txt", "test_pipeline.py", "GILL-PLUGINS-UEBERSICHT.txt"}))
+            "README.md", "MAC-INSTALLATION.txt", "test_pipeline.py", "GILL-PLUGINS-UEBERSICHT.txt",
+            "incremental_texture.py", "test_incremental_texture.py"}))
             or relative.parts[0] == "resources")
         if path.is_file() and allowed and path.suffix.lower() in {".py", ".json", ".md", ".yml", ".yaml", ".sh", ".xml", ".html", ".txt"}:
             selected.append(path)
@@ -71,7 +72,8 @@ def selected_sources(work):
     runners = work / "update14_delivery"
     if runners.is_dir():
         selected.extend(path for path in sorted(runners.iterdir())
-                        if path.is_file() and path.suffix == ".py")
+                        if path.is_file() and path.name in {
+                            "validate14.py", "run_quality_host14.py", "run_mix_host14.py"})
     return selected
 
 

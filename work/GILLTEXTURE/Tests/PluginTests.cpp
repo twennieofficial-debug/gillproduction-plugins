@@ -78,7 +78,13 @@ void guiTests(GillTextureProcessor& p){
     check(presets!=nullptr,p.getName()+" visible preset selector");
     if(p.kind==TextureKind::Pulse){check(patterns!=nullptr,"PULSE exposes four editable patterns");if(patterns){patterns->setSelectedId(2,juce::sendNotificationSync);check(p.value("step1")==0&&p.value("step3")==1,"PULSE pattern button changes actual step parameters");}}
     juce::TextEditor entry;editor->addAndMakeVisible(entry);entry.setWantsKeyboardFocus(true);check(entry.getWantsKeyboardFocus(),p.getName()+" text entry retains keyboard focus");editor->removeChildComponent(&entry);
-    p.setCurrentProgram(0);juce::Thread::sleep(60);juce::Timer::callPendingTimersSynchronously();
+    p.setCurrentProgram(0);
+    // Capture the same initial state a host sees when it opens an editor. A sleeping
+    // test thread is not a running host message loop and can leave timer labels stale.
+    editor.reset();editor.reset(p.createEditor());
+    std::vector<juce::Component*> captureComponents;gather(*editor,captureComponents);bool captionMatches=false;
+    for(auto* component:captureComponents)if(auto* combo=dynamic_cast<juce::ComboBox*>(component))if(combo->getComponentID()=="preset")captionMatches=combo->getSelectedId()==p.getCurrentProgram()+1&&combo->getText()==p.getProgramName(p.getCurrentProgram());
+    check(captionMatches&&p.presetMatches(),p.getName()+" newly opened editor shows actual default preset before capture");
     for(float scale:{1.f,1.5f}){auto image=editor->createComponentSnapshot(editor->getLocalBounds(),true,scale);auto file=juce::File::getCurrentWorkingDirectory().getChildFile(p.getName()+"-UI-"+juce::String(image.getWidth())+"x"+juce::String(image.getHeight())+".png");auto stream=file.createOutputStream();if(stream){stream->setPosition(0);stream->truncate();juce::PNGImageFormat png;check(png.writeImageToStream(image,*stream),p.getName()+" actual native editor screenshot");}else check(false,p.getName()+" editor screenshot file");}
 }
 }

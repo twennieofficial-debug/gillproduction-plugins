@@ -10,9 +10,25 @@ on:
         type: boolean
         default: false
         required: true
+      reuse_native_run:
+        description: 'Optional successful native base run for a TEXTURE-only rebuild'
+        type: string
+        default: ''
+        required: false
+      reuse_native_commit:
+        description: 'Full 40-character commit of the optional native base run'
+        type: string
+        default: ''
+        required: false
+      reuse_native_source_sha256:
+        description: 'Exact source SHA256 from the optional base native-build.json'
+        type: string
+        default: ''
+        required: false
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: gill-macos-${{ github.ref }}
@@ -37,7 +53,23 @@ jobs:
         with:
           python-version: '3.11'
       - name: Verify packaging release gates
-        run: python3 -B -m unittest discover -s work/packaging/macos -p test_pipeline.py
+        run: python3 -B -m unittest discover -s work/packaging/macos -p 'test_*.py'
+      - name: Validate optional native reuse identity
+        env:
+          BASE_RUN: ${{ inputs.reuse_native_run }}
+          BASE_COMMIT: ${{ inputs.reuse_native_commit }}
+          BASE_SOURCE_SHA: ${{ inputs.reuse_native_source_sha256 }}
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          sys.path.insert(0, 'work/packaging/macos')
+          from incremental_texture import validate_inputs
+          values = [os.environ.get(name, '') for name in ('BASE_RUN', 'BASE_COMMIT', 'BASE_SOURCE_SHA')]
+          if any(values):
+              if not all(values) or not values[0].isascii() or not values[0].isdigit():
+                  raise SystemExit('All three complete native reuse inputs are required together.')
+              validate_inputs(os.environ['GITHUB_REPOSITORY'], int(values[0]), values[1], values[2])
+          PY
       - name: Check required signing secret names before native builds
         if: inputs.notarize
         env:
@@ -89,11 +121,21 @@ jobs:
           cmake --version
           python3 "$PIPELINE" check-source --source work
       - name: Native build, DSP, UI and cross-plugin LIVE/PRO tests
-        run: >-
-          python3 "$PIPELINE" build --source work
-          --build-root "$RUNNER_TEMP/gill-build"
-          --destination "$RUNNER_TEMP/native"
-          --jobs 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_RUN: ${{ inputs.reuse_native_run }}
+          BASE_COMMIT: ${{ inputs.reuse_native_commit }}
+          BASE_SOURCE_SHA: ${{ inputs.reuse_native_source_sha256 }}
+        run: |
+          if [ -n "$BASE_RUN" ]; then
+            python3 work/packaging/macos/incremental_texture.py --source work \
+              --build-root "$RUNNER_TEMP/gill-build" --destination "$RUNNER_TEMP/native" \
+              --base-run "$BASE_RUN" --base-commit "$BASE_COMMIT" \
+              --base-source-sha "$BASE_SOURCE_SHA" --jobs 2
+          else
+            python3 "$PIPELINE" build --source work \
+              --build-root "$RUNNER_TEMP/gill-build" --destination "$RUNNER_TEMP/native" --jobs 2
+          fi
       - name: Retain compiler cache after successful or failed tests
         if: always() && steps.compiler-cache.outputs.cache-hit != 'true' && steps.compiler-cache.outputs.cache-primary-key != ''
         continue-on-error: true

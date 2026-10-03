@@ -69,7 +69,7 @@ struct GillTextureEditor::Impl final : juce::Component, private juce::Timer {
         const int first=p.kind==TextureKind::Vocode?191:p.kind==TextureKind::Grain?151:232;
         const int row=p.kind==TextureKind::Vocode?110:p.kind==TextureKind::Grain?110:93;
         for(std::size_t i=0;i<controls.size();++i){const int width=(w-42)/4;controls[i]->setBounds(21+int(i%4)*width,first+int(i/4)*row,width,row-5);}
-        if(p.kind==TextureKind::Pulse){const int width=(w-48)/16;for(int i=0;i<16;++i)steps[i].setBounds(24+i*width,94,width,86);pattern.setBounds(w-220,197,196,27);}
+        if(p.kind==TextureKind::Pulse){const int width=(w-48)/16;for(int i=0;i<16;++i)steps[i].setBounds(24+i*width,94,width,76);pattern.setBounds(w-220,197,196,27);}
     }
     void signalPanel(juce::Graphics& g,juce::Rectangle<float> r){
         gill::material::panel(g,r,gill::prism::dark,7,true);
