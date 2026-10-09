@@ -123,3 +123,8 @@ endforeach()
 add_executable(GillSilkMovingDspTests Tests/SilkMovingTests.cpp)
 target_include_directories(GillSilkMovingDspTests PRIVATE Source)
 add_test(NAME SilkMoving_DSP COMMAND GillSilkMovingDspTests)
+
+add_executable(GillSilkRealVoiceDspTests Tests/SilkRealVoiceTests.cpp)
+target_include_directories(GillSilkRealVoiceDspTests PRIVATE Source)
+add_test(NAME SilkRealVoice_DSP COMMAND GillSilkRealVoiceDspTests
+  "${CMAKE_CURRENT_SOURCE_DIR}/../GILLDEREVERB/Tests/fixtures/dry_48k.wav")

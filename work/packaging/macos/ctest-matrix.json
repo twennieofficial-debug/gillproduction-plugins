@@ -34,7 +34,8 @@
     "EFFECTS_INTEGRATION",
     "Character_DSP",
     "Spectral_DSP",
-    "SilkMoving_DSP"
+    "SilkMoving_DSP",
+    "SilkRealVoice_DSP"
   ],
   "GILLNEXT": [
     "NEXT_INTEGRATION",

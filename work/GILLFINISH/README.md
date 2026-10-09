@@ -1,10 +1,10 @@
-# GILLFINISH 0.3.0
+# GILLFINISH 0.20.0
 
-Aktueller Quellstand der Release-Runde 04: **0.3.0**. Historische Versionsangaben in Testberichten beziehen sich auf deren jeweiligen Messlauf.
+Quellstand für Mac20 und die aktuelle SILK/SPARK-Korrektur: **0.20.0**. Historische Versionsangaben in Testberichten beziehen sich auf deren jeweiligen Messlauf.
 
-Fünf eigenständige Windows-x64-VST3-Effekte für Vocals. Jedes Plugin enthält zwölf eigene Presets; insgesamt sind es 60. Holzoberfläche, weiße Regler und kleines GP-Zeichen passen zum GILL-Bundle.
+Fünf eigenständige VST3-Effekte für Vocals, mit Windows-x64- und macOS-Buildwegen. Jedes Plugin enthält zwölf eigene Presets; insgesamt sind es 60. Die kompakte Bundle-Oberfläche verwendet das gemeinsame GP-Zeichen.
 
-| Plugin | Aufgabe | Eigene Latenz bei 48 kHz |
+| Plugin | Aufgabe | Eigene PRO-Latenz bei 48 kHz |
 |---|---|---:|
 | GILLSILK | Schmale Resonanzen dynamisch absenken | 2048 Samples / 42,7 ms |
 | GILLSPARK | Frequenzselektive Transienten in CUT oder BOOST bearbeiten | 512 Samples / 10,7 ms |
@@ -12,7 +12,7 @@ Fünf eigenständige Windows-x64-VST3-Effekte für Vocals. Jedes Plugin enthält
 | GILLGOLD | Klangformung mit unabhängigem Boost und Attenuation | 0 Samples |
 | GILLDIVE | Unterwasserfilter mit Bewegung und Reaktion auf die Stimme | 0 Samples |
 
-Mono/Stereo und 8–192 kHz werden unterstützt. Bei 44,1 kHz beträgt die Latenz von SILK/SPARK 46,4/11,6 ms. Die Verzögerung kommt zum Hostpuffer hinzu; insbesondere SILK eignet sich eher für die Bearbeitung als für latenzarmes Einsing-Monitoring.
+Mono/Stereo und 8–192 kHz werden unterstützt. Bei 44,1 kHz beträgt die PRO-Latenz von SILK/SPARK 46,4/11,6 ms. LIVE meldet bei allen fünf Produkten null zusätzliche Host-PDC und verwendet bei SILK/SPARK eine kausale Verarbeitung mit geringerer spektraler Genauigkeit. Hostpuffer und Geräte verursachen weiterhin Latenz. Der Wechsel zwischen LIVE und PRO bleibt im selben Plugin möglich.
 
 ## Schnellstart
 
@@ -32,7 +32,7 @@ Eine mögliche Startkette ist SPARK → STRIP → SILK → GOLD; nicht jede Aufn
 
 Engines, Presets und Oberflächen sind eigene Implementierungen. Es werden keine proprietären Engines, Presetdateien oder Artist-Datensätze mitgeliefert. SILK/SPARK unterscheiden nicht sicher zwischen gewollter Artikulation und jeder unerwünschten Störung. Perfekte Bearbeitung beliebiger Aufnahmen wird nicht zugesagt.
 
-Tests erzeugen eigene synthetische Signale. DSP-, native Host-, UI- und Validator-Berichte gelten jeweils für ihre protokollierten Quellen und Binärdateien. Diese Anleitung bestätigt keine Installation.
+Tests verwenden eigene synthetische Signale sowie eine lizenzierte Sprachaufnahme mit unabhängigen künstlichen Resonanzen. Die Sprachaufnahme und ihre Herkunft liegen unter GILLDEREVERB/Tests/fixtures. DSP-, native Host-, UI- und Validator-Berichte gelten jeweils für ihre protokollierten Quellen und Binärdateien. Diese Anleitung bestätigt keine Installation oder subjektive Hörprüfung.
 
 Buildanleitung: [BUILDING.md](BUILDING.md). Vollständige Presetdefinitionen: [Source/Presets.h](Source/Presets.h). Lizenz: [LICENSE](LICENSE), [LICENSE-NOTICE.md](LICENSE-NOTICE.md), [THIRD-PARTY.md](THIRD-PARTY.md).
 

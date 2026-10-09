@@ -1,8 +1,8 @@
-# GILLFINISH 0.3.0 erstellen
+# GILLFINISH 0.20.0 erstellen
 
-Aktueller Quellstand der Release-Runde 04: **0.3.0**. Historische Versionsangaben in Testberichten beziehen sich auf deren jeweiligen Messlauf.
+Quellstand für Mac20 und die aktuelle SILK/SPARK-Korrektur: **0.20.0**. Historische Versionsangaben in Testberichten beziehen sich auf deren jeweiligen Messlauf.
 
-Das CMake-Projekt erzeugt fünf Windows-x64-VST3-Produkte: GILLSILK, GILLSPARK, GILLSTRIP, GILLGOLD und GILLDIVE. Es baut keine AU-, AAX- oder Standalone-Dateien.
+Das CMake-Projekt erzeugt fünf VST3-Produkte: GILLSILK, GILLSPARK, GILLSTRIP, GILLGOLD und GILLDIVE. Unterstützte Buildwege sind Windows x64 sowie macOS arm64/x86_64; es baut keine AU-, AAX- oder Standalone-Dateien.
 
 ## Paketlayout und Voraussetzungen
 
@@ -16,11 +16,14 @@ C:\GillSrc\
     LICENSE
     LICENSE-NOTICE.md
     THIRD-PARTY.md
+  GILLCommon\
+  GILLDEREVERB\
+    Tests\fixtures\
   dependencies\
     JUCE\
 ```
 
-GILLFINISH und dependencies müssen Geschwisterordner bleiben. Der normale Build liest JUCE über ../dependencies/JUCE; er lädt keine fehlenden Abhängigkeiten automatisch herunter. Ein kurzer tatsächlicher Pfad wie C:\GillSrc vermeidet unnötig lange Buildpfade. Ein Laufwerksalias wird nicht vorausgesetzt.
+GILLFINISH, GILLCommon, GILLDEREVERB und dependencies müssen Geschwisterordner bleiben. GILLCommon enthält gemeinsame Produktions-Header; GILLDEREVERB/Tests/fixtures enthält die lizenzierte Sprachaufnahme mit Herkunft und Lizenz für SilkRealVoice_DSP. Der normale Build liest JUCE über ../dependencies/JUCE; er lädt keine fehlenden Abhängigkeiten automatisch herunter. Ein kurzer tatsächlicher Pfad wie C:\GillSrc vermeidet unnötig lange Buildpfade. Ein Laufwerksalias wird nicht vorausgesetzt.
 
 Erforderlich sind CMake ab 3.22, Ninja, MSVC mit x64-C++17-Unterstützung und das Windows SDK. Der Entwicklungsaufbau nutzt MSVC Toolset 14.44.35207 / Compiler 19.44 sowie Windows SDK 10.0.22621.0. Der Windows-VST3-Build verwendet die statische MSVC-Laufzeit; Release entspricht /MT. MinGW ist für diesen nativen JUCE-Wrapper nicht der dokumentierte Buildweg.
 
@@ -32,7 +35,7 @@ Eine **x64 Native Tools Command Prompt** für Visual Studio öffnen. CMake und N
 
 ```bat
 cmake -S GILLFINISH -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=cl -DCMAKE_CXX_COMPILER=cl
-cmake --build build --config Release --parallel 2 --target GILLSILK_VST3 GILLSPARK_VST3 GILLSTRIP_VST3 GILLGOLD_VST3 GILLDIVE_VST3 GillCharacterDspTests GillSpectralDspTests GillFinishIntegrationTests
+cmake --build build --config Release --parallel 2 --target GILLSILK_VST3 GILLSPARK_VST3 GILLSTRIP_VST3 GILLGOLD_VST3 GILLDIVE_VST3 GillCharacterDspTests GillSpectralDspTests GillSilkMovingDspTests GillSilkRealVoiceDspTests GillFinishIntegrationTests
 ctest --test-dir build -C Release --output-on-failure
 ```
 
@@ -52,7 +55,7 @@ CMake installiert sie nicht automatisch. Für eine manuelle Installation jeweils
 
 ## Tests und Berichte
 
-CTest registriert **Character_DSP**, **Spectral_DSP** und **EFFECTS_INTEGRATION**. Letzterer Name bezeichnet in diesem Projekt das Ziel GillFinishIntegrationTests. Arbeitsordner ist GILLFINISH/Tests.
+CTest registriert **Character_DSP**, **Spectral_DSP**, **SilkMoving_DSP**, **SilkRealVoice_DSP** und **EFFECTS_INTEGRATION**. Letzterer Name bezeichnet in diesem Projekt das Ziel GillFinishIntegrationTests. Der Sprachtest erhält den Fixture-Pfad über CTest; der Arbeitsordner der Integration ist GILLFINISH/Tests.
 
 Konsolenberichte lassen sich aus diesem Tests-Ordner speichern:
 
@@ -75,7 +78,19 @@ SpectralTests.exe
 
 Falls Tests/Vst3HostTests.cpp im Paket vorhanden ist, bietet CMake zusätzlich GillFinishVst3HostTests an. Dieses optionale Ziel wird für den normalen Build oben nicht benötigt.
 
-## Optionale Wiederverwendung einer Laufzeitbibliothek
+## Regulärer macOS-Build
+
+Xcode Command Line Tools, CMake und Ninja installieren und aus dem gemeinsamen Quellordner ausführen:
+
+```sh
+cmake -S GILLFINISH -B build-mac -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+cmake --build build-mac --parallel 2
+ctest --test-dir build-mac --output-on-failure
+```
+
+Für einen Intel-Build `arm64` durch `x86_64` ersetzen und einen eigenen Buildordner verwenden. Die vollständige Bundle-Pipeline baut und prüft beide Architekturen nativ, kombiniert die VST3-Binaries und prüft die kombinierten Dateien erneut. Die reguläre Mac-Variante verwendet die gepinnten JUCE-Quellen; eine Windows-Static-Library kann dort nicht wiederverwendet werden.
+
+## Optionale Wiederverwendung einer Windows-Laufzeitbibliothek
 
 **GILL_JUCE_EXPORT** und **GILL_PREBUILT_RUNTIME** sind optionale Entwickler-Overrides. Beim regulären Build beide weglassen. Ohne sie fügt CMake den lokalen JUCE-Baum hinzu und baut GillFinishRuntime aus Source/JuceRuntime.cpp selbst.
 

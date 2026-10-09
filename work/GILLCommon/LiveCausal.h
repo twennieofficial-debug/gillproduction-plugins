@@ -25,11 +25,56 @@ struct Biquad {
  void peak(double sine,double cosine,double gain,double q)noexcept{const double a=std::sqrt(std::max(.05,gain)),alpha=sine/(2*q),den=1+alpha/a;b0=(1+alpha*a)/den;b1=-2*cosine/den;b2=(1-alpha*a)/den;a1=b1;a2=(1-alpha/a)/den;}
 };
 
+// SILK needs much finer frequency resolution than the restoration crossover.
+// A separate causal bank keeps the other processors' arithmetic unchanged.
+class SilkBands {
+ static constexpr int count=192;
+ std::array<double,count> hz{},sn{},cs{},power{},gain{},wanted{};
+ std::array<int,count> second{},third{},left{},right{};
+ std::array<std::array<Biquad,count>,2> detectors{},cuts{};
+ Settings p; double fs=48000,average=0,attack=0,release=0,smooth=0,mix=1,output=1;
+ int channels=2,activeCuts=0;std::uint64_t clock=0;
+ std::array<int,count> activeIndices{};
+ std::array<float,128> view{};
+public:
+ void prepare(double rate,int ch)noexcept{fs=rate;channels=ch;average=alpha(.08,fs);smooth=alpha(.005,fs);
+  for(int k=0;k<count;++k){hz[k]=60*std::pow(std::min(18000.,fs*.43)/60.,double(k)/(count-1));double w=6.283185307179586*hz[k]/fs;sn[k]=sin(w);cs[k]=cos(w);for(auto&c:detectors)c[k].bandpass(hz[k],fs,24);}
+  for(int k=0;k<count;++k){second[k]=std::min(count-2,k+int(std::round(log(2.)/log(hz[1]/hz[0]))));third[k]=std::min(count-2,k+int(std::round(log(3.)/log(hz[1]/hz[0]))));left[k]=k;right[k]=k;while(left[k]>0&&hz[k]-hz[left[k]-1]<std::max(350.,hz[k]*.22))--left[k];while(right[k]<count-1&&hz[right[k]+1]-hz[k]<std::max(350.,hz[k]*.22))++right[k];}
+  set(p);reset();}
+ void set(Settings s)noexcept{p=s;attack=alpha(p.attack,fs);release=alpha(p.release,fs);}
+ void reset()noexcept{power={};gain.fill(1);wanted.fill(1);view={};clock=0;activeCuts=0;mix=p.mix;output=p.output;for(auto&c:detectors)for(auto&f:c)f.reset();for(auto&c:cuts)for(auto&f:c)f=Biquad{};}
+ double reductionDb()const noexcept{double r=0;for(auto g:gain)r=std::max(r,-db(g));return r;}
+ std::array<float,128> reductionView()const noexcept{return view;}
+ template<class T>void process(T*const*a,int ch,int n,T*const*dry)noexcept{
+  if(!a||n<=0)return;ch=std::clamp(ch,0,channels);if(!ch)return;for(int c=0;c<ch;++c)if(!a[c])return;
+  for(int i=0;i<n;++i){std::array<double,2>x{};for(int c=0;c<ch;++c){x[c]=clean(a[c][i]);if(dry&&dry[c])dry[c][i]=T(x[c]);}
+   for(int k=0;k<count;++k){double e=0;for(int c=0;c<ch;++c){double v=detectors[c][k].process(x[c]);e=std::max(e,v*v);}power[k]+=average*(e-power[k]);}
+   bool update=(clock++&127)==0;if(update){view={};activeCuts=0;for(int k=0;k<count;++k){double baseline=0;for(int j=left[k];j<=right[k];++j)if(std::abs(j-k)>2)baseline=std::max(baseline,power[j]);
+     if(hz[k]<500){double h2=0,h3=0;for(int d=-1;d<=1;++d){h2=std::max(h2,power[second[k]+d]);h3=std::max(h3,power[third[k]+d]);}if(h2>power[k]*.025&&h3>power[k]*.012)baseline=std::max(baseline,power[k]);}
+     double prominence=10*log10((power[k]+1e-10)/(baseline+1e-10));
+     bool peak=(k==0||power[k]>=power[k-1])&&(k==count-1||power[k]>power[k+1]);
+     const double focus=std::clamp((hz[k]-p.low*.6)/(p.low*.6),0.,1.)*std::clamp((p.high*1.3-hz[k])/(p.high*.3),0.,1.);
+     double cut=peak?p.amount*std::clamp((prominence-(10-8*p.sensitivity))*1.4,0.,18.)*focus:0;
+     wanted[k]=pow(10.,-cut/20);int slot=std::clamp(int(127*log(std::max(40.,hz[k])/40.)/log(500.)),0,127);view[slot]=std::max(view[slot],float(-db(gain[k])));
+     // Skip only recovered unity filters whose stored audio has also decayed.
+     // A short release can restore gain before a low-frequency pole settles.
+     bool ringing=false;for(const auto&c:cuts)ringing=ringing||std::abs(c[k].z1)>1e-12||std::abs(c[k].z2)>1e-12;
+     if(wanted[k]<1||gain[k]<1-1e-12||ringing)activeIndices[activeCuts++]=k;
+     else {gain[k]=1;for(auto&c:cuts)c[k]=Biquad{};}
+   }}
+   mix+=smooth*(p.mix-mix);output+=smooth*(p.output-output);if(std::abs(mix-p.mix)<1e-12)mix=p.mix;if(std::abs(output-p.output)<1e-12)output=p.output;
+   for(int j=0;j<activeCuts;++j){const int k=activeIndices[j];gain[k]+=(wanted[k]<gain[k]?attack:release)*(wanted[k]-gain[k]);if(update)for(int c=0;c<ch;++c)cuts[c][k].peak(sn[k],cs[k],gain[k],18);}
+   for(int c=0;c<ch;++c){double y=x[c];for(int j=0;j<activeCuts;++j)y=cuts[c][activeIndices[j]].process(y);a[c][i]=T(clean((x[c]+mix*(y-x[c]))*output));}
+  }
+ }
+};
+
 class CausalBands {
 public:
  static constexpr int bands=18;
  void prepare(double fs,int channels,Kind kind) noexcept {
   fs_=std::clamp(finite(fs,48000),8000.,768000.);ch_=std::clamp(channels,1,2);kind_=kind;
+  if(kind_==Kind::Silk)silk_.prepare(fs_,ch_);
   const double top=std::min(18000.,fs_*.43);
   for(int k=0;k<bands-1;++k){const double hz=70*std::pow(top/70.,double(k)/(bands-2));cuts_[k]=hz;coef_[k]=1-std::exp(-6.283185307179586*hz/fs_);}
   for(int k=0;k<bands;++k){const double a=k==bands-1?1:coef_[k],b=k==0?0:coef_[k-1];noiseBandwidth_[k]=std::max(1e-8,a/(2-a)+b/(2-b)-2*a*b/std::max(1e-12,a+b-a*b));}
@@ -39,7 +84,7 @@ public:
   // Restoration detectors follow syllabic energy, not each low vocal cycle.
   fastA_=alpha(kind_==Kind::Room||kind_==Kind::Clean?.012:.003,fs_);slowA_=alpha(.12,fs_);gainA_=alpha(.005,fs_);reset();
  }
- void reset() noexcept {lp_={};power_={};detectorPower_={};slow_={};hold_={};stable_={};gains_.fill(1);wanted_.fill(1);target_.fill(0);for(auto&g:stageGains_)g={1,1,1};for(auto&g:stageWanted_)g={1,1,1};cleanTargets_={};for(auto&ch:detectors_)for(auto&f:ch)f.reset();for(auto&ch:peaks_)for(auto&f:ch)f=Biquad{};reduction_={};view_={};clock_=0;mix_=p_.mix;output_=p_.output;weights_={};weights_[std::clamp(p_.listen,0,3)]=1;bodyHistory_=0;noiseEstimate_=0;roomPeak_=0;}
+ void reset() noexcept {silk_.reset();lp_={};power_={};detectorPower_={};slow_={};hold_={};stable_={};gains_.fill(1);wanted_.fill(1);target_.fill(0);for(auto&g:stageGains_)g={1,1,1};for(auto&g:stageWanted_)g={1,1,1};cleanTargets_={};for(auto&ch:detectors_)for(auto&f:ch)f.reset();for(auto&ch:peaks_)for(auto&f:ch)f=Biquad{};reduction_={};view_={};clock_=0;mix_=p_.mix;output_=p_.output;weights_={};weights_[std::clamp(p_.listen,0,3)]=1;bodyHistory_=0;noiseEstimate_=0;roomPeak_=0;}
  void set(Settings p) noexcept {
   p.amount=std::clamp(finite(p.amount),0.,1.);p.sensitivity=std::clamp(finite(p.sensitivity),0.,1.);
   p.low=std::clamp(finite(p.low,80),20.,20000.);p.high=std::clamp(finite(p.high,16000),p.low,24000.);
@@ -47,10 +92,10 @@ public:
   p.mix=std::clamp(finite(p.mix,1),0.,1.);p.output=std::clamp(finite(p.output,1),.01,4.);
   p.noise=std::clamp(finite(p.noise),0.,1.);p.plosives=std::clamp(finite(p.plosives),0.,1.);p.breaths=std::clamp(finite(p.breaths),0.,1.);
   p.preserve=std::clamp(finite(p.preserve,.75),0.,1.);p.listen=std::clamp(p.listen,0,3);p_=p;
-  attackA_=alpha(p.attack,fs_);releaseA_=alpha(p.release,fs_);
+  attackA_=alpha(p.attack,fs_);releaseA_=alpha(p.release,fs_);silk_.set(p_);
  }
  template<class T>void process(T*const*audio,int channels,int samples,T*const*dry=nullptr) noexcept {
-  if(!audio||samples<=0)return;const int active=std::clamp(channels,0,ch_);if(!active)return;
+  if(kind_==Kind::Silk){silk_.process(audio,channels,samples,dry);return;}if(!audio||samples<=0)return;const int active=std::clamp(channels,0,ch_);if(!active)return;
   for(int c=0;c<active;++c)if(!audio[c])return;
   for(int n=0;n<samples;++n){std::array<std::array<double,bands>,2>parts{};std::array<double,2>x{};
    for(int c=0;c<active;++c){x[c]=clean(audio[c][n]);if(dry&&dry[c])dry[c][n]=T(x[c]);double last=0;
@@ -73,9 +118,9 @@ public:
    }
   }
  }
- double reductionDb()const noexcept {double maximum=0;for(auto g:gains_)maximum=std::max(maximum,std::abs(db(g)));return maximum;}
+ double reductionDb()const noexcept {if(kind_==Kind::Silk)return silk_.reductionDb();double maximum=0;for(auto g:gains_)maximum=std::max(maximum,std::abs(db(g)));return maximum;}
  std::array<float,3> reductionsDb()const noexcept{return reduction_;}
- std::array<float,128> reductionView()const noexcept{return view_;}
+ std::array<float,128> reductionView()const noexcept{return kind_==Kind::Silk?silk_.reductionView():view_;}
 private:
  void analyse() noexcept {
   double low=0,body=0,high=0,oldLow=0;for(int k=0;k<bands;++k){if(hz_[k]<200){low+=power_[k];oldLow+=slow_[k];}else if(hz_[k]<2500)body+=power_[k];else high+=power_[k];}
@@ -119,7 +164,7 @@ private:
    else for(int j=0;j<3;++j)stageWanted_[k][j]=std::pow(10.,-(cleanTargets_[left][j]+2*cleanTargets_[k][j]+cleanTargets_[right][j])/80);
   }
  }
- Settings p_;Kind kind_=Kind::Room;double fs_=48000;int ch_=2;std::uint64_t clock_=0;
+ SilkBands silk_;Settings p_;Kind kind_=Kind::Room;double fs_=48000;int ch_=2;std::uint64_t clock_=0;
  std::array<double,bands-1>coef_{},cuts_{};std::array<double,bands>hz_{},power_{},detectorPower_{},slow_{},hold_{},stable_{},gains_{},wanted_{},target_{},sine_{},cosine_{},noiseBandwidth_{};
  std::array<std::array<double,bands-1>,2>lp_{};std::array<std::array<double,3>,bands>cleanTargets_{};
  std::array<std::array<double,3>,bands>stageGains_{},stageWanted_{};std::array<std::array<Biquad,bands>,2>detectors_{},peaks_{};

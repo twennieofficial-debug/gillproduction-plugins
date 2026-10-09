@@ -155,11 +155,15 @@ private:
         const float historyDown = static_cast<float>(std::exp(-hop / (.150 * sampleRate)));
         // Average spectral shape independently of its instantaneous envelope. Random
         // excitation and syllabic modulation must not reset a room resonance.
+        float silkCeiling = 0.f;
         if constexpr (!Transient) {
             const float a = static_cast<float>(std::exp(-hop / (.080 * sampleRate)));
             for (int k = 0; k <= bins; ++k) history[k] = power[k] + a * (history[k] - power[k]);
+            // Keep ordinary settings gentle on vocal partials. The continuous
+            // upper DEPTH range permits stronger repair, up to a 7.25 dB mask.
+            silkCeiling = 3.f * settings.depth + 4.25f * std::pow(settings.depth, 12.f);
         }
-        const float threshold = Transient ? 16.f - 14.f * settings.sensitivity : 18.f - 15.f * settings.sensitivity;
+        const float threshold = Transient ? 16.f - 14.f * settings.sensitivity : 10.f - 8.f * settings.sensitivity;
         for (int bin = 0; bin <= bins; ++bin) {
             const auto k = static_cast<std::size_t>(bin);
             float amount = 0.f;
@@ -174,12 +178,24 @@ private:
                 history[k] = magnitude + coefficient * (history[k] - magnitude);
                 if (history[k] < 1.e-20f) history[k] = 0.f;
             } else {
-                // Estimate the surrounding spectrum, excluding the peak's main lobe.
-                // A broad hump is retained; a narrow excess above its neighbours is cut.
-                const int radius = std::clamp(static_cast<int>(bin * .15f), 5, 48);
-                float surroundings = 0.f; int neighbours = 0;
-                for (int j = std::max(1, bin - radius); j <= std::min(bins - 1, bin + radius); ++j) if (std::abs(j - bin) > 2) { surroundings += history[static_cast<std::size_t>(j)]; ++neighbours; }
-                const float baseline = neighbours > 0 ? surroundings / neighbours : history[k];
+                // Compare the upper spectral envelope on either side, not the
+                // mean of harmonic valleys. The geometric interpolation follows
+                // spectral tilt without letting a single strong lower partial
+                // hide a nearby room mode. Exclude a frequency-scaled main lobe.
+                const int radius = std::clamp(std::max(static_cast<int>(bin * .22f), static_cast<int>(350. * size / sampleRate)), 5, 96);
+                float leftPeak = 0.f, rightPeak = 0.f;
+                for (int j = std::max(1, bin - radius); j <= std::min(bins - 1, bin + radius); ++j) {
+                    if (std::abs(j - bin) <= std::max(2, static_cast<int>(bin * .065f))) continue;
+                    if(j < bin) leftPeak = std::max(leftPeak, history[static_cast<std::size_t>(j)]);
+                    else rightPeak = std::max(rightPeak, history[static_cast<std::size_t>(j)]);
+                }
+                float baseline = leftPeak > 0.f && rightPeak > 0.f ? std::sqrt(leftPeak * rightPeak) : std::max(leftPeak, rightPeak);
+                // A fundamental supported by multiple harmonics is voiced content.
+                if (frequencies[k] < 500.f && bin > 2 && bin * 3 + 1 < bins) {
+                    float second=0.f, third=0.f;
+                    for(int d=-1;d<=1;++d){second=std::max(second,history[bin*2+d]);third=std::max(third,history[bin*3+d]);}
+                    if(second>history[k]*.025f&&third>history[k]*.012f)baseline=std::max(baseline,history[k]);
+                }
                 const float prominence = 10.f * std::log10((history[k] + 1.e-10f) / (baseline + 1.e-10f));
                 // Persistence belongs to spectral prominence, not frame-to-frame
                 // amplitude. A leaky confidence tolerates brief excitation gaps.
@@ -187,7 +203,12 @@ private:
                 const float a=static_cast<float>(std::exp(-hop/(sampleRate*(prominent?.045:.080))));
                 stable[k]=(prominent?1.f:0.f)+a*(stable[k]-(prominent?1.f:0.f));
                 const float confidence=std::clamp((stable[k]-.35f)/.65f,0.f,1.f);
-                amount = std::clamp((prominence - threshold) * .85f, 0.f, 18.f) * settings.depth * confidence;
+                // Soft persistence preserves useful moderate reduction for
+                // intermittently excited modes without requiring deep notches
+                // that can hollow out a sustained vocal partial or formant.
+                const float confidenceWeight = .2f * confidence + .8f * std::sqrt(confidence);
+                amount = std::clamp((prominence - threshold) * 2.6f, 0.f, 18.f) * settings.depth * confidenceWeight;
+                amount = std::min(amount, silkCeiling);
             }
             targetDb[k] = amount * focus(bin);
         }
