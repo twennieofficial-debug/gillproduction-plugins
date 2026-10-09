@@ -105,6 +105,11 @@ juce::String expectedVersion(const juce::String& name) {
 }
 void phase(const juce::String& text) { std::cout << "PHASE " << juce::Time::getMillisecondCounterHiRes() << " " << text << '\n'; }
 struct Item {
+    struct StoppedTransport final : juce::AudioPlayHead {
+        juce::Optional<PositionInfo> getPosition() const override {
+            PositionInfo position; position.setIsPlaying(false); position.setIsRecording(false); return position;
+        }
+    } transport;
     juce::String path, name;
     juce::PluginDescription description;
     std::unique_ptr<juce::AudioPluginInstance> processor;
@@ -133,6 +138,7 @@ public:
             check(item.quality == nullptr, item.name + " unique QUALITY parameter"); item.quality = parameter;
         }
         check(item.quality && item.quality->getNumSteps() == 2, item.name + " exposes two quality modes");
+        item.processor->setPlayHead(&item.transport);
         item.processor->setPlayConfigDetails(2, 2, sampleRate, 128); item.processor->prepareToPlay(sampleRate, 128);
         phase("factory prepared " + item.name);
         return item.quality != nullptr;
@@ -163,6 +169,18 @@ public:
             }
         }
         const auto* bytes = static_cast<const std::uint8_t*>(state.getData());
+        // PREVIEW's versioned profile state is a raw ValueTree stream, inside
+        // the VST3 component chunk. Decode that actual stream, never host cache.
+        if(item.name=="GILLSPECTRA PREVIEW") {
+            constexpr char type[]="SpectraPreview";
+            for(std::size_t offset=0;offset+sizeof(type)<=state.getSize();++offset) {
+                if(std::memcmp(bytes+offset,type,sizeof(type))!=0)continue;
+                auto tree=juce::ValueTree::readFromData(bytes+offset,state.getSize()-offset);
+                if(!tree.isValid()||tree.getType()!=juce::Identifier(type)||int(tree.getProperty("stateSchema",-1))!=2)continue;
+                auto parameter=tree.getChildWithProperty("id",id);
+                if(parameter.isValid())return static_cast<float>(parameter.getProperty("value"));
+            }
+        }
         // The VST3 host wraps component/controller chunks. Locate JUCE's actual
         // processor-state XML block instead of assuming its hosted cache is right.
         for (std::size_t offset = 0; offset + 9 <= state.getSize(); ++offset) {

@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 #include <cstdlib>
 namespace {
@@ -42,5 +43,5 @@ bool GillFinishProcessor::presetMatches()const{const auto&p=programs[static_cast
 void GillFinishProcessor::getStateInformation(juce::MemoryBlock&out){auto s=apvts.copyState();s.setProperty("version",1,nullptr);s.setProperty("program",currentProgram.load(),nullptr);if(auto x=s.createXml())copyXmlToBinary(*x,out);}
 void GillFinishProcessor::setStateInformation(const void*data,int bytes){if(!data||bytes<=0||bytes>1024*1024)return;if(auto x=getXmlFromBinary(data,bytes))if(x->hasTagName(apvts.state.getType())){auto incoming=juce::ValueTree::fromXml(*x),clean=apvts.copyState();
     if (!incoming.getChildWithProperty("id","gillQuality").isValid()) { auto oldQuality=clean.getChildWithProperty("id","gillQuality"); if(oldQuality.isValid()) oldQuality.setProperty("value",apvts.getParameter("gillQuality")->convertFrom0to1(apvts.getParameter("gillQuality")->getDefaultValue()),nullptr); }
-bool changed=false;for(auto child:incoming){const auto id=child.getProperty("id").toString();auto*p=apvts.getParameter(id);double v=0;if(!p||!numeric(child.getProperty("value"),v))continue;auto target=clean.getChildWithProperty("id",id);if(target.isValid()){const auto&r=p->getNormalisableRange();target.setProperty("value",r.snapToLegalValue(static_cast<float>(std::clamp(v,static_cast<double>(r.start),static_cast<double>(r.end)))),nullptr);changed=true;}}if(changed)apvts.replaceState(clean);double v=0;if(numeric(incoming.getProperty("program"),v))currentProgram=juce::jlimit(0,getNumPrograms()-1,static_cast<int>(std::clamp(v,0.,static_cast<double>(getNumPrograms()-1))));}}
+bool changed=false;for(auto child:incoming){const auto id=child.getProperty("id").toString();auto*p=apvts.getParameter(id);double v=0;if(!p||!numeric(child.getProperty("value"),v))continue;auto target=clean.getChildWithProperty("id",id);if(target.isValid()){const auto&r=p->getNormalisableRange();target.setProperty("value",r.snapToLegalValue(static_cast<float>(std::clamp(v,static_cast<double>(r.start),static_cast<double>(r.end)))),nullptr);changed=true;}}if(changed)gill::replaceStateAndReconcile(apvts,clean);double v=0;if(numeric(incoming.getProperty("program"),v))currentProgram=juce::jlimit(0,getNumPrograms()-1,static_cast<int>(std::clamp(v,0.,static_cast<double>(getNumPrograms()-1))));}}
 juce::AudioProcessorEditor*GillFinishProcessor::createEditor(){return new GillFinishEditor(*this);}

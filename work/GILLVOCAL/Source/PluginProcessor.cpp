@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 #include <cmath>
 #include <cstdlib>
@@ -124,7 +125,7 @@ void GillVocalProcessor::setStateInformation(const void* data,int bytes){
 bool changed=false;
         for(auto child:incoming){auto id=child.getProperty("id").toString();auto* p=apvts.getParameter(id);double v=0;if(!p||!child.hasProperty("value")||!number(child.getProperty("value"),v))continue;
             auto target=clean.getChildWithProperty("id",id);if(target.isValid()){const auto& r=p->getNormalisableRange();target.setProperty("value",r.snapToLegalValue(static_cast<float>(juce::jlimit(static_cast<double>(r.start),static_cast<double>(r.end),v))),nullptr);changed=true;}}
-        if(changed)apvts.replaceState(clean);
+        if(changed)gill::replaceStateAndReconcile(apvts,clean);
         double v=0;if(incoming.hasProperty("program")&&number(incoming.getProperty("program"),v))currentProgram.store(static_cast<int>(juce::jlimit(0.,4.,v)));
         if(kind==GillKind::Flow&&incoming.hasProperty("learnValid")){gill::LearnProfile p;bool good=true;p.valid=static_cast<bool>(incoming.getProperty("learnValid"));
             auto read=[&](const char* id,float& field){double x=0;if(!number(incoming.getProperty(id),x))good=false;else field=static_cast<float>(x);};

@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 #include <cmath>
 namespace {
@@ -76,7 +77,7 @@ bool changed=false;
         for(auto child:state){auto* parameter=apvts.getParameter(child.getProperty("id").toString());if(!parameter||!child.hasProperty("value"))continue;
             const double v=static_cast<double>(child.getProperty("value"));if(!std::isfinite(v))continue;const auto& r=parameter->getNormalisableRange();
             auto target=clean.getChildWithProperty("id",child.getProperty("id"));if(target.isValid()){target.setProperty("value",juce::jlimit(static_cast<double>(r.start),static_cast<double>(r.end),v),nullptr);changed=true;}}
-        if(changed)apvts.replaceState(clean);
+        if(changed)gill::replaceStateAndReconcile(apvts,clean);
     }
 }
 juce::AudioProcessorEditor* GillDeEsserAudioProcessor::createEditor(){return new GillDeEsserAudioProcessorEditor(*this);}

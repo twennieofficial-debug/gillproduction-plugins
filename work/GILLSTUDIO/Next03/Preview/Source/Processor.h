@@ -2,11 +2,12 @@
 #include <juce_audio_utils/juce_audio_utils.h>
 #include "../../Source/Spectral/Spectral.h"
 #include <mutex>
+#include "QualityBus.h"
 namespace preview {
 namespace sp=gillstudio::spectral;
-class Processor final : public juce::AudioProcessor, private juce::Timer {
+class Processor final : public juce::AudioProcessor, private juce::Timer, private juce::AudioProcessorValueTreeState::Listener {
 public:
- Processor(); ~Processor() override {stopTimer();}
+ Processor(); ~Processor() override;
  juce::AudioProcessorValueTreeState state;
  float value(const juce::String& id) const {return state.getRawParameterValue(id)->load();}
  void set(const juce::String& id,float v){auto*p=state.getParameter(id);p->setValueNotifyingHost(p->convertTo0to1(v));}
@@ -15,6 +16,7 @@ public:
  void releaseResources() override {}
  void processBlock(juce::AudioBuffer<float>&,juce::MidiBuffer&) override;
  void processBlockBypassed(juce::AudioBuffer<float>&,juce::MidiBuffer&) override;
+ juce::AudioProcessorParameter* getBypassParameter() const override {return state.getParameter("bypass");}
  bool isBusesLayoutSupported(const BusesLayout& l) const override;
  const juce::String getName() const override {return "GILLSPECTRA PREVIEW";}
  bool acceptsMidi()const override{return false;} bool producesMidi()const override{return false;} double getTailLengthSeconds()const override{return getLatencySamples()/std::max(8000.,getSampleRate());}
@@ -23,10 +25,16 @@ public:
  void getStateInformation(juce::MemoryBlock&)override; void setStateInformation(const void*,int)override;
  double displaySampleRate()const{return displayRate.load();}
  int effectiveMode()const noexcept{return appliedMode.load(std::memory_order_acquire);}
- bool modePending()const noexcept{return int(controls[0]->load())!=effectiveMode();}
+ bool modePending()const noexcept{return requestedMode.load(std::memory_order_acquire)!=effectiveMode();}
  bool hasTransportInformation()const noexcept{return transportKnown.load(std::memory_order_acquire);}
  std::atomic<bool> clearRequested{false},profilePresent{false}; std::atomic<float> reduction{0};
 private:
+ gill::QualityClient quality{*this,state};
+ std::atomic<int> requestedMode{0};
+ std::atomic<float>* nativeBypass=state.getRawParameterValue("bypass");
+ static thread_local Processor* mirroring;
+ void parameterChanged(const juce::String&,float) override;
+ void mirrorMode();
  std::atomic<double> displayRate{48000};
  std::atomic<int> currentProgram{0};
  struct Slot { std::atomic<int> ownership{0}; sp::Profile profile; std::atomic<uint64_t> serial{0};uint64_t generation=0; Slot(){for(auto& d:profile.density)d.resize(1025);} };

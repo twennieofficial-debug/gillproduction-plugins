@@ -128,3 +128,9 @@ add_executable(GillSilkRealVoiceDspTests Tests/SilkRealVoiceTests.cpp)
 target_include_directories(GillSilkRealVoiceDspTests PRIVATE Source)
 add_test(NAME SilkRealVoice_DSP COMMAND GillSilkRealVoiceDspTests
   "${CMAKE_CURRENT_SOURCE_DIR}/../GILLDEREVERB/Tests/fixtures/dry_48k.wav")
+
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Tests/StateRecallTests.cpp")
+  add_executable(GillFinishStateRecallTests Tests/StateRecallTests.cpp)
+  target_link_libraries(GillFinishStateRecallTests PRIVATE GillFinishShared GillFinishAssets)
+  add_test(NAME FINISH_STATE_RECALL COMMAND GillFinishStateRecallTests)
+endif()

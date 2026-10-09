@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 #include <cmath>
 
@@ -145,7 +146,7 @@ void GillTextureProcessor::setStateInformation(const void* data,int bytes){
     if(!data||bytes<=0||bytes>1024*1024)return;auto xml=getXmlFromBinary(data,bytes);if(!xml||!xml->hasTagName(stateId(kind)))return;
     auto tree=juce::ValueTree::fromXml(*xml);if(!tree.isValid()||int(tree.getProperty("schema",0))!=1)return;
     for(std::size_t i=0;i<specs.size()+2;++i){const juce::String id=i<specs.size()?specs[i].id:i==specs.size()?"bypass":"gillQuality";auto child=tree.getChildWithProperty("id",id);if(!child.isValid())return;const float v=float(child.getProperty("value"));if(!std::isfinite(v))return;const float lo=i<specs.size()?specs[i].lo:0,hi=i<specs.size()?specs[i].hi:1;child.setProperty("value",std::clamp(v,lo,hi),nullptr);}
-    apvts.replaceState(tree);program=std::clamp(int(tree.getProperty("program",0)),0,5);
+    gill::replaceStateAndReconcile(apvts,tree);program=std::clamp(int(tree.getProperty("program",0)),0,5);
     for(std::size_t i=0;i<specs.size()+1;++i){const float v=float(tree.getProperty("preset_"+juce::String(int(i)),param(i)));presetValues[i]=std::isfinite(v)?v:param(i);}
 }
 juce::AudioProcessorEditor* GillTextureProcessor::createEditor(){return new GillTextureEditor(*this);}

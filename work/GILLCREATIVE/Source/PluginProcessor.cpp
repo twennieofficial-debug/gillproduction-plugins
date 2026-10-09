@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 #include <cstring>
 #include <cstdlib>
@@ -93,7 +94,7 @@ void GillCreativeProcessor::setStateInformation(const void*data,int bytes){
         if(sourceFile.existsAsFile())plan.sourceRevision=archive.restore(sourceFile);engine.postPlan(plan,commit);
     }
     else{engine.request(7);if(missingSource)archive.restore(sourceFile);}
-    state.removeChild(model,nullptr);apvts.replaceState(state);currentProgram=std::clamp(static_cast<int>(state["program"]),0,getNumPrograms()-1);
+    state.removeChild(model,nullptr);gill::replaceStateAndReconcile(apvts,state);currentProgram=std::clamp(static_cast<int>(state["program"]),0,getNumPrograms()-1);
 }
 juce::AudioProcessorEditor*GillCreativeProcessor::createEditor(){return new GillCreativeEditor(*this);}
 

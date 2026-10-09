@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 
 namespace {
@@ -102,7 +103,7 @@ bool changed=false;
                 changed=true;
             }
         }
-        if(changed)apvts.replaceState(clean);
+        if(changed)gill::replaceStateAndReconcile(apvts,clean);
     }
 }
 juce::AudioProcessorEditor* GillRestorationAudioProcessor::createEditor() { return new GillRestorationAudioProcessorEditor(*this); }

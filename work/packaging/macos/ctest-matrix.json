@@ -35,7 +35,8 @@
     "Character_DSP",
     "Spectral_DSP",
     "SilkMoving_DSP",
-    "SilkRealVoice_DSP"
+    "SilkRealVoice_DSP",
+    "FINISH_STATE_RECALL"
   ],
   "GILLNEXT": [
     "NEXT_INTEGRATION",
@@ -127,7 +128,8 @@
     "PREVIEW_INTEGRATION",
     "PREVIEW_REPAIRS",
     "PREVIEW_TRANSITIONS",
-    "PREVIEW_LEVEL_HOST"
+    "PREVIEW_LEVEL_HOST",
+    "PREVIEW_QUALITY_INTEGRATION"
   ],
   "MOBINA": [
     "MOBINA_INTEGRATION"

@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 #include "Presets.h"
 #include <cmath>
@@ -116,7 +117,7 @@ void GillEffectProcessor::setStateInformation(const void* data,int bytes){if(!da
 bool changed=false;
         if((kind==GillKind::Space||kind==GillKind::Echo)&&!incoming.getChildWithProperty("id","dry").isValid()){clean.getChildWithProperty("id","dry").setProperty("value",100.f,nullptr);changed=true;}
         for(auto child:incoming){auto id=child.getProperty("id").toString();auto* p=apvts.getParameter(id);double v=0;if(!p||!child.hasProperty("value")||!number(child.getProperty("value"),v))continue;auto target=clean.getChildWithProperty("id",id);if(target.isValid()){const auto& range=p->getNormalisableRange();target.setProperty("value",range.snapToLegalValue(static_cast<float>(juce::jlimit(static_cast<double>(range.start),static_cast<double>(range.end),v))),nullptr);changed=true;}}
-        if(changed)apvts.replaceState(clean);double v=0;if(incoming.hasProperty("program")&&number(incoming.getProperty("program"),v))currentProgram=static_cast<int>(juce::jlimit(0.,static_cast<double>(getNumPrograms()-1),v));
+        if(changed)gill::replaceStateAndReconcile(apvts,clean);double v=0;if(incoming.hasProperty("program")&&number(incoming.getProperty("program"),v))currentProgram=static_cast<int>(juce::jlimit(0.,static_cast<double>(getNumPrograms()-1),v));
         if(kind==GillKind::Balance&&incoming.hasProperty("learnValid")){gill::LearnBalanceProfile p;bool good=true;double x=0;
             auto read=[&](const juce::Identifier& id,double& field){if(!incoming.hasProperty(id)||!number(incoming.getProperty(id),field))good=false;};
             read("learnVersion",x);if(x!=1&&x!=2)good=false;p.version=x==2?2:1;

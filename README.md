@@ -3,7 +3,9 @@
 Mac20: 74 current vocal, creative, mixing and mastering VST3 plugins,
 all version 0.20.0, using the current Update19 DSP and approved interfaces.
 Corrected Mac20.2 repairs moving SILK resonances in PRO/LIVE with bounded vocal attenuation while
-preserving SPARK's REMOVE MOUTH CLICKS. Its release tag is mac-bundle-20.2.
+preserving SPARK's REMOVE MOUTH CLICKS. PREVIEW also joins the common LIVE/PRO and native BYPASS protocol.
+Affected processors reconcile saved switches with native host parameter values after project recall.
+Its release tag is mac-bundle-20.2.
 Universal macOS Apple Silicon/Intel; 73 GILL products plus separate MOBINA.
 Existing factory identities are preserved. LIVE reports zero additional PDC.
 The audio interface, host and pitch/effect analysis windows still have latency.

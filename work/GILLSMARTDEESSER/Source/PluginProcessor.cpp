@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 
 namespace {
@@ -104,6 +105,6 @@ void GillSmartDeEsserProcessor::setStateInformation(const void* data,int bytes){
     if(seen.size()!=getParameters().size())return;
     const auto v=[&](const char* id){return static_cast<double>(state.getChildWithProperty("id",id).getProperty("value"));};
     if(v("profile")>.5&&(v("learnActive")<3.999||v("learnVoice")<2.499||v("learnSibilant")<.179||v("learnVoice")>v("learnActive")+.011||v("learnSibilant")>v("learnActive")+.011))return;
-    apvts.replaceState(state);currentProgram.store(juce::jlimit(0,4,static_cast<int>(state.getProperty("program",0))));undoAvailable.store(false);learnState.store(value("profile")>.5?applied:idle);request.store(3);
+    gill::replaceStateAndReconcile(apvts,state);currentProgram.store(juce::jlimit(0,4,static_cast<int>(state.getProperty("program",0))));undoAvailable.store(false);learnState.store(value("profile")>.5?applied:idle);request.store(3);
 }
 juce::AudioProcessorEditor* GillSmartDeEsserProcessor::createEditor(){return new GillSmartDeEsserEditor(*this);}

@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 
 namespace {
@@ -144,7 +145,7 @@ bool restoredParameter=false;
             // instance explicitly retains false until a user edits Amount.
             const bool automatic=state.hasProperty("automatic")?static_cast<bool>(state.getProperty("automatic")):(static_cast<int>(state.getProperty("version",1))>=2);
             automaticMode.store(automatic,std::memory_order_relaxed);
-            apvts.replaceState(clean);
+            gill::replaceStateAndReconcile(apvts,clean);
         }
     }
 }

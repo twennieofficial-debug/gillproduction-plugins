@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 
 namespace {
@@ -261,7 +262,7 @@ void GilleqAudioProcessor::setStateInformation(const void*data,int size) {
                     target.setProperty("value",juce::jlimit(static_cast<double>(range.start),static_cast<double>(range.end),value),nullptr);
                 }
             }
-            clean.setProperty("version",2,nullptr); apvts.replaceState(clean);
+            clean.setProperty("version",2,nullptr); gill::replaceStateAndReconcile(apvts,clean);
         }
     }
 }

@@ -1,4 +1,5 @@
 #include "PluginProcessor.h"
+#include "../../GILLCommon/StateRecall.h"
 #include "PluginEditor.h"
 namespace{
 constexpr const char*ids[]{"target","range","speed","amount","gate","breath","sibilance","output","rideOn","gateOn","breathOn","sibilanceOn","bypass"};
@@ -43,6 +44,6 @@ void GillAssistProcessor::setStateInformation(const void*data,int size){
     for(auto child:tree){if(child.hasType("PARAM")){const auto id=child.getProperty("id").toString();auto*p=state.getParameter(id);double v=double(child.getProperty("value"));if(!p||!std::isfinite(v))return;const auto range=p->getNormalisableRange();if(v<range.start-1.e-5||v>range.end+1.e-5)return;}}
     std::vector<gill::assist::Edit>edits;auto list=tree.getChildWithName("EDITS");if(list.getNumChildren()>2000)return;for(auto e:list){double a=e.getProperty("begin"),b=e.getProperty("end"),d=e.getProperty("db");int type=e.getProperty("type");if(!std::isfinite(a)||!std::isfinite(b)||!std::isfinite(d)||a<0||b<a||b>300||std::abs(d)>24||type<0||type>4)return;edits.push_back({a,b,float(d),type});}
     double start=double(tree.getProperty("start",0));if(!std::isfinite(start)||std::abs(start)>1.e9)return;const auto cache=tree.getProperty("cache").toString();if(cache.isNotEmpty()&&!gill::assist::Engine::validToken(cache))return;
-    state.replaceState(tree);preset=juce::jlimit(0,5,int(tree.getProperty("preset",0)));if(cache.isNotEmpty())engine.restore(cache,start,edits);else engine.clearTransfer();
+    gill::replaceStateAndReconcile(state,tree);preset=juce::jlimit(0,5,int(tree.getProperty("preset",0)));if(cache.isNotEmpty())engine.restore(cache,start,edits);else engine.clearTransfer();
 }
 juce::AudioProcessorEditor*GillAssistProcessor::createEditor(){return new GillAssistEditor(*this);}
