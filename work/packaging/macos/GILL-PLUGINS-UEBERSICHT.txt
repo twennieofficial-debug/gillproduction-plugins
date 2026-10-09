@@ -1,5 +1,5 @@
 GILLPRODUCTION - PLUGIN-ÜBERSICHT
-UPDATE 14 / 60 VST3-PLUGINS / ALLE VERSION 0.14.0
+MAC20 / 74 VST3-PLUGINS / ALLE VERSION 0.20.0 / 73 GILL + MOBINA SEPARAT
 
 GILLTUNE
 - Korrigiert die Tonhöhe einer einzelnen Stimme auf Tonart und Skala.
@@ -265,7 +265,7 @@ SONG-ANALYSE UND EXPORT
 - Verwendete Aufnahme- und Exportdateien mit dem DAW-Projekt aufbewahren.
 
 LIVE / PRO
-- LIVE: alle 60 Plugins verwenden 0 Samples zusätzlichen Audiopuffer. PRO verwendet je nach Effekt aufwendigere Verarbeitung.
+- LIVE: alle 74 Plugins verwenden 0 Samples zusätzlichen Audiopuffer. PRO verwendet je nach Effekt aufwendigere Verarbeitung.
 - Nicht jedes Plugin benötigt zwei verschiedene Algorithmen; beim Smart-De-Esser sind beide identisch und ohne Zusatzlatenz.
 - Tonhöhen-/Formantbearbeitung in GILLTUNE/GILLFORM sowie Zusatzstimmen in GILLHARMONY sind PRO-Funktionen. LIVE gibt die Originalstimme aus.
 - Interface-Puffer, weitere Plugins und die DAW beeinflussen die gesamte Abhörverzögerung zusätzlich.
@@ -283,7 +283,7 @@ BEDIENUNG UND EFFEKTDATEIEN
 - Host-BPM werden übernommen. Ohne Host-Tempo gilt MANUAL BPM. Exportierte Audiodateien folgen späteren Tempoänderungen nicht automatisch.
 - Die sieben Clip-Effekte behalten den Originalpfad ohne zusätzliche Pufferlatenz. Der Effekt selbst kann absichtliche Echo- und Zeitversätze enthalten.
 
-UPDATE 14: PRISM BLUE / WINDOWS UND MAC
+BASISFUNKTIONEN AUS UPDATE 14 / AKTUELLE KLANG- UND OBERFLAECHENKORREKTUREN AUS UPDATE 19
 - Alle Plugins im neuen PRISM-BLUE-Design, mit transparent eingebettetem GP-Logo.
 - Überarbeitete Klangverarbeitung in Tune, Clean, De-Reverb, De-Click und De-Crackle.
 - GILLTUNE FORMANT -12 bis +12 Halbtöne in PRO, neutral bei 0.
@@ -309,3 +309,57 @@ GILLPULSE
 - Rhythmische Lautstärkeformung des laufenden Audios mit 16 veränderbaren Schritten.
 - Songtempo, Raster, Swing, weiche Übergänge und Mischregler; sechs Presets.
 
+
+STUDIO-ERWEITERUNG / MAC20
+
+GILLTRANSIENT
+- Frequenzbezogene Transientenbearbeitung mit CUT/BOOST und editierbarer Gewichtungskurve.
+
+GILLROOM
+- Algorithmischer Hall mit Raum-, Klang- und Mischkontrolle.
+
+GILLMULTI
+- Mehrband-Kompressor mit individuell einstellbarer Dynamik je Band.
+
+GILLTAPE
+- Bandartige Saettigung mit Klangfarbe, Pegel und Bewegungsanteilen.
+
+GILLVITAL
+- Mehrbandige harmonische Anreicherung und Stereo-Klangformung.
+
+GILL825
+- Musikalischer Equalizer fuer breitbandige Klangformung.
+
+GILLALPHA
+- Master-Kompressor mit Dynamik-, Sidechain- und Mischkontrolle.
+
+GILLMAX
+- Maximizer fuer Lautheit mit begrenztem Ausgangspegel.
+
+GILLDEESSPRO
+- Einstellbarer De-Esser mit Frequenzfokus und Dynamikkontrolle.
+
+GILLHARMONIC
+- Exciter fuer dosierbare Obertone und Klangfarbe.
+
+GILLPRECISION
+- Mehrbandige Dynamikbearbeitung mit detaillierten Band-Einstellungen.
+
+GILLRACK
+- Slot-Rack mit 30 eigenen, kombinierbaren GILL-Modulen und unterschiedlichen Funktionen.
+- Eigenstaendige Algorithmen; kein identischer Slate-Programmcode oder garantierter Originalklang.
+
+GILLSPECTRA PREVIEW
+- Spektraler Denoiser mit Lernprofil und frequenzbezogener Gewichtung.
+- PREVIEW bleibt Bestandteil des Namens; kein behaupteter identischer DSEQ-Algorithmus.
+
+MOBINA / SEPARATER DOWNLOAD
+- Vertraeumter R&B-Effekt mit Raum, Breite und sanfter Stereo-Bewegung.
+- Eigenes rosa Comic-Interface; nicht Bestandteil des 73-Plugin-GILL-Bundles.
+
+MAC20-DISTRIBUTION
+- Geplant: 74 einzelne Universal-VST3-DMGs und ein GILL-Bundle-DMG mit 73 Plugins.
+- Builds fuer Apple Silicon und Intel werden auf nativen Mac-Buildservern geprueft.
+- Erst MAC-RELEASE.json und ein erfolgreich veroeffentlichter Download belegen einen fertigen Build.
+- Ohne Developer ID: VST3 ad-hoc signiert; Installer/DMGs nicht Apple-notarisiert.
+- Automatisierte native Tests ersetzen keine FL-Studio-Hoerpruefung auf einem echten Anwender-Mac.

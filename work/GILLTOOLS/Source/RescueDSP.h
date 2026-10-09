@@ -79,8 +79,8 @@ public:
             channel.pending.fill({});
         }
     }
-    // LIVE retains current-sample monitoring, metering and LEARN. Actual peak
-    // reconstruction needs the right-hand boundary and is therefore PRO-only.
+    // LIVE predicts only short confirmed flat tops from their intact left slope.
+    // PRO can use both boundaries. Neither can recover arbitrary lost audio.
     int latencySamples() const noexcept { return live_ ? 0 : proLatency_; }
     int maximumLatencySamples() const noexcept { return proLatency_; }
     void setParameters(const RescueParameters& parameters) noexcept { parameters_ = parameters; }
@@ -124,6 +124,7 @@ public:
                 const auto index = slot(clock_);
                 channel.raw[index] = channel.repaired[index] = input;
                 detect(channel, positive, negative);
+                if(live_)repairCausal(channel,positive,negative,boost);
                 for (auto& pending : channel.pending) {
                     if (pending.start < 0 || clock_ < pending.end + 3) continue;
                     if(!live_) repair(channel, pending, boost);
@@ -157,6 +158,7 @@ private:
         std::vector<float> raw, repaired;
         std::int64_t plateauStart = -1;
         float plateauValue = 0;
+        bool causalRepairCounted=false;
         std::array<Pending, 8> pending {};
     };
     struct LearnBin { double sum = 0; unsigned count = 0; };
@@ -181,6 +183,7 @@ private:
             if (equal) {
                 channel.plateauStart = clock_ - 1;
                 channel.plateauValue = previous;
+                channel.causalRepairCounted=false;
             }
             return;
         }
@@ -204,6 +207,24 @@ private:
             if (!placed) rejected_.fetch_add(1, std::memory_order_relaxed);
         }
         channel.plateauStart = -1;
+    }
+    void repairCausal(Channel& channel,double positive,double negative,double boost) noexcept {
+        const auto start=channel.plateauStart;
+        if(start<4||clock_-start<1)return;
+        const double level=std::abs(double(channel.plateauValue)),sign=channel.plateauValue>=0?1.:-1.;
+        const double threshold=sign>0?positive:negative;
+        const int age=int(clock_-start+1);
+        if(std::abs(level-threshold)>threshold*.005||age>std::min(48,int(rate_*.001)))return;
+        const double a=sign*raw(channel,start-1),b=sign*raw(channel,start-2),c=sign*raw(channel,start-3);
+        const double slope=1.5*a-2*b+.5*c,curve=a-2*b+c;
+        // Only a rising, concave crest is identifiable without a right edge.
+        // Reject steps, DC plateaus and uncertain/long runs instead of inventing
+        // a waveform. The first clipped sample cannot be changed retrospectively.
+        if(a<level*.4||slope<=0||slope>level*.3||curve>=-1e-9||curve<-.5*slope)return;
+        const double t=double(age),estimate=a+t*slope+.5*t*t*curve;
+        const double candidate=level+.5*std::max(0.,estimate-level);
+        const double repaired=std::min(candidate,level*boost);
+        if(repaired>level+1e-8){channel.repaired[slot(clock_)]=float(sign*repaired);if(!channel.causalRepairCounted){repairs_.fetch_add(1,std::memory_order_relaxed);channel.causalRepairCounted=true;}}
     }
     void repair(Channel& channel, const Pending& pending, double boost) noexcept {
         if (!pending.allowed) return;

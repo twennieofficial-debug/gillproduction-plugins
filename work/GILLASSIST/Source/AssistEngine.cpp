@@ -3,7 +3,7 @@
 namespace gill::assist {
 Engine::Engine(std::function<Settings()>fn):Thread("GILLASSIST analysis"),ring(std::make_unique<Frame[]>(capacity)),readSettings(std::move(fn)){startThread();}
 Engine::~Engine(){signalThreadShouldExit();stopThread(-1);}
-juce::File Engine::cacheRoot(){return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("GILLPRODUCTION/GILLASSIST/Transfer");}
+juce::File Engine::cacheRoot(){const auto alternate=juce::SystemStats::getEnvironmentVariable("GILL_ASSIST_CACHE_ROOT",{});if(alternate.isNotEmpty()&&juce::File::isAbsolutePath(alternate))return juce::File(alternate);return juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("GILLPRODUCTION/GILLASSIST/Transfer");}
 bool Engine::validToken(const juce::String&s){if(s.length()!=32)return false;for(auto c:s)if(!((c>='0'&&c<='9')||(c>='a'&&c<='f')))return false;return true;}
 void Engine::prepare(double rate,int channels){rateView=std::isfinite(rate)&&rate>=8000&&rate<=192000?rate:48000;channelView=std::clamp(channels,1,2);if(state==Capturing)stopRequested=true;currentGain=0;}
 void Engine::setStatus(juce::String s){std::lock_guard<std::mutex>lock(mutex);message=std::move(s);}

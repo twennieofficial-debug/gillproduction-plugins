@@ -32,13 +32,14 @@ public:
   fs_=std::clamp(finite(fs,48000),8000.,768000.);ch_=std::clamp(channels,1,2);kind_=kind;
   const double top=std::min(18000.,fs_*.43);
   for(int k=0;k<bands-1;++k){const double hz=70*std::pow(top/70.,double(k)/(bands-2));cuts_[k]=hz;coef_[k]=1-std::exp(-6.283185307179586*hz/fs_);}
+  for(int k=0;k<bands;++k){const double a=k==bands-1?1:coef_[k],b=k==0?0:coef_[k-1];noiseBandwidth_[k]=std::max(1e-8,a/(2-a)+b/(2-b)-2*a*b/std::max(1e-12,a+b-a*b));}
   for(int k=0;k<bands;++k)hz_[k]=k==0?40:k==bands-1?top*1.2:std::sqrt(cuts_[k-1]*cuts_[k]);
   for(int k=0;k<bands;++k){const double w=6.283185307179586*std::min(hz_[k],fs_*.45)/fs_;sine_[k]=std::sin(w);cosine_[k]=std::cos(w);for(int c=0;c<2;++c)detectors_[c][k].bandpass(hz_[k],fs_,4);}
-  voiceDecimation_=std::max(1,int(std::round(fs_/12000.)));voiceLowAlpha_=alpha(1/(6.283185307179586*2500),fs_);
+  noiseOpenA_=alpha(.002,fs_);roomOpenA_=alpha(.003,fs_);
   // Restoration detectors follow syllabic energy, not each low vocal cycle.
   fastA_=alpha(kind_==Kind::Room||kind_==Kind::Clean?.012:.003,fs_);slowA_=alpha(.12,fs_);gainA_=alpha(.005,fs_);reset();
  }
- void reset() noexcept {lp_={};power_={};slow_={};hold_={};floor_.fill(1e-10);gains_.fill(1);wanted_.fill(1);target_.fill(0);for(auto&g:stageGains_)g={1,1,1};for(auto&g:stageWanted_)g={1,1,1};cleanTargets_={};for(auto&ch:detectors_)for(auto&f:ch)f.reset();for(auto&ch:peaks_)for(auto&f:ch)f=Biquad{};reduction_={};view_={};clock_=0;mix_=p_.mix;output_=p_.output;weights_={};weights_[std::clamp(p_.listen,0,3)]=1;bodyHistory_=0;voiceHistory_={};voicePos_=voiceCount_=voiceDecimate_=0;voiceLow_=voiceCertainty_=0;}
+ void reset() noexcept {lp_={};power_={};detectorPower_={};slow_={};hold_={};stable_={};gains_.fill(1);wanted_.fill(1);target_.fill(0);for(auto&g:stageGains_)g={1,1,1};for(auto&g:stageWanted_)g={1,1,1};cleanTargets_={};for(auto&ch:detectors_)for(auto&f:ch)f.reset();for(auto&ch:peaks_)for(auto&f:ch)f=Biquad{};reduction_={};view_={};clock_=0;mix_=p_.mix;output_=p_.output;weights_={};weights_[std::clamp(p_.listen,0,3)]=1;bodyHistory_=0;noiseEstimate_=0;roomPeak_=0;}
  void set(Settings p) noexcept {
   p.amount=std::clamp(finite(p.amount),0.,1.);p.sensitivity=std::clamp(finite(p.sensitivity),0.,1.);
   p.low=std::clamp(finite(p.low,80),20.,20000.);p.high=std::clamp(finite(p.high,16000),p.low,24000.);
@@ -55,17 +56,12 @@ public:
    for(int c=0;c<active;++c){x[c]=clean(audio[c][n]);if(dry&&dry[c])dry[c][n]=T(x[c]);double last=0;
     for(int k=0;k<bands-1;++k){auto&s=lp_[c][k];s+=coef_[k]*(x[c]-s);parts[c][k]=s-last;last=s;}parts[c][bands-1]=x[c]-last;
    }
-   if(kind_==Kind::Clean){const double mono=active>1&&std::abs(x[1])>std::abs(x[0])?x[1]:x[0];voiceLow_+=voiceLowAlpha_*(mono-voiceLow_);
-    if(++voiceDecimate_>=voiceDecimation_){voiceDecimate_=0;voiceHistory_[voicePos_++&1023]=voiceLow_;voiceCount_=std::min(1024,voiceCount_+1);
-     if((voicePos_&63)==0&&voiceCount_>400){double best=0;const double rate=fs_/voiceDecimation_;for(int lag=std::max(8,int(rate/900));lag<=int(rate/70);++lag){double aa=0,bb=0,ab=0;for(int j=0;j<128;++j){const double a=voiceHistory_[(voicePos_-1-j)&1023],b=voiceHistory_[(voicePos_-1-j-lag)&1023];aa+=a*a;bb+=b*b;ab+=a*b;}if(aa>1e-8&&bb>1e-8)best=std::max(best,ab/std::sqrt(aa*bb));}voiceCertainty_=std::clamp((best-.82)/.16,0.,1.);}
-    }
-   }
-   for(int k=0;k<bands;++k){double e=0;for(int c=0;c<active;++c){const double signal=kind_==Kind::Silk?detectors_[c][k].process(x[c]):parts[c][k];e=std::max(e,signal*signal);}power_[k]+=fastA_*(e-power_[k]);slow_[k]+=slowA_*(power_[k]-slow_[k]);hold_[k]=std::max(power_[k],hold_[k]*std::exp(-1/(fs_*.20)));}
+   for(int k=0;k<bands;++k){double e=0,de=0;for(int c=0;c<active;++c){const double detected=(kind_==Kind::Clean||kind_==Kind::Silk)?detectors_[c][k].process(x[c]):0;de=std::max(de,detected*detected);const double signal=kind_==Kind::Silk?detected:parts[c][k];e=std::max(e,signal*signal);}detectorPower_[k]+=fastA_*(de-detectorPower_[k]);power_[k]+=fastA_*(e-power_[k]);slow_[k]+=slowA_*(power_[k]-slow_[k]);hold_[k]=std::max(power_[k],hold_[k]*std::exp(-1/(fs_*.20)));}
    const bool update=(clock_++&15)==0;if(update)analyse();
    mix_+=gainA_*(p_.mix-mix_);output_+=gainA_*(p_.output-output_);
    if(std::abs(mix_-p_.mix)<1e-12)mix_=p_.mix;if(std::abs(output_-p_.output)<1e-12)output_=p_.output;
    for(int j=0;j<4;++j)weights_[j]+=gainA_*((p_.listen==j?1.:0.)-weights_[j]);
-   for(int k=0;k<bands;++k){if(kind_==Kind::Clean){for(int j=0;j<3;++j){auto&g=stageGains_[k][j];const double want=stageWanted_[k][j];g+=(want<g?attackA_:releaseA_)*(want-g);}gains_[k]=stageGains_[k][0]*stageGains_[k][1]*stageGains_[k][2];}else gains_[k]+=(wanted_[k]<gains_[k]?attackA_:releaseA_)*(wanted_[k]-gains_[k]);
+   for(int k=0;k<bands;++k){if(kind_==Kind::Clean){for(int j=0;j<3;++j){auto&g=stageGains_[k][j];const double want=stageWanted_[k][j];g+=(want<g?attackA_:(j==0?noiseOpenA_:releaseA_))*(want-g);}gains_[k]=stageGains_[k][0]*stageGains_[k][1]*stageGains_[k][2];}else gains_[k]+=(wanted_[k]<gains_[k]?attackA_:(kind_==Kind::Room?roomOpenA_:releaseA_))*(wanted_[k]-gains_[k]);
     if(update&&kind_==Kind::Silk)for(int c=0;c<active;++c)peaks_[c][k].peak(sine_[k],cosine_[k],gains_[k],3);}
    for(int c=0;c<active;++c){double residual=0;std::array<double,3>removed{};
     for(int k=0;k<bands;++k){const double r=parts[c][k]*(1-gains_[k]);residual+=r;
@@ -84,15 +80,25 @@ private:
  void analyse() noexcept {
   double low=0,body=0,high=0,oldLow=0;for(int k=0;k<bands;++k){if(hz_[k]<200){low+=power_[k];oldLow+=slow_[k];}else if(hz_[k]<2500)body+=power_[k];else high+=power_[k];}
   bodyHistory_=std::max(body,bodyHistory_*std::exp(-16/(fs_*.65)));reduction_={};view_={};
+  // Estimate a diffuse floor from narrow detector powers normalized by their
+  // white-noise bandwidth, then map it to the parallel audio bands. A lower
+  // quantile prevents voiced harmonics from teaching the detector their level.
+  std::array<double,bands> whitened{};double total=0;for(int k=0;k<bands;++k){whitened[k]=detectorPower_[k]/std::max(1e-8,(sine_[k]/8)/(1+sine_[k]/8));total+=power_[k];}
+  std::sort(whitened.begin(),whitened.end());const double diffuse=whitened[2]*std::clamp(2*whitened[2]/(whitened[bands/2]+1e-20),0.,1.);
+  noiseEstimate_+=(1-std::exp(-16/(fs_*.08)))*(diffuse-noiseEstimate_);
+  roomPeak_=std::max(total,roomPeak_*std::exp(-16/(fs_*(.35*(p_.release/.45)))));
+  const double roomTail=std::clamp((.07-total/(roomPeak_+1e-12))/.06,0.,1.);
   const double plosive=std::clamp((low/(body+high+1e-9)-1.5)*.5,0.,1.)*std::clamp((low/(oldLow+1e-8)-1.2)*.5,0.,1.);
   const double breath=std::clamp(high/(body+1e-9)-1.,0.,1.)*std::clamp(1-body/(bodyHistory_*.7+1e-8),0.,1.);
   for(int k=0;k<bands;++k){const double hz=hz_[k];const double focus=std::clamp((hz-p_.low*.6)/(p_.low*.6),0.,1.)*std::clamp((p_.high*1.3-hz)/(p_.high*.3),0.,1.);double cut=0;
-   if(kind_==Kind::Room){const double tail=std::clamp(1-power_[k]/(hold_[k]+1e-12),0.,1.);cut=p_.amount*(18-9*p_.preserve)*tail*focus;}
+   if(kind_==Kind::Room){const double tail=std::clamp(1-power_[k]/(hold_[k]+1e-12),0.,1.);cut=p_.amount*(10-6*p_.preserve)*tail*roomTail*focus;}
    if(kind_==Kind::Silk){double neighbours=0;int count=0;for(int j=std::max(0,k-3);j<=std::min(bands-1,k+3);++j)if(std::abs(j-k)>1){neighbours+=power_[j];++count;}
-    const double prominence=10*std::log10((power_[k]+1e-10)/(neighbours/std::max(1,count)+1e-10));cut=p_.amount*std::clamp((prominence-(14-11*p_.sensitivity))*.6,0.,12.)*focus;}
+    const double prominence=10*std::log10((power_[k]+1e-10)/(neighbours/std::max(1,count)+1e-10));const double steady=power_[k]/(slow_[k]+1e-20);const bool persistent=steady>.8&&steady<1.25&&prominence>(14-11*p_.sensitivity);stable_[k]=std::clamp(stable_[k]+16/(fs_*(persistent?.35:.025))*(persistent?1:-1),0.,1.);cut=p_.amount*std::clamp((prominence-(14-11*p_.sensitivity))*.6,0.,12.)*focus*std::clamp((stable_[k]-.45)/.55,0.,1.);}
    if(kind_==Kind::Spark){const double novelty=10*std::log10((power_[k]+1e-8)/(slow_[k]+1e-8));cut=p_.amount*std::clamp((novelty-(10-8*p_.sensitivity))*1.5,0.,p_.boost?9.:18.)*focus*(p_.boost?-1:1);}
-   if(kind_==Kind::Clean){const double a=1-std::exp(-16/(fs_*(power_[k]<floor_[k]?.05:5.)));floor_[k]+=a*(power_[k]-floor_[k])*(power_[k]<floor_[k]?1:1-voiceCertainty_);const double snr=power_[k]/std::max(floor_[k],1e-12);
-    cleanTargets_[k]={18*p_.noise*std::clamp((3-snr)/2.,0.,1.)*(1-.9*voiceCertainty_),20*p_.plosives*plosive*std::clamp((280-hz)/180.,0.,1.),12*p_.breaths*breath*std::clamp((hz-500)/2500.,0.,1.)};
+   if(kind_==Kind::Clean){
+    const double fraction=std::clamp(noiseEstimate_*noiseBandwidth_[k]/(power_[k]+1e-12),0.,.98);
+    const double noiseCut=-10*std::log10(std::max(.025,1-.85*fraction))*p_.noise;
+    cleanTargets_[k]={noiseCut,20*p_.plosives*plosive*std::clamp((280-hz)/180.,0.,1.),12*p_.breaths*breath*std::clamp((hz-500)/2500.,0.,1.)};
     for(int j=0;j<3;++j){cut+=cleanTargets_[k][j];stageWanted_[k][j]=std::pow(10.,-cleanTargets_[k][j]/20);reduction_[j]=std::max(reduction_[j],float(-db(stageGains_[k][j])));}}
    target_[k]=cut;wanted_[k]=std::pow(10.,-cut/20);const int index=std::clamp(int(127*std::log(std::max(40.,hz)/40.)/std::log(500.)),0,127);view_[index]=float(-db(gains_[k]));
   }
@@ -103,12 +109,12 @@ private:
   }
  }
  Settings p_;Kind kind_=Kind::Room;double fs_=48000;int ch_=2;std::uint64_t clock_=0;
- std::array<double,bands-1>coef_{},cuts_{};std::array<double,bands>hz_{},power_{},slow_{},hold_{},floor_{},gains_{},wanted_{},target_{},sine_{},cosine_{};
+ std::array<double,bands-1>coef_{},cuts_{};std::array<double,bands>hz_{},power_{},detectorPower_{},slow_{},hold_{},stable_{},gains_{},wanted_{},target_{},sine_{},cosine_{},noiseBandwidth_{};
  std::array<std::array<double,bands-1>,2>lp_{};std::array<std::array<double,3>,bands>cleanTargets_{};
  std::array<std::array<double,3>,bands>stageGains_{},stageWanted_{};std::array<std::array<Biquad,bands>,2>detectors_{},peaks_{};
  std::array<float,3>reduction_{};std::array<float,128>view_{};std::array<double,4>weights_{1,0,0,0};
- double fastA_=0,slowA_=0,gainA_=0,attackA_=.01,releaseA_=.001,mix_=1,output_=1,bodyHistory_=0;
- std::array<double,1024>voiceHistory_{};std::uint64_t voicePos_=0;int voiceCount_=0,voiceDecimate_=0,voiceDecimation_=4;double voiceLow_=0,voiceLowAlpha_=0,voiceCertainty_=0;
+ double fastA_=0,slowA_=0,gainA_=0,attackA_=.01,releaseA_=.001,mix_=1,output_=1,bodyHistory_=0,noiseEstimate_=0,roomPeak_=0;
+ double noiseOpenA_=0,roomOpenA_=0;
 };
 
 // Causal conservative impulse repair. Without future samples LIVE cannot

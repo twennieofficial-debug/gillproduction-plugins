@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../Source/PluginProcessor.h"
 #include <cstdio>
 #if JUCE_MAC
@@ -22,7 +23,7 @@ int main(){
  juce::MemoryBlock saved;p.getStateInformation(saved);p.setValue("length",4);p.setStateInformation(saved.getData(),int(saved.getSize()));for(int n=0;n<300&&!p.result();++n)juce::Thread::sleep(10);check(bool(p.captured())&&bool(p.result()),"Captured syllable and settings survive project recall");
  p.setNonRealtime(true);p.audition(true);b.clear();b.setSample(0,0,.25f);p.processBlock(b,midi);check(b.getSample(0,0)==.25f&&!p.previewing,"Offline host render excludes preview");p.setNonRealtime(false);
  auto stateBefore=p.value("length");const char broken[]="not state";p.setStateInformation(broken,sizeof(broken));check(p.value("length")==stateBefore,"Invalid state cannot corrupt controls");
- std::unique_ptr<juce::AudioProcessorEditor>editor(p.createEditor());check(editor->getWidth()==660&&editor->getHeight()==465,"Compact default rectangular editor");check(childrenInside(*editor,*editor),"All visible controls stay within native editor");
+ std::unique_ptr<juce::AudioProcessorEditor>editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});check(editor->getWidth()==660&&editor->getHeight()==465,"Compact default rectangular editor");check(childrenInside(*editor,*editor),"All visible controls stay within native editor");
  for(float scale:{1.f,1.25f,1.5f,2.f}){auto image=editor->createComponentSnapshot(editor->getLocalBounds(),true,scale);auto file=juce::File::getCurrentWorkingDirectory().getChildFile("GILLRISE-UI-"+juce::String(image.getWidth())+"x"+juce::String(image.getHeight())+".png");auto stream=file.createOutputStream();check(image.isValid()&&stream!=nullptr,"Native editor capture at target pixel scale");if(stream){stream->setPosition(0);stream->truncate();juce::PNGImageFormat png;check(png.writeImageToStream(image,*stream),"Native screenshot encoded");}}
  editor.reset();p.setPlayHead(nullptr);std::printf("RESULT %d checks %d failures\n",checks,failures);return failures?1:0;
 }

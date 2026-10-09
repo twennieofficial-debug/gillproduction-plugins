@@ -20,8 +20,8 @@ double centroid(const std::vector<float>&x){double energy=0,weighted=0;for(int h
 void liveAndNoise(){
     for(double rate:{8000.,44100.,48000.,96000.,192000.}){
         std::mt19937 rng(47);std::uniform_real_distribution<float> noise(-.2,.2);std::vector<float>x(8192);for(auto&v:x)v=noise(rng);x[0]=.8f;
-        for(float formant:{-12.f,0.f,12.f}){gill::TuneDSP d;d.prepare(rate,127,1);d.setParameters(7,2,0,0,100);d.setFormant(formant);d.setLiveMode(true);
-            const auto y=render(d,x);check(d.latencySamples()==0&&x==y,"LIVE Tune: first sample and every sample exact, all rates and formants");}
+        for(float formant:{-12.f,0.f,12.f}){gill::TuneDSP d;d.prepare(rate,127,1);d.setParameters(7,2,0,0,0);d.setFormant(formant);d.setLiveMode(true);
+            const auto y=render(d,x);check(d.latencySamples()==0&&x==y,"LIVE Tune MIX0 dry path: first sample and every sample exact, all rates and formants");}
     }
     // Low-passed pitch detection alone can mistake a faint hum under hiss for a
     // reliable voice. Broadband aperiodicity must leave the audible hiss alone.

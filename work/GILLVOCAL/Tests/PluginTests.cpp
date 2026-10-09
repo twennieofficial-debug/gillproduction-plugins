@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <algorithm>
@@ -449,12 +450,12 @@ void screenshot(juce::AudioProcessorEditor& editor, int width, int height, const
 
 void ui(GillKind kind, bool liveTune = false) {
     GillVocalProcessor p(kind,liveTune); product = p.getName().toStdString(); prepare(p);
-    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});
     check(editor != nullptr, "native editor constructs"); if (!editor) return;
     editor->setVisible(true);
     Components components; components.collect(*editor);
-    const int width = kind == GillKind::Flow ? 340 : kind == GillKind::Heat ? 580 : 760;
-    const int height = kind == GillKind::Flow ? 480 : kind == GillKind::Heat ? 380 : 430;
+    const int width = kind == GillKind::Flow ? 740 : kind == GillKind::Heat ? 580 : 760;
+    const int height = kind == GillKind::Flow ? 450 : kind == GillKind::Heat ? 380 : 430;
     const int expectedSliders = kind == GillKind::Flow ? 1 : kind == GillKind::Heat ? 5 : 4;
     const auto* limits = editor->getConstrainer();
     check(editor->getWidth() == width && editor->getHeight() == height && limits &&

@@ -25,6 +25,8 @@ def quality_result_fixture(rate):
             pro = max(64, p.math.ceil(rate * .012))
         if name == "GILLCEILING": pro = p.math.ceil(rate*.003)+32
         if name == "GILLWEIGHT": pro = 32
+        if name == "GILLTAPE": pro = p.math.ceil(rate*.004)+64
+        if name in ("GILLVITAL", "GILLHARMONIC", "GILLRACK"): pro = 64
         products.append({"name": name, "factory_version": product["version"], "factory_version_verified": True,
                          "factory_uid": format(index + 1, "x"), "manufacturer": "GILLPRODUCTION",
                          "live_latency_samples": live, "pro_latency_samples": pro,
@@ -217,23 +219,40 @@ class SourceArchiveTests(unittest.TestCase):
                 p.verify_source_archive(path, manifest)
 
     def test_catalog_preserves_products_and_compact_sizes(self):
-        self.assertEqual(len(p.PRODUCTS), 60)
-        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 60)
-        self.assertTrue(all(x["version"] == "0.14.0" for x in p.PRODUCTS))
+        self.assertEqual(len(p.PRODUCTS), 74)
+        self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 74)
+        self.assertTrue(all(x["version"] == "0.20.0" for x in p.PRODUCTS))
         baseline = p.read(p.HERE / "resources/compatibility/update13-products.json")
         current = {x["name"]: x for x in p.PRODUCTS}
         self.assertEqual(len(baseline), 57)
         for old in baseline:
             for field in ("name", "code", "target", "bundle_id"):
                 self.assertEqual(current[old["name"]][field], old[field])
-        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 73)
+        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 84)
         self.assertIn("LIVE_QUALITY_DSP", p.CTEST_MATRIX["GILLNEXT"])
         for product in p.PRODUCTS:
-            self.assertLessEqual(product["default_size"][0], 900)
-            self.assertLessEqual(product["default_size"][1], 580)
+            self.assertLessEqual(product["default_size"][0], 1160)
+            self.assertLessEqual(product["default_size"][1], 700)
 
 
 class NativeEvidenceTests(unittest.TestCase):
+    def test_nested_group_evidence_keeps_the_catalog_relative_path(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            group = root / "GILLSTUDIO/Next03/Preview"
+            group.mkdir(parents=True)
+            build = root / "build"
+            build.mkdir()
+            image = build / "GILLSPECTRA PREVIEW-UI-default.png"
+            image.write_bytes(b"fresh screenshot fixture")
+            p.collect_test_evidence(group, build, root / "results", 0,
+                                    "GILLSTUDIO/Next03/Preview")
+            saved = root / "results/test-evidence/GILLSTUDIO/Next03/Preview" / image.name
+            self.assertEqual(saved.read_bytes(), image.read_bytes())
+            self.assertFalse((root / "results/test-evidence/Preview").exists())
+            with self.assertRaisesRegex(RuntimeError, "Unsafe evidence"):
+                p.collect_test_evidence(group, build, root / "results", 0, "../outside")
+
     def test_live_failure_excerpt_keeps_first_last_failures_and_final_summary(self):
         lines = ["PASS " + str(i) for i in range(2000)]
         lines[10] = "FAIL important first measurement"
@@ -274,7 +293,7 @@ class NativeEvidenceTests(unittest.TestCase):
             self.assertEqual(len(failure["failed_groups"]), 1)
 
     def test_all_expected_ctest_entries_match(self):
-        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 73)
+        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 84)
         for group, expected in p.CTEST_MATRIX.items():
             p.verify_ctest_listing(group, {"tests": [{"name": name} for name in expected]})
 
@@ -425,8 +444,8 @@ class NativeQualityGateTests(unittest.TestCase):
             with self.subTest(missing=field), self.assertRaisesRegex(RuntimeError, "measured LIVE"):
                 p.verify_quality_result(result, 48000)
 
-    def test_release14_requires_exact_updated_product_versions(self):
-        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("14", "0.14.0"))
+    def test_release20_requires_exact_updated_product_versions(self):
+        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("20", "0.20.0"))
         for rate in p.QUALITY_SAMPLE_RATES:
             p.verify_quality_result(quality_result_fixture(rate), rate)
         for name, wrong in (("GILLEQ", "0.7.0"), ("GILLHARMONY", "0.6.0"),

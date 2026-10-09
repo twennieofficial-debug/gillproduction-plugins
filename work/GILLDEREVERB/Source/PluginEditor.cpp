@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "../../GILLCommon/PrismUi.h"
+#include "../../GILLCommon/ScalpelUi.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
 #include "../../GILLCommon/MaterialUi.h"
@@ -8,7 +9,7 @@
 
 namespace
 {
-const juce::Colour ink(0xff102237), sage(0xff54b8d5);
+const juce::Colour ink=gill::scalpel::ink, sage=gill::scalpel::cyan;
 
 juce::Font coreFont (float height, bool bold = false)
 {
@@ -35,7 +36,7 @@ public:
     }
 };
 
-class CoreLookAndFeel final : public gill::prism::Look {  };
+class CoreLookAndFeel final : public gill::scalpel::Look { };
 }
 
 struct GillDereverbAudioProcessorEditor::Impl
@@ -44,7 +45,12 @@ struct GillDereverbAudioProcessorEditor::Impl
     GillDereverbAudioProcessor& processor;
     CoreLookAndFeel look;
     juce::Image reference;
+    juce::TextButton listen{"LISTEN REMOVED"};
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> listenAttachment;
     AmountSlider amount;
+    juce::TextButton bypass{"BYPASS"};
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
+    gill::scalpel::Levels levels{[this]{return processor.getInputDb();},[this]{return processor.getOutputDb();}};
     juce::TooltipWindow tooltip;
     juce::RangedAudioParameter* amountParameter = nullptr;
     std::unique_ptr<juce::ParameterAttachment> attachment;
@@ -55,10 +61,12 @@ struct GillDereverbAudioProcessorEditor::Impl
     Impl (GillDereverbAudioProcessorEditor& editor, GillDereverbAudioProcessor& p)
         : owner (editor), processor (p), tooltip (&editor, 650)
     {
-        owner.setLookAndFeel (&look);owner.addAndMakeVisible(quality);
+        owner.setLookAndFeel (&look);owner.addAndMakeVisible(quality);quality.setLookAndFeel(&look);owner.addAndMakeVisible(levels);levels.measurement="PEAK";
+        bypass.setName("BYPASS");bypass.setComponentID("bypass");bypass.setClickingTogglesState(true);owner.addAndMakeVisible(bypass);bypassAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processor.apvts,"bypass",bypass);
         reference = juce::ImageCache::getFromMemory (BinaryData::core_reference_png, BinaryData::core_reference_pngSize);
-        amount.setName ("AMOUNT");
-        amount.setSliderStyle (juce::Slider::RotaryHorizontalVerticalDrag);
+        listen.setName("LISTEN REMOVED");listen.setComponentID("removed");listen.setClickingTogglesState(true);owner.addAndMakeVisible(listen);listenAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(processor.apvts,"removed",listen);
+        amount.setName ("AMOUNT");amount.setComponentID("amount");
+        amount.setSliderStyle (juce::Slider::LinearVertical);
         amount.setRotaryParameters (juce::MathConstants<float>::pi*1.25f, juce::MathConstants<float>::pi*2.75f, true);
         amount.setTextBoxStyle (juce::Slider::TextBoxBelow, false, 108, 25);
         amount.setScrollWheelEnabled (false);
@@ -116,19 +124,21 @@ struct GillDereverbAudioProcessorEditor::Impl
     }
     void resized()
     {
-        const float s = (float) owner.getWidth()/320.0f;
-        look.scale = s;
-        quality.setBounds(juce::Rectangle<float>(102*s, 38*s, 110*s, 26*s).toNearestInt());
-        amount.setBounds (juce::Rectangle<float> (68*s, 85*s, 207*s, 161*s).toNearestInt());
-        amount.setMouseDragSensitivity (juce::roundToInt (240*s));
-        amount.resized();
-        amount.repaint();
+        const float s=owner.getWidth()/380.f;look.scale=s;
+        quality.setBounds(juce::Rectangle<float>(244*s,73*s,110*s,26*s).toNearestInt());bypass.setBounds(juce::Rectangle<float>(25*s,73*s,84*s,26*s).toNearestInt());
+        amount.setBounds(juce::Rectangle<float>(31*s,153*s,105*s,377*s).toNearestInt());
+        listen.setBounds(juce::Rectangle<float>(166*s,524*s,179*s,29*s).toNearestInt());
+        levels.setBounds(juce::Rectangle<float>(153*s,121*s,202*s,391*s).toNearestInt());
     }
-    void paint (juce::Graphics& g)
+    void paint(juce::Graphics& g)
     {
-const float scale=owner.getWidth()/320.f;g.addTransform(juce::AffineTransform::scale(scale));
-        gill::prism::chassis(g,320,300,73,67);gill::prism::title(g,"GILLDEREVERB",{71,14,229,23},19);
-        g.setColour(ink);g.setFont(coreFont(13,true));g.drawText("HALL REDUZIEREN",juce::Rectangle<float>(52,254,230,18),juce::Justification::centred,false);
+        g.addTransform(juce::AffineTransform::scale(owner.getWidth()/380.f));
+        gill::scalpel::chassis(g,380,620,"GILLDEREVERB");
+        gill::scalpel::panel(g,{22,121,120,427});
+        gill::scalpel::text(g,"C L E A N",{29,126,106,25},14);
+        gill::scalpel::text(g,"AMOUNT",{29,530,106,17},10);
+        gill::scalpel::text(g,"HALL REDUZIEREN",{151,560,207,20},12);
+        gill::scalpel::text(g,"INPUT / OUTPUT / DBFS",{151,582,207,18},10);
     }
 };
 
@@ -136,10 +146,10 @@ GillDereverbAudioProcessorEditor::GillDereverbAudioProcessorEditor (GillDereverb
     : juce::AudioProcessorEditor (&processor)
 {
     impl = std::make_unique<Impl> (*this, processor);
-    setResizable (true, true);
-    setResizeLimits (320, 300, 640, 600);
-    if (auto* constrainer = getConstrainer()) constrainer->setFixedAspectRatio (320.0/300.0);
-    setSize (320, 300);
+    setResizable (false, false);
+    setResizeLimits (380, 620, 380, 620);
+    if (auto* constrainer = getConstrainer()) constrainer->setFixedAspectRatio (380.0/620.0);
+    setSize (380, 620);
 }
 GillDereverbAudioProcessorEditor::~GillDereverbAudioProcessorEditor() = default;
 void GillDereverbAudioProcessorEditor::paint (juce::Graphics& g) { impl->paint (g); }

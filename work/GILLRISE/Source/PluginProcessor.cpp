@@ -22,7 +22,12 @@ gill::rise::Settings GillRiseProcessor::settings()const{gill::rise::Settings s;s
 void GillRiseProcessor::processBlock(juce::AudioBuffer<float>&b,juce::MidiBuffer&){process(b,false);}
 void GillRiseProcessor::processBlockBypassed(juce::AudioBuffer<float>&b,juce::MidiBuffer&){process(b,true);}
 void GillRiseProcessor::process(juce::AudioBuffer<float>&b,bool hostBypass){
- juce::ScopedNoDenormals denormal;const int n=b.getNumSamples(),channels=std::min(2,b.getNumChannels());if(!supported||channels==0||n==0)return;
+ juce::ScopedNoDenormals denormal;const int n=b.getNumSamples(),channels=std::min(2,b.getNumChannels());
+ // Monitoring and bypass are still audio paths: a broken upstream sample
+ // must not propagate through the dry designer path or poison its preview.
+ for(int c=0;c<channels;++c)for(int i=0;i<n;++i)
+   if(!std::isfinite(b.getSample(c,i)))b.setSample(c,i,0.f);
+ if(!supported||channels==0||n==0)return;
  const bool bypass=hostBypass||value("bypass")>.5f;bool hasTransport=false,playing=true,positionKnown=false;std::int64_t position=0;
  if(auto*h=getPlayHead())if(auto info=h->getPosition()){hasTransport=true;playing=info->getIsPlaying();if(auto samples=info->getTimeInSamples()){position=*samples;positionKnown=true;}}
  if(!isNonRealtime())capture.process(b.getReadPointer(0),channels>1?b.getReadPointer(1):nullptr,n,playing,hasTransport,position,positionKnown,!bypass);

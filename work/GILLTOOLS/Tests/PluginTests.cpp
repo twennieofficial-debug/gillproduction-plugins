@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../Source/PluginProcessor.h"
 #include "../Source/PluginEditor.h"
 #include <cstdio>
@@ -58,8 +59,8 @@ int main(){
             check(p.getLatencySamples()==(p.reference?0:p.harmony?p.harmony->latencySamples():p.rescue->latencySamples()),"Wrapper reports actual engine latency");
         }
         p.selectPreset(0,false);p.setValue("gillQuality",1,false);p.prepareToPlay(48000,127);
-        std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
-        const int width=kind==1?660:540,height=kind==0?440:kind==1?410:390;
+        std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});
+        const int width=kind==1?660:kind==2?420:540,height=kind==0?440:kind==1?410:650;
         check(editor->getWidth()==width&&editor->getHeight()==height,"Compact default logical size");
         check(childBounds(*editor,*editor),"Every visible control lies within plugin bounds");
         for(float scale:{1.f,1.25f,1.5f,2.f}){

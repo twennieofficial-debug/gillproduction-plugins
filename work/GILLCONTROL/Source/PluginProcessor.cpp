@@ -59,3 +59,17 @@ void GillControlProcessor::setStateInformation(const void* data, int bytes) {
     pendingAutomation.store(-1, std::memory_order_relaxed); pendingRestore.store(mode, std::memory_order_relaxed);
 }
 juce::AudioProcessorEditor* GillControlProcessor::createEditor() { return new GillControlEditor(*this); }
+
+namespace {
+template<typename Sample> void sanitizeMonitoring(juce::AudioBuffer<Sample>& buffer) noexcept {
+    for (int channel = 0; channel < buffer.getNumChannels(); ++channel) {
+        auto* samples = buffer.getWritePointer(channel);
+        for (int i = 0; i < buffer.getNumSamples(); ++i)
+            if (!std::isfinite(samples[i])) samples[i] = Sample(0);
+    }
+}
+}
+void GillControlProcessor::processBlock(juce::AudioBuffer<float>& b, juce::MidiBuffer&) { sanitizeMonitoring(b); }
+void GillControlProcessor::processBlockBypassed(juce::AudioBuffer<float>& b, juce::MidiBuffer&) { sanitizeMonitoring(b); }
+void GillControlProcessor::processBlock(juce::AudioBuffer<double>& b, juce::MidiBuffer&) { sanitizeMonitoring(b); }
+void GillControlProcessor::processBlockBypassed(juce::AudioBuffer<double>& b, juce::MidiBuffer&) { sanitizeMonitoring(b); }

@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../Source/PluginProcessor.h"
 #include "../Source/PluginEditor.h"
 #include <cstdio>
@@ -56,7 +57,7 @@ int main(){
         restored.setPlayHead(&ph);ph.samples=juce::int64((12.5+298.5)*8000);for(int c=0;c<2;++c)for(int i=0;i<127;++i)b.setSample(c,i,.1f);restored.processBlock(b,midi);
         check(b.getSample(0,50)==.1f&&!restored.engine.timelineMatched,"Loading empty state cannot apply an old learned gain curve");
         check(waitFor([&]{return restored.engine.state==Engine::Idle&&restored.engine.plan().gainDb.empty();})&&restored.engine.edits().empty()&&retained.existsAsFile(),"Empty-state worker reset clears edits but preserves previously claimed WAV");restored.setPlayHead(nullptr);
-        p.setPlayHead(nullptr);p.setCurrentProgram(0);std::unique_ptr<juce::AudioProcessorEditor>editor(p.createEditor());check(editor->getWidth()==820&&editor->getHeight()==520&&bounds(*editor,*editor),"Compact rectangular UI keeps all controls in bounds");
+        p.setPlayHead(nullptr);p.setCurrentProgram(0);std::unique_ptr<juce::AudioProcessorEditor>editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});check(editor->getWidth()<=900&&editor->getHeight()<=650&&editor->getWidth()>=500&&editor->getHeight()>=350&&bounds(*editor,*editor),"Compact rectangular UI keeps all controls in bounds");
         for(float scale:{1.f,1.25f,1.5f,2.f}){auto img=editor->createComponentSnapshot(editor->getLocalBounds(),true,scale);auto file=juce::File::getCurrentWorkingDirectory().getChildFile("GILLASSIST-UI-"+juce::String(img.getWidth())+"x"+juce::String(img.getHeight())+".png");auto stream=file.createOutputStream();if(stream){stream->setPosition(0);stream->truncate();}juce::PNGImageFormat png;check(stream&&png.writeImageToStream(img,*stream),"Native UI screenshot at supported pixel scale");}
     }
     {
@@ -74,6 +75,16 @@ int main(){
         auto restoredOwner=std::make_unique<GillAssistProcessor>();auto&restored=*restoredOwner;restored.prepareToPlay(8000,128);restored.setStateInformation(midCapture.getData(),int(midCapture.getSize()));check(waitFor([&]{return restored.engine.state==Engine::Ready;})&&restored.engine.plan().startSeconds==2&&std::abs(restored.engine.plan().duration-3.008)<.001,"Earlier capture snapshot restores completed cache at correct nonzero song position");
         p.engine.arm();check(waitFor([&]{return p.engine.state==Engine::Armed;}),"Capture can re-arm before state cancellation");ph.playing=true;p.processBlock(b,midi);auto blankOwner=std::make_unique<GillAssistProcessor>();auto&blank=*blankOwner;juce::MemoryBlock empty;blank.getStateInformation(empty);p.setStateInformation(empty.getData(),int(empty.getSize()));p.processBlock(b,midi);
         check(waitFor([&]{return p.engine.state==Engine::Idle&&p.engine.plan().gainDb.empty();})&&p.engine.transferState().token.isEmpty()&&p.engine.exportFile()==juce::File(),"Empty-state recall safely cancels active capture and detaches its output");p.setPlayHead(nullptr);
+    }
+    {
+        auto owner=std::make_unique<GillAssistProcessor>();auto&p=*owner;
+        for(int channels:{1,2})for(double rate:{44100.,48000.,96000.})for(bool bypass:{false,true}){
+            p.setPlayConfigDetails(channels,channels,rate,127);p.prepareToPlay(rate,127);juce::AudioBuffer<float>b(channels,127);juce::MidiBuffer midi;
+            for(int c=0;c<channels;++c){for(int i=0;i<127;++i)b.setSample(c,i,.125f);b.setSample(c,0,std::numeric_limits<float>::quiet_NaN());b.setSample(c,1,std::numeric_limits<float>::infinity());b.setSample(c,2,-std::numeric_limits<float>::infinity());}
+            audioAllocations=0;trackAudioAllocations=true;if(bypass)p.processBlockBypassed(b,midi);else p.processBlock(b,midi);trackAudioAllocations=false;
+            bool exact=true;for(int c=0;c<channels;++c)for(int i=0;i<127;++i)exact=exact&&b.getSample(c,i)==(i<3?0.f:.125f);
+            check(exact&&audioAllocations==0,"Corrupt samples sanitized in normal and host bypass without altering finite audio or allocating");
+        }
     }
     std::printf("RESULT %d checks, %d failures\n",checks,failures);return failures?1:0;
 }

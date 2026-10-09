@@ -80,7 +80,7 @@ public:
         if(kind==Kind::Reply)for(auto&b:banks)if(!b.data){b.capacity=48000*300;b.data=std::make_unique<std::atomic<float>[]>(static_cast<size_t>(b.capacity)*2);b.role=0;b.used=0;b.rate=captureRate;}
         delay[0].assign(static_cast<size_t>(fs*6.1)+4,0);delay[1].assign(delay[0].size(),0);reverb.prepare(fs);resetAudio();
         if(learning)abortLearn();if(!prepared){state=0;progress=0;candidate=Plan{};active=Plan{};undo=Plan{};published.store(candidate);applied=false;captureBank=-1;activeBank=-1;command=0;seenIncoming=0;prepared=true;}
-        totalSamples=0;freePPQ=0;lastHostExpected=0;hadHost=false;wasPlaying=false;
+        totalSamples=0;freePPQ=0;lastHostExpected=0;hadHost=false;hadSeconds=false;wasPlaying=false;controlsPrimed=false;
     }
     void resetAudio()noexcept{reverb.reset();for(auto&d:delay)std::fill(d.begin(),d.end(),0.f);delayPos=0;voices={};detectorLP=0;detectorPrev=0;envelope=0;lowL=lowR=0;phraseLP={};phraseSendSmooth=0;phraseReverbSmooth=1;wetSmooth=0;lastBeat=-1.e9;}
     void finishCaptureOutsideProcess()noexcept{armed=false;finishLearn();}
@@ -121,14 +121,22 @@ public:
     }
     void process(float*left,float*right,const float*sideL,const float*sideR,int count,const Controls&c,const Transport&t)noexcept{
         if(count<=0||!left)return;
+        // The first host block must respect saved bypass/dry values exactly.
+        // Audio/transport resets deliberately retain this flag, so later
+        // automation still uses the existing click-free control ramps.
+        if(!controlsPrimed){bypassSmooth=c.bypass?1.f:0.f;drySmooth=c.dry;controlsPrimed=true;}
         const double bpm=std::isfinite(t.bpm)?std::clamp(t.bpm,20.,400.):120.;double step=bpm/(60*fs);
         double blockBeat=t.hasPPQ&&std::isfinite(t.ppq)?t.ppq:(t.hasSeconds?t.seconds*bpm/60:freePPQ);
         const bool stopped=hadHost&&wasPlaying&&!t.playing;
-        const bool jumped=(t.hasPPQ||t.hasSeconds)&&hadHost&&wasPlaying&&t.playing&&std::abs(blockBeat-lastHostExpected)>.04;
+        const bool hasSeconds=t.hasSeconds&&std::isfinite(t.seconds);
+        const bool jumped=hadHost&&wasPlaying&&t.playing&&
+            (hasSeconds&&hadSeconds?std::abs(t.seconds-lastSecondsExpected)>.02:
+             ((t.hasPPQ||hasSeconds)&&std::abs(blockBeat-lastHostExpected)>.04));
         // STOP finalizes the take. A transport seek finalizes the contiguous
         // segment instead of joining unrelated positions or discarding audio.
         if(stopped||jumped){if(learning)finishLearn();resetAudio();}
         hadHost=t.hasPPQ||t.hasSeconds;wasPlaying=t.playing;lastHostExpected=blockBeat+(t.playing?count*step:0);
+        hadSeconds=hasSeconds;lastSecondsExpected=t.seconds+(t.playing?count/fs:0);
         const int cmd=command.exchange(0,std::memory_order_acq_rel);
         if(cmd==1){armed=true;state=5;}else if(cmd==2){armed=false;if(state==5)state=0;finishLearn();}else if(cmd==3)applyCandidate();else if(cmd==4)undoApply();
         else if(cmd==5){preview=validPlan(candidate);previewBeat=candidate.originPPQ;resetAudio();}else if(cmd==6){preview=false;resetAudio();}
@@ -188,14 +196,17 @@ public:
                 wl=(c.effectsOnly?0:a)+wet[0]*(.25f+gap*.55f)+dl*gap;wr=(c.effectsOnly?0:b)+wet[1]*(.25f+gap*.55f)+dr*gap;
                 if(++delayPos>=static_cast<int>(delay[0].size()))delayPos=0;
             }else{
-                const bool running=preview||!t.hasPPQ||t.playing;
+                const bool running=preview||!(t.hasPPQ||t.hasSeconds)||t.playing;
                 if(plan.valid()&&plan.capture>=0&&plan.capture<3&&banks[plan.capture].epoch.load()==plan.captureEpoch&&running){const double rel=beat-plan.originPPQ;
                     for(int i=scanIndex;i<plan.count;++i){const auto&m=plan.markers[i];if(m.endBeat>rel)break;if((i*37+17)%100>=static_cast<int>(c.amount*100))continue;
                         const double grid=c.variant==2?1./3:.25,first=std::ceil((m.endBeat+.08)/grid)*grid;
                         for(int repeat=0;repeat<=c.variant;++repeat){const double at=plan.originPPQ+first+repeat*grid;if(lastBeat<at&&beat>=at){
                             const float seconds=std::min(c.length,std::max(.025f,m.endSec-m.startSec));const float from=std::max(m.startSec,m.endSec-seconds);
                             const double untilNext=i+1<plan.count?plan.markers[i+1].startBeat:plan.durationBeats+4;
-                            if(first+repeat*grid+seconds*bpm/60<untilNext+.02)trigger(plan.capture,plan.captureEpoch,from,m.endSec,m.strength,repeat,c);}}
+                            // Use the same timeline scale as the marker cursor.
+                            // Time-anchored takes retain their learned scale when
+                            // host BPM changes; host BPM here could drop replies.
+                            if(first+repeat*grid+seconds*step*fs<untilNext+.02)trigger(plan.capture,plan.captureEpoch,from,m.endSec,m.strength,repeat,c);}}
                     }
                 }
                 for(auto&v:voices)if(v.active){auto&bank=banks[v.bank];const int role=bank.role.load();const int index=static_cast<int>(v.position),limit=bank.used.load(std::memory_order_relaxed);if((role!=2&&role!=3)||v.epoch!=bank.epoch.load()||index+1>=limit||v.position>=v.end){v.active=false;continue;}
@@ -289,7 +300,7 @@ private:
     }
     Kind kind;double fs=48000,captureRate=48000,freePPQ=0,lastHostExpected=0,lastBeat=-1.e9,previewBeat=0,lastAnalysedBeat=0,capturePhase=0;
     CaptureSink* sink=nullptr;
-    bool prepared=false,hadHost=false,wasPlaying=false,learning=false,armed=false,preview=false,phraseOpen=false;int frameLength=480,frameSamples=0,frameCount=0,crossings=0,gapFrames=0,captureBank=-1,activeBank=-1,delayPos=0;
+    bool prepared=false,hadHost=false,hadSeconds=false,controlsPrimed=false,wasPlaying=false,learning=false,armed=false,preview=false,phraseOpen=false;double lastSecondsExpected=0;int frameLength=480,frameSamples=0,frameCount=0,crossings=0,gapFrames=0,captureBank=-1,activeBank=-1,delayPos=0;
     std::int64_t totalSamples=0;double sumSquare=0,sumLow=0,sideSquare=0;float framePrevious=0,phraseBegin=0,lastVoicedBeat=0,phraseStartSec=0,lastVoicedSec=0,phraseStrength=0;
     std::array<float,2>phraseLP{};float phraseSendSmooth=0,phraseReverbSmooth=1;
     float detectorLP=0,detectorPrev=0,envelope=0,lowL=0,lowR=0,wetSmooth=0,drySmooth=1,bypassSmooth=0,previousCaptureL=0,previousCaptureR=0;

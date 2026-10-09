@@ -1,65 +1,40 @@
-GILLPRODUCTION – UPDATE 14 / 60 PLUGINS FÜR MAC
+GILLPRODUCTION MAC20 – UNIVERSAL VST3
 
-1. Dein Projekt speichern und FL Studio schließen.
-2. Die DMG-Datei öffnen und „GILL-PLUGINS…pkg“ doppelt anklicken.
-3. Im normalen Mac-Installationsfenster auf „Fortfahren“ und „Installieren“ klicken.
-   Das Mac-Administratorpasswort wird ausschließlich von macOS abgefragt.
-4. FL Studio öffnen: Options → Manage plugins → Find installed plugins.
-5. In „More plugins“ nach GILL suchen.
+73 GILL-Plugins im gemeinsamen Paket; MOBINA separat. Außerdem gibt es
+für jedes der 74 Plugins eine eigene DMG. Alle verwenden Version 0.20.0.
+Apple Silicon und Intel, Build-Ziel macOS 11 oder neuer.
 
-Installationsort:
-/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION
+1. Projekt speichern und FL Studio schließen.
+2. Die gewünschte DMG öffnen und die enthaltene PKG starten.
+3. Mit dem normalen macOS Installer installieren.
+4. FL Studio: Options → Manage plugins → Find installed plugins.
+5. Unter More plugins nach GILL beziehungsweise MOBINA suchen.
 
-Alle 60 VST3-Plugins sind gemeinsam enthalten und verwenden Version 0.14.0.
-Die Kennungen der 57 bisherigen Plugins bleiben erhalten. Neu sind GILLVOCODE,
-GILLGRAIN und GILLPULSE. GILLNOTE und die Änderungen aus Update 13 sind enthalten.
-Nach dem Download funktioniert die Installation offline. Deine Projekte,
-Audioeinstellungen und Aufnahmen werden nicht verändert. Die gleiche
-Installer-Datei unterstützt Apple Silicon und Intel. Es wird keine zusätzliche
-Downloader-App installiert.
+GILL: /Library/Audio/Plug-Ins/VST3/GILLPRODUCTION
+MOBINA: /Library/Audio/Plug-Ins/VST3/MOBINA
+Der Hauptinstaller enthält MOBINA nicht. Einzelinstaller installieren jeweils
+nur das ausgewählte Plugin. Vorhandene Projekte werden nicht verändert.
 
-Die Fenster starten in den kompakten Größen des Windows-Bundles. macOS-Retina
-ändert die Pixeldichte, nicht die beabsichtigte Größe der Bedienoberfläche.
-FL Studios eigener äußerer Fensterrahmen bleibt vom Host vorgegeben.
+UNSIGNIERT-TESTVERSION: Die VST3s sind ad-hoc signiert. PKG und DMG haben
+keine Apple Developer ID und keine Apple-Notarisierung. Gatekeeper kann den
+Start blockieren. Die System-Sicherheitsprüfung nicht global deaktivieren.
+Diese Ausgabe bleibt eine Testversion bis zur signierten Veröffentlichung.
 
-In LIVE fügen alle 60 Plugins null zusätzliche Audiosamples hinzu. Das gilt
-auch für GILLTUNE, GILLTUNE LIVE, GILLFORM, GILLHARMONY und GILLRESCUE.
-PRO kann je nach Effekt eine verzögerte Analyse oder Verarbeitung verwenden.
-Bei 48 kHz melden GILLHARMONY PRO 3377 Samples, GILLRESCUE PRO 576 Samples,
-GILLCEILING PRO 176 Samples und GILLWEIGHT PRO 32 Samples.
-Für die Gesamtlatenz kommen Audiointerface- und FL-Studio-Puffer hinzu.
-Aufnahme, Analyse und Export benötigen weiterhin Rechenzeit.
+LIVE meldet null zusätzliche PDC-Samples. Host und Audiointerface haben
+weiterhin Puffer. Pitch-/Formant- und andere Analyseeffekte benötigen auch in
+LIVE Kontext; null gemeldete PDC ist keine Zusage für null physikalische
+Verzögerung sämtlicher Wet-Effekte. PRO kann zusätzliche Latenz melden.
 
-Für GILLMIX: GILLLINK als letzten Insert auf jede gewünschte Quellspur setzen,
-FL-Spurfader zunächst auf 0 dB. Gewünschte Links auswählen, CONNECT SELECTED,
-Rollen kontrollieren, LEARN drücken und den gewünschten Songbereich bis zu
-fünf Minuten abspielen; anschließend den Vorschlag mit APPLY übernehmen.
-STOP beendet den Durchlauf früher, ein Transportsprung beendet den bisherigen
-zusammenhängenden Abschnitt. Die Lautstärke verändert sich in den LINK-Plugins,
-nicht durch automatisches Verschieben der FL-Mixerfader.
+Die Fenstergröße entspricht der aktuellen Windows-Oberfläche in logischen
+Pixeln. Retina verändert die Pixeldichte. Der äußere DAW-Rahmen gehört dem Host.
 
-GILLRISE: ARM aktivieren, die erste Vocal-Silbe aufnehmen lassen, NORMAL oder
-TREMOLO und den Klang einstellen. Nach dem Rendern die WAV in die Playlist
-ziehen; ihr Ende am gewünschten Vocal-Einsatz ausrichten.
-GILLASSIST: TRANSFER starten und bis zu fünf Minuten abspielen oder eine Datei
-importieren, danach Pegelbereiche bearbeiten und eine WAV exportieren.
-Gerenderte Dateien zusammen mit dem Projekt aufbewahren. GILLALIGN bleibt
-auf einzelne Takes bis 20 Sekunden ausgelegt.
+Native automatisierte Prüfungen auf Apple Silicon und Intel umfassen echte
+VST3-Lade-/Umschalttests, DSP-/Bedienungsprüfungen, frische Screenshots,
+pluginval, echte PKG-Installationen und den Inhalt gemounteter DMGs. Das
+ersetzt keine FL-Studio-Hörprüfung auf einem Mac und bestätigt nicht jeden
+Host auf jeder macOS-Version.
 
-Weitere Bedienung steht in GILL-UPDATE-14-ANLEITUNG.md;
-GILL-PLUGINS-UEBERSICHT.txt erklärt alle 60 Plugins in Stichpunkten.
-
-Die vollständigen Quellen und Lizenztexte liegen in der DMG bei.
-Zusätzliche Lizenztexte liegen nach Installation unter
-/Library/Application Support/GILLPRODUCTION/Lizenzen.
-
-Das Build-Ziel ist macOS 11 oder neuer. Native automatisierte Prüfungen laufen
-auf macOS 15 für Apple Silicon und Intel. Das belegt keine FL-Studio-Hörprüfung
-auf jeder macOS-Version. Die abschließende Sicht- und Hörprüfung auf Mac bleibt
-erforderlich.
-
-Falls der Dateiname „UNSIGNIERT-TESTVERSION“ enthält:
-Dies ist eine echte kompilierte Mac-Testversion, aber noch keine mit Apple
-Developer ID signierte und notarisierte Endkundenversion. Gatekeeper kann sie
-blockieren. Die Mac-Sicherheitseinstellungen werden durch den Installer nicht
-verändert; bitte stattdessen eine signierte Veröffentlichung verwenden.
+Der vollständige zugehörige Quellcode einschließlich JUCE und Lizenztexte
+ist im gemeinsamen Paket und als separater Download enthalten. Einzeldownloads
+nennen genau dessen Dateinamen und SHA256. Exportierte WAVs zusammen mit
+dem DAW-Projekt aufbewahren. Eine separate Downloader-App ist nicht nötig.

@@ -3,6 +3,7 @@
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include "../../GILLCommon/CausalAntialias.h"
 
 namespace gill {
 namespace air_detail {
@@ -24,6 +25,7 @@ inline double harmonics(double input, double amount) noexcept {
 }
 
 struct Core {
+    std::array<double,2> previousBand{};
     double aLow = 0.0, aHigh = 0.0, aPresence = 0.0, aAir = 0.0;
     double low1 = 0.0, low2 = 0.0, high1 = 0.0, high2 = 0.0;
     std::array<double, 2> presenceHp{}, airHp{};
@@ -35,12 +37,12 @@ struct Core {
         aAir = alpha(std::min(5500.0, baseRate * 0.30));
         reset();
     }
-    void reset() noexcept { low1 = low2 = high1 = high2 = 0.0; presenceHp.fill(0.0); airHp.fill(0.0); }
+    void reset() noexcept { low1 = low2 = high1 = high2 = 0.0; presenceHp.fill(0.0); airHp.fill(0.0);previousBand.fill(0.); }
     static double highpass(double input, double alpha, std::array<double, 2>& states) noexcept {
         for (auto& state : states) { state = quiet(state + alpha * (input - state)); input -= state; }
         return input;
     }
-    double process(double input, double midAir, double highAir) noexcept {
+    double process(double input, double midAir, double highAir, bool causalAverage=false) noexcept {
         low1 = quiet(low1 + aLow * (input - low1));
         low2 = quiet(low2 + aLow * (low1 - low2));
         high1 = quiet(high1 + aHigh * (input - high1));
@@ -49,8 +51,15 @@ struct Core {
         const double airBand = input - high2;
         // Only the additional harmonic signals are high-passed. Their DC and
         // low-frequency components never alter the original clean path.
-        return highpass(harmonics(presenceBand, midAir) + .85*midAir*midAir*presenceBand, aPresence, presenceHp) +
-               highpass(harmonics(airBand, highAir) + .85*highAir*highAir*airBand, aAir, airHp);
+        auto harmonic=[&](double x,double amount,int band){
+            const double previous=previousBand[band];previousBand[band]=x;
+            if(!causalAverage)return harmonics(x,amount);
+            const double drive=1+6*amount;
+            auto primitive=[&](double v){const double a=v*drive;const double even=.5*(a*std::sqrt(a*a+.36)+.36*std::asinh(a/.6))-.6*a;const double odd=.5*a*a-gill::causal::logCosh(a);return amount*(1+5*amount*amount*amount)*(.28*even+.45*odd)/(drive*drive);};
+            return gill::causal::average(x,previous,[&](double v){return harmonics(v,amount);},primitive);
+        };
+        return highpass(harmonic(presenceBand, midAir,0) + .85*midAir*midAir*presenceBand, aPresence, presenceHp) +
+               highpass(harmonic(airBand, highAir,1) + .85*highAir*highAir*airBand, aAir, airHp);
     }
 };
 } // namespace air_detail
@@ -113,7 +122,7 @@ public:
                 state.dryPosition = (state.dryPosition + 1) % fixedLatencySamples;
                 state.input[state.inputPosition] = input;
                 double extra = 0.0;
-                if (liveMode_) extra = state.core.process(input, mid_, high_);
+                if (liveMode_) extra = state.core.process(input, mid_, high_,true);
                 for (int phase = 0; !liveMode_ && phase < oversamplingFactor; ++phase) {
                     double upsampled = 0.0;
                     int position = state.inputPosition;

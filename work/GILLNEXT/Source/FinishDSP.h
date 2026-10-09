@@ -37,7 +37,7 @@ public:
         limiterTarget_=p.limiterEnabled?1:0;oversamplingTarget_=p.limiterEnabled||clipTarget_>0?1:0;
     }
     void reset() noexcept{
-        for(auto& s:state_){s.input.fill(0);s.output.fill(0);s.lookahead.fill(0);s.dry.fill(0);s.peakInput.fill(0);s.safetyInput.fill(0);s.safetyAudio.fill(0);for(auto& f:s.tone)f.reset();s.inputPosition=s.outputPosition=s.peakPosition=s.safetyInputPosition=0;}
+        for(auto& s:state_){s.input.fill(0);s.output.fill(0);s.lookahead.fill(0);s.dry.fill(0);s.peakInput.fill(0);s.safetyInput.fill(0);s.safetyAudio.fill(0);s.liveHistory.fill(0);s.livePosition=0;for(auto& f:s.tone)f.reset();s.inputPosition=s.outputPosition=s.peakPosition=s.safetyInputPosition=0;}
         queueHead_=queueCount_=safetyQueueHead_=safetyQueueCount_=0;sampleClock_=safetyClock_=0;delayPosition_=dryPosition_=controlClock_=safetyPosition_=0;safetyGain_=1;
         sideLow1_=sideLow2_=compressorPower_=compressorDb_=truePeak_=maximumTruePeak_=0;limiterGain_=1;
         ceiling_=ceilingTarget_;drive_=driveTarget_;comp_=compTarget_;clip_=clipTarget_;width_=widthTarget_;bass_=bassTarget_;stereo_=stereoTarget_;limiter_=limiterTarget_;oversampling_=oversamplingTarget_;tone_=toneTarget_;
@@ -73,11 +73,15 @@ public:
                     if(clip_>0){const double a=std::abs(up)/ceiling;const double shaped=a<=.75?up:std::copysign(ceiling*(.75+.25*std::tanh((a-.75)*4)),up);up+=clip_*(shaped-up);}
                     candidate[c]=up;peak=std::max(peak,std::abs(up));delayed[c]=(liveMode_||lookahead_==0)?up:s.lookahead[delayPosition_];s.lookahead[delayPosition_]=up;delayedPeak=std::max(delayedPeak,std::abs(delayed[c]));
                 }
+                // LIVE estimates the candidate's intersample peak from causal
+                // history; detector history never buffers the returned audio.
+                if(liveMode_)peak=std::max(peak,livePeak(candidate,count));
                 while(queueCount_&&queueIndex_[queueHead_]+std::uint64_t(liveMode_?0:lookahead_)<sampleClock_){queueHead_=(queueHead_+1)%maximumLookahead;--queueCount_;}
                 while(queueCount_){const int back=(queueHead_+queueCount_-1)%maximumLookahead;if(queuePeak_[back]>peak)break;--queueCount_;}
                 const int tail=(queueHead_+queueCount_)%maximumLookahead;queuePeak_[tail]=peak;queueIndex_[tail]=sampleClock_;++queueCount_;
                 const double wanted=std::min(1.,limitingCeiling/std::max(1e-20,queuePeak_[queueHead_]));
-                detail::follow(limiterGain_,wanted,wanted<limiterGain_?limiterAttack_:limiterRelease_);
+                if(liveMode_&&wanted<limiterGain_)limiterGain_=wanted;
+                else detail::follow(limiterGain_,wanted,wanted<limiterGain_?limiterAttack_:limiterRelease_);
                 const double guarded=std::min(limiterGain_,limitingCeiling/std::max(1e-20,delayedPeak));
                 const double applied=1+limiter_*(guarded-1);lastLimit=-detail::db(applied);
                 for(int c=0;c<count;++c){auto& s=state_[c];const double y=delayed[c]*applied;s.output[s.outputPosition]=s.output[s.outputPosition+filterTaps]=y;if(phase==0)decimated[c]=liveMode_?y:dot<filterTaps>(s.output.data()+s.outputPosition,filter_.data());if(--s.outputPosition<0)s.outputPosition=filterTaps-1;}
@@ -94,7 +98,7 @@ public:
         }
         meter_.publish();compressorMeter_=float(comp_*compressorDb_);limiterMeter_=float(std::max(0.,lastLimit));truePeakMeter_=float(truePeak_);maximumTruePeakMeter_=float(maximumTruePeak_);
     }
-    // LIVE retains tone, width, compression and sample-peak protection without
+    // LIVE retains tone, width, compression and causal peak estimation without
     // FIR/lookahead buffering. PRO provides the oversampled true-peak path.
     void setLiveMode(bool live) noexcept {
         if(liveMode_==live)return;liveMode_=live;
@@ -117,6 +121,33 @@ private:
     static constexpr int safetyCapacity=128;
     static constexpr int inputHistory=(filterTaps+oversamplingFactor-1)/oversamplingFactor,meterHistory=65;
     template<int N>static double dot(const double* x,const double* c)noexcept{double a=0,b=0;int i=0;for(;i+1<N;i+=2){a+=x[i]*c[i];b+=x[i+1]*c[i+1];}if(i<N)a+=x[i]*c[i];return a+b;}
+    // A bounded three-sample sinusoidal predictor catches stable HF peaks
+    // before the longer finite-sinc detector has filled. Arbitrary transients
+    // cannot be perfectly bounded without future samples: LIVE is not PRO TP.
+    double livePeak(const std::array<double,maximumChannels>& candidate,int count)noexcept{
+        double peak=0;
+        for(int c=0;c<count;++c){auto& s=state_[c];
+            const double a=candidate[c],b=s.liveHistory[(s.livePosition+1)%meterHistory],
+                         d=s.liveHistory[(s.livePosition+2)%meterHistory],
+                         e=s.liveHistory[(s.livePosition+3)%meterHistory];
+            s.liveHistory[s.livePosition]=s.liveHistory[s.livePosition+meterHistory]=a;
+            for(int phase=0;phase<oversamplingFactor;++phase)
+                peak=std::max(peak,std::abs(dot<meterHistory>(s.liveHistory.data()+s.livePosition,peakInterpolation_[phase].data())));
+            const double scale=std::max({std::abs(a),std::abs(b),std::abs(d)});
+            if(std::abs(b)>scale*1e-4){
+                const double cosine=(a+d)/(2*b);
+                // Ill-conditioned near DC/Nyquist estimates are rejected.
+                // A recurrence check rejects non-tonal signals; the finite cap
+                // prevents ill-conditioned estimates from causing large dips.
+                if(std::abs(cosine)<.98&&std::abs(b+e-2*cosine*d)<.02*scale){
+                    const double power=(a*a+b*b-2*cosine*a*b)/(1-cosine*cosine);
+                    peak=std::max(peak,std::min(2*scale,std::sqrt(std::max(0.,power))));
+                }
+            }
+            if(--s.livePosition<0)s.livePosition=meterHistory-1;
+        }
+        return peak;
+    }
     double reconstructedGuard(std::array<double,maximumChannels>& output,int count,double ceiling)noexcept{
         double peak=0,delayedPeak=0;
         for(int c=0;c<count;++c){auto& s=state_[c];
@@ -158,7 +189,7 @@ private:
         // rather than reusing the deliberately band-limited anti-alias filter.
         for(int phase=0;phase<oversamplingFactor;++phase){double total=0;for(int tap=0;tap<meterHistory;++tap){const double d=tap-32+phase/double(oversamplingFactor);const double sinc=std::abs(d)<1e-12?1:std::sin(detail::pi*d)/(detail::pi*d);const double window=std::abs(d)<=32?.42+.5*std::cos(detail::pi*d/32)+.08*std::cos(2*detail::pi*d/32):0;peakInterpolation_[phase][tap]=sinc*window;total+=sinc*window;}for(auto&c:peakInterpolation_[phase])c/=total;}
     }
-    struct State{std::array<detail::Biquad,3>tone{};std::array<double,inputHistory*2>input{};std::array<double,meterHistory*2>peakInput{},safetyInput{};std::array<double,safetyCapacity>safetyAudio{};std::array<double,filterTaps*2>output{};std::array<double,maximumLookahead>lookahead{};std::array<double,maximumBaseDelay>dry{};int inputPosition=0,outputPosition=0,peakPosition=0,safetyInputPosition=0;};
+    struct State{std::array<detail::Biquad,3>tone{};std::array<double,inputHistory*2>input{};std::array<double,meterHistory*2>peakInput{},safetyInput{},liveHistory{};std::array<double,safetyCapacity>safetyAudio{};std::array<double,filterTaps*2>output{};std::array<double,maximumLookahead>lookahead{};std::array<double,maximumBaseDelay>dry{};int inputPosition=0,outputPosition=0,peakPosition=0,safetyInputPosition=0,livePosition=0;};
     std::array<State,maximumChannels>state_{};
     std::array<double,filterTaps>filter_{};std::array<std::array<double,inputHistory>,oversamplingFactor>interpolation_{};
     std::array<std::array<double,meterHistory>,oversamplingFactor>peakInterpolation_{},safetyInterpolation_{};

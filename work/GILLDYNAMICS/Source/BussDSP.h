@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include "../../GILLCommon/CausalAntialias.h"
 #if defined(_M_X64) || defined(__SSE2__)
 #include <emmintrin.h>
 #endif
@@ -48,6 +49,14 @@ inline double driveGain(double driveDb) noexcept {
     // control to avoid an effectively inactive beginning on typical buses.
     return std::pow(10.,(12.+.5*std::clamp(driveDb,0.,24.))/20.);
 }
+inline double primitive(double x,int mode) noexcept {
+ if(mode==0)return std::sqrt(1+.16*x*x)/.16;
+ if(mode==2)return std::sqrt(1+x*x);
+ constexpr double bias=.18,denom=27+9*bias*bias;
+ constexpr double zero=bias*(27+bias*bias)/denom;
+ constexpr double slope=((27+3*bias*bias)*denom-bias*(27+bias*bias)*18*bias)/(denom*denom);
+ return (gill::causal::rationalPrimitive(x+bias)-zero*x)/slope;
+}
 inline double normalisation(double gain,int mode) noexcept {
     constexpr double reference=.12;
     if(mode==0)return gain/std::sqrt(1+.16*reference*reference*gain*gain);
@@ -88,6 +97,7 @@ public:
         for(int ch=0;ch<maximumChannels;++ch){
             auto& s=state_[ch];s.input.fill(0);s.residual.fill(0);s.dry.fill(0);
             s.inputPosition=s.residualPosition=s.dryPosition=0;s.previousResidual=s.dcState=0;
+            s.previousInput=0;
             s.noiseState=std::uint32_t(5791+ch*1039);
         }
         gain_=targetGain_;amount_=targetAmount_;trim_=targetTrim_;style_=targetStyle_;
@@ -127,9 +137,10 @@ public:
                     if(amount_>0){
                         const double driven=up*gain_;
                         double shaped=0;
-                        if(mode>=0)shaped=buss_detail::shape(driven,mode)*wetScale[mode];
-                        else for(int k=0;k<3;++k)if(style_[k]>0)shaped+=buss_detail::shape(driven,k)*wetScale[k];
-                        residual=amount_*(shaped-up);
+                        auto shape=[&](int k){return liveMode_?gill::causal::average(driven,s.previousInput*gain_,[k](double v){return buss_detail::shape(v,k);},[k](double v){return buss_detail::primitive(v,k);}):buss_detail::shape(driven,k);};
+                        if(mode>=0)shaped=shape(mode)*wetScale[mode];
+                        else for(int k=0;k<3;++k)if(style_[k]>0)shaped+=shape(k)*wetScale[k];
+                        residual=amount_*(shaped-(liveMode_?.5*(up+s.previousInput):up));
                     }
                     const double dc=residual-s.previousResidual+dcPole_*s.dcState;
                     s.previousResidual=residual;s.dcState=buss_detail::quiet(dc);
@@ -138,6 +149,7 @@ public:
                     if(--s.residualPosition<0)s.residualPosition=filterTaps-1;
                 }
                 if(--s.inputPosition<0)s.inputPosition=inputHistory-1;
+                s.previousInput=x;
                 double noise=0;
                 if(noise_>0){
                     auto& random=s.noiseState;random^=random<<13;random^=random>>17;random^=random<<5;
@@ -160,7 +172,7 @@ private:
         std::array<double,filterTaps*2> residual{};
         std::array<float,fixedLatencySamples> dry{};
         int inputPosition=0,residualPosition=0,dryPosition=0;
-        double previousResidual=0,dcState=0;
+        double previousResidual=0,dcState=0,previousInput=0;
         std::uint32_t noiseState=5791;
     };
     void smooth(double& value,double target) const noexcept {

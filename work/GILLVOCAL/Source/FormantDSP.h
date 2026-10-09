@@ -11,9 +11,9 @@ namespace gill {
 // This is not a resampler or a pitch control. All memory is prepared off-thread.
 class FormantDSP {
 public:
-    void prepare(double fs, int channels) {
+    void prepare(double fs, int channels, bool live = false) {
         rate_=fs; channels_=std::clamp(channels,1,2); size_=256;
-        while(size_<fs*.042 && size_<32768)size_*=2;
+        while(size_<fs*(live?.012:.042) && size_<32768)size_*=2;
         // Eight-way overlap reduces envelope modulation on low vocal notes.
         hop_=size_/8; int bits=0;while((1<<bits)<size_)++bits;
         reverse_.resize(size_);window_.resize(size_);twiddle_.resize(size_/2);

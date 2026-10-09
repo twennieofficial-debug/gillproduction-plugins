@@ -1,12 +1,13 @@
 #include "PluginEditor.h"
+#include "../../GILLCommon/TwinLensUi.h"
 #include "../../GILLCommon/PrismUi.h"
 #include "../../GILLCommon/MaterialUi.h"
 #include "../../GILLCommon/QualityUi.h"
 
 namespace{
-const juce::Colour ivory(0xffd0dcea),ink(0xff102237),green(0xff3c9bb7),amber(0xffd5afd7);
+const juce::Colour ivory(0xffe5ded3),ink(0xff39363d),green(0xff9d81d2),amber(0xffb49af9);
 void drawAssistText(juce::Graphics&g,const juce::String&t,juce::Rectangle<int>r,float size,juce::Colour c=ink,int alignment=juce::Justification::centredLeft){g.setColour(c);g.setFont(juce::FontOptions(size));g.drawFittedText(t,r,alignment,1);}
-class Look final : public gill::prism::Look {  };
+class Look final : public gill::twin::Look {  };
 struct Control:juce::Component{
     juce::String name;juce::Slider slider;std::unique_ptr<juce::AudioProcessorValueTreeState::SliderAttachment>attachment;
     Control(GillAssistProcessor&p,const char*id,const char*text,const char*suffix):name(text){slider.setSliderStyle(juce::Slider::LinearHorizontal);slider.setColour(juce::Slider::textBoxTextColourId,ink);slider.setColour(juce::Slider::textBoxBackgroundColourId,juce::Colour(0xffc1d0df));slider.setColour(juce::Slider::textBoxOutlineColourId,juce::Colour(0xff8daac2));slider.setTextBoxStyle(juce::Slider::TextBoxRight,false,57,18);slider.setTextValueSuffix(suffix);slider.setName(text);slider.onDragStart=[&p]{p.undoManager.beginNewTransaction("Control");};addAndMakeVisible(slider);attachment=std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment>(p.state,id,slider);}
@@ -27,14 +28,14 @@ struct Timeline:juce::Component,juce::SettableTooltipClient{
     float x(double t)const{return float((t-left())/span()*getWidth());}
     float y(float db)const{return getHeight()*.58f-db*getHeight()/72.f;}
     void paint(juce::Graphics&g)override{
-        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff142e47),0,0,juce::Colour(0xff091d31),0,float(getHeight()),false));g.fillRoundedRectangle(getLocalBounds().toFloat(),7);
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff2d2a35),0,0,juce::Colour(0xff101116),0,float(getHeight()),false));g.fillRoundedRectangle(getLocalBounds().toFloat(),7);
         if(snapshot.waveform.empty()){drawAssistText(g,"LEARN -> SONG ABSPIELEN -> STOP",getLocalBounds().reduced(20),17,ivory,juce::Justification::centred);return;}
         const double step=span()>60?15:span()>20?5:span()>5?1:.25;
         for(double time=std::floor(left()/step)*step;time<left()+span();time+=step){float xx=x(time);g.setColour(ivory.withAlpha(.09f));g.drawVerticalLine(int(xx),19.f,float(getHeight()));drawAssistText(g,juce::String(time,step<1?2:0)+" s",{int(xx)+4,2,60,15},9,ivory.withAlpha(.75f));}
         for(const auto&r:snapshot.regions){if(r.end<left()||r.begin>left()+span())continue;auto colour=r.type==4?juce::Colour(0xff99a9dc):r.type==3?amber:juce::Colour(0xff859084);g.setColour(colour.withAlpha(.08f+.14f*r.confidence));g.fillRect(juce::Rectangle<float>(x(r.begin),20,std::max(1.f,x(r.end)-x(r.begin)),float(getHeight()-20)));}
         g.setColour(ivory.withAlpha(.35f));for(int pixel=0;pixel<getWidth();++pixel){int a=std::clamp(int(seconds(float(pixel))/gill::assist::hopSeconds),0,int(snapshot.waveform.size())-1),b=std::clamp(int(seconds(float(pixel+1))/gill::assist::hopSeconds)+1,a+1,int(snapshot.waveform.size()));float peak=0;for(int j=a;j<b;++j)peak=std::max(peak,snapshot.waveform[std::size_t(j)]);float h=std::min(.95f,peak*1.8f)*(getHeight()-38)*.5f;g.drawVerticalLine(pixel,getHeight()*.55f-h,getHeight()*.55f+h);}
         for(int d:{-24,-12,0,12}){g.setColour(ivory.withAlpha(d==0?.2f:.07f));g.drawHorizontalLine(int(y(float(d))),0,float(getWidth()));drawAssistText(g,juce::String(d)+" dB",{getWidth()-46,int(y(float(d)))-14,43,13},9,ivory.withAlpha(.7f));}
-        juce::Path curve;for(int px=0;px<getWidth();++px){int i=std::clamp(int(seconds(float(px))/gill::assist::hopSeconds),0,int(snapshot.gainDb.size())-1);float yy=y(snapshot.gainDb[std::size_t(i)]);if(px==0)curve.startNewSubPath(0,yy);else curve.lineTo(float(px),yy);}g.setColour(juce::Colour(0xffa3dfbf));g.strokePath(curve,juce::PathStrokeType(1.7f));
+        juce::Path curve;for(int px=0;px<getWidth();++px){int i=std::clamp(int(seconds(float(px))/gill::assist::hopSeconds),0,int(snapshot.gainDb.size())-1);float yy=y(snapshot.gainDb[std::size_t(i)]);if(px==0)curve.startNewSubPath(0,yy);else curve.lineTo(float(px),yy);}g.setColour(gill::twin::purple);g.strokePath(curve,juce::PathStrokeType(1.7f));
         const double play=p.engine.positionView.load()-snapshot.startSeconds;if(play>=left()&&play<=left()+span()){g.setColour(amber);g.drawVerticalLine(int(x(play)),18,float(getHeight()));}
         if(dragging){g.setColour(amber.withAlpha(.16f));float end=float(getMouseXYRelative().x);g.fillRect(juce::Rectangle<float>(std::min(down.x,end),20,std::max(1.f,std::abs(end-down.x)),float(getHeight()-20)));}
     }
@@ -49,7 +50,7 @@ struct Timeline:juce::Component,juce::SettableTooltipClient{
 };
 }
 struct GillAssistEditor::Impl:juce::Component,private juce::Timer{
-    GillAssistEditor&owner;GillAssistProcessor&p;Look look;gill::QualitySelector quality;Timeline timeline;
+    GillAssistEditor&owner;GillAssistProcessor&p;Look look;gill::QualitySelector quality;Timeline timeline;gill::twin::History before,after;
     juce::TextButton learn{"LEARN"},stop{"STOP"},import{"IMPORT"},undo{"UNDO"},redo{"REDO"},ab{"A / B"},clear{"RESET EDITS"},bypass{"BYPASS"},save{"EXPORT"};DragButton drag;
     std::array<juce::TextButton,4>sections;std::array<std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>,4>toggles;
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment>bypassAttach;
@@ -70,29 +71,22 @@ struct GillAssistEditor::Impl:juce::Component,private juce::Timer{
         learn.setTooltip("Arm transfer, then play your entire vocal track. Stop playback or press STOP to analyse. Maximum 5 minutes. Insert first on the vocal track.");
         drag.setTooltip("Drag the rendered 24-bit WAV into the Playlist. Place it at the displayed transfer start. Bypass GILLASSIST on the rendered audio to avoid double processing.");
         sections[2].setTooltip("Conservative acoustic breath candidates, not AI classification. Inspect highlighted regions and use PROTECT for mistakes.");sections[3].setTooltip("Broadband clip gain on acoustic sibilance candidates. Inspect regions and use PROTECT for false detections.");
-        setSize(820,520);startTimerHz(15);refresh();resized();
+        setSize(780,540);startTimerHz(15);refresh();resized();
     }
     ~Impl()override{stopTimer();setLookAndFeel(nullptr);}
     void resized()override{
-        quality.setBounds(558,21,110,27);bypass.setBounds(685,21,110,27);
-        learn.setBounds(24,65,82,29);stop.setBounds(111,65,55,29);import.setBounds(171,65,65,29);undo.setBounds(246,65,55,29);redo.setBounds(305,65,55,29);ab.setBounds(366,65,57,29);clear.setBounds(429,65,96,29);editMode.setBounds(536,65,158,29);zoom.setBounds(728,65,66,29);
-        timeline.setBounds(24,106,771,190);scroll.setBounds(24,296,771,14);
-        for(int i=0;i<4;++i)sections[std::size_t(i)].setBounds(31+i*194,321,175,25);
-        for(int i=0;i<4;++i)controls[std::size_t(i)]->setBounds(32,350+i*22,172,22);
-        for(int i=4;i<7;++i)controls[std::size_t(i)]->setBounds(32+(i-3)*194,355,172,26);
-        preset.setBounds(24,457,222,28);controls[7]->setBounds(268,457,204,28);save.setBounds(491,457,74,28);drag.setBounds(580,457,215,28);
+        quality.setBounds(544,21,110,27);bypass.setBounds(670,21,87,27);learn.setBounds(343,68,94,35);stop.setBounds(285,110,94,26);import.setBounds(400,110,94,26);
+        for(int i=0;i<4;++i)controls[size_t(i)]->setBounds(273,143+i*24,234,23);
+        undo.setBounds(273,244,62,25);redo.setBounds(340,244,62,25);ab.setBounds(407,244,49,25);clear.setBounds(462,244,96,25);
+        timeline.setBounds(22,282,736,91);scroll.setBounds(22,373,736,12);editMode.setBounds(22,389,187,25);zoom.setBounds(670,389,88,25);
+        for(int i=0;i<4;++i)sections[size_t(i)].setBounds(22+i*185,420,175,25);
+        for(int i=4;i<7;++i)controls[size_t(i)]->setBounds(22+(i-3)*185,449,175,25);
+        controls[7]->setBounds(22,449,175,25);preset.setBounds(22,484,244,27);save.setBounds(281,484,86,27);drag.setBounds(382,484,376,27);
     }
     void paint(juce::Graphics&g)override{
-        gill::prism::chassis(g,820,520,312);gill::prism::title(g,"GILLASSIST",{77,15,288,31},23);
-        drawAssistText(g,"ZOOM",{698,69,36,20},8,gill::prism::white);
-        for(int i=0;i<4;++i)gill::material::panel(g,{float(24+i*194),315,189,128},juce::Colour(0xffc1d0df),6);
-        drawAssistText(g,"Pause cleanup",{230,392,157,15},11);drawAssistText(g,"30 ms pre-roll / soft tails",{230,412,160,15},9,juce::Colour(0xff69736a));
-        drawAssistText(g,"Breath candidates",{425,392,160,15},11);drawAssistText(g,"Inspect / protect regions",{425,412,160,15},9,juce::Colour(0xff69736a));
-        drawAssistText(g,"S / SH candidates",{619,392,159,15},11);drawAssistText(g,"Confidence-based reduction",{619,412,164,15},9,juce::Colour(0xff69736a));
-        drawAssistText(g,message,{24,491,772,17},10,p.engine.state==gill::assist::Engine::Error?juce::Colours::darkred:juce::Colour(0xff58675c));
-        drawAssistText(g,"0 SAMPLES",{432,23,104,24},10,green,juce::Justification::centredRight);
+        gill::twin::chassis(g,780,540,"GILLASSIST");gill::twin::levelLens(g,{30,65,210,210},"BEFORE",before,"PEAK DBFS / 6.7 S");gill::twin::levelLens(g,{540,65,210,210},"AFTER",after,"PEAK DBFS / 6.7 S");drawAssistText(g,"EDIT THE CAPTURED SONG",{225,389,270,24},10);drawAssistText(g,"ZOOM",{623,389,45,24},10);drawAssistText(g,message,{22,516,736,17},10,p.engine.state==gill::assist::Engine::Error?juce::Colours::darkred:gill::twin::ink);
     }
-    void refresh(){
+    void refresh(){before.gain(p.inputPeak.load());after.gain(p.outputPeak.load());
         const auto current=p.engine.completedRevision.load();if(current!=revision){revision=current;timeline.snapshot=p.engine.plan();}
         const int state=p.engine.state.load();if(state==gill::assist::Engine::Capturing)message="LEARN / "+juce::String(p.engine.capturedSeconds.load(),1)+" / 300 s / Beim Songende STOP druecken.";else if(state==gill::assist::Engine::Analysing)message="ANALYSE / RENDER - vollstaendiger Transfer wird verarbeitet.";else message=p.engine.status();
         if(state==gill::assist::Engine::Ready&&p.playingView&&!p.engine.timelineMatched)message="Ausserhalb des gelernten Songbereichs - unveraendertes Originalsignal.";
@@ -103,6 +97,6 @@ struct GillAssistEditor::Impl:juce::Component,private juce::Timer{
     void chooseImport(){chooser=std::make_unique<juce::FileChooser>("Vocal importieren",juce::File(),"*.wav;*.aif;*.aiff;*.flac");auto safe=juce::Component::SafePointer<Impl>(this);chooser->launchAsync(juce::FileBrowserComponent::openMode|juce::FileBrowserComponent::canSelectFiles,[safe](const juce::FileChooser&dialog){if(safe){auto file=dialog.getResult();if(file.existsAsFile())safe->p.engine.importFile(file,safe->p.engine.positionView.load());}});}
     void chooseExport(){auto source=p.engine.claimExportFile();if(!source.existsAsFile())return;chooser=std::make_unique<juce::FileChooser>("Bearbeitete Vocal exportieren",juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile("GILLASSIST-VOCAL.wav"),"*.wav");auto safe=juce::Component::SafePointer<Impl>(this);chooser->launchAsync(juce::FileBrowserComponent::saveMode|juce::FileBrowserComponent::canSelectFiles|juce::FileBrowserComponent::warnAboutOverwriting,[safe,source](const juce::FileChooser&dialog){if(safe){auto destination=dialog.getResult();if(destination!=juce::File()&&!source.copyFileTo(destination.withFileExtension("wav")))juce::AlertWindow::showMessageBoxAsync(juce::MessageBoxIconType::WarningIcon,"Export fehlgeschlagen","Zielordner oder freien Speicher pruefen.");}});}
 };
-GillAssistEditor::GillAssistEditor(GillAssistProcessor&p):AudioProcessorEditor(p),impl(std::make_unique<Impl>(*this,p)){addAndMakeVisible(*impl);setResizable(true,true);getConstrainer()->setFixedAspectRatio(820./520.);setResizeLimits(820,520,1230,780);setSize(820,520);}
+GillAssistEditor::GillAssistEditor(GillAssistProcessor&p):AudioProcessorEditor(p),impl(std::make_unique<Impl>(*this,p)){addAndMakeVisible(*impl);setResizable(true,true);getConstrainer()->setFixedAspectRatio(780./540.);setResizeLimits(780,540,1170,810);setSize(780,540);}
 GillAssistEditor::~GillAssistEditor()=default;
-void GillAssistEditor::resized(){if(impl){impl->setTransform(juce::AffineTransform::scale(getWidth()/820.f));impl->setBounds(0,0,820,520);}}
+void GillAssistEditor::resized(){if(impl){impl->setTransform(juce::AffineTransform::scale(getWidth()/780.f));impl->setBounds(0,0,780,540);}}

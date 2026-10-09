@@ -90,21 +90,21 @@ int main() {
         const auto semitones=HarmonyDSP::scaleSemitones(hz,e.key,e.scale,e.steps);
         check(std::abs(semitones-(e.targetMidi-e.sourceMidi))<.001,"musical scale interval reaches explicit expected note",semitones,e.targetMidi-e.sourceMidi);
     }
-    // All 25 fixed semitone settings are measured from actual PRO sound. LIVE is an exact direct monitor.
-    for(bool live:{false})for(int shift=-12;shift<=12;++shift) {
+    // All 25 fixed semitone settings are measured from actual PRO sound. LIVE retains an undelayed direct monitor and generated wet voices.
+    for(bool live:{false,true})for(int shift=-12;shift<=12;++shift) {
         const auto r=render(signal(48000,220),48000,solo(shift),live);
         const double expected=220*std::exp2(shift/12.0),found=pitch(r.left,48000,expected);
         const double cents=found>0?1200*std::log2(found/expected):999;
         check(std::abs(cents)<10,"all fixed intervals produce measured target pitch",cents,shift);
         check(rms(r.left,24000)>.005,"pitched voice has audible nonzero energy",rms(r.left,24000),live);
     }
-    for(bool live:{false})for(double hz:{80.,120.,330.,740.,800.})for(int shift:{-12,-7,7,12}) {
+    for(bool live:{false,true})for(double hz:{80.,120.,330.,740.,800.})for(int shift:{-12,-7,7,12}) {
         const auto r=render(signal(48000,hz,.75,true),48000,solo(shift),live);
         const double target=hz*std::exp2(shift/12.0),found=pitch(r.left,48000,target);
         const double cents=found>0?1200*std::log2(found/target):999;
         check(std::abs(cents)<10,"vocal-like low/high fundamental tracks wide interval",cents,hz);
     }
-    for(bool live:{false})for(auto e:std::array<Expected,4>{{{0,0,60,2,64},{0,1,60,2,63},{2,0,62,4,69},{0,3,60,2,65}}}) {
+    for(bool live:{false,true})for(auto e:std::array<Expected,4>{{{0,0,60,2,64},{0,1,60,2,63},{2,0,62,4,69},{0,3,60,2,65}}}) {
         const double input=440*std::exp2((e.sourceMidi-69)/12.0),target=440*std::exp2((e.targetMidi-69)/12.0);
         auto p=solo(e.steps,false);p.key=e.key;p.scale=e.scale;
         const auto r=render(signal(48000,input,.8,true),48000,p,live);
@@ -112,7 +112,7 @@ int main() {
         check(std::abs(cents)<10,"learned pitch actually renders the keyed harmony",cents,e.scale);
         check(r.confidence>.9&&std::abs(1200*std::log2(r.detected/input))<5,"detector reports actual source pitch and confidence",r.detected,r.confidence);
     }
-    for(double fs:{8000.,44100.,48000.,96000.,192000.})for(bool live:{false}) {
+    for(double fs:{8000.,44100.,48000.,96000.,192000.})for(bool live:{false,true}) {
         HarmonyDSP probe;probe.setLiveMode(live);probe.prepare(fs,127,1);const int latency=probe.latencySamples();
         std::vector<float> pulse(static_cast<size_t>(latency+300));pulse[23]=.5f;
         auto dry=solo(7);dry.direct=true;for(auto&v:dry.voices)v.enabled=false;
@@ -122,13 +122,13 @@ int main() {
         dry.direct=false;const auto muted=render(pulse,fs,dry,live);
         check(rms(muted.left)==0,"DIRECT OFF plus voices off has no hidden original",rms(muted.left));
         auto unison=solo(0);const auto same=render(pulse,fs,unison,live);
-        check(live?rms(same.left)==0:same.left==r.left,"LIVE mutes unavailable harmony; PRO unison has aligned timing",fs,latency);
+        if(!live)check(same.left==r.left,"PRO unison has aligned timing",fs,latency);
         auto bypass=solo(12);bypass.bypass=true;bypass.outputDb=-18;
         const auto passed=render(pulse,fs,bypass,live);
         check(passed.left==r.left,"bypass ignores processing and output trim with aligned original",fs);
     }
     const auto tone=signal(48000,220,.8,true);
-    for(bool live:{false}) {
+    for(bool live:{false,true}) {
         auto p=solo(7);const auto one=render(tone,48000,p,live,1);
         for(int block:{16,64,127,512,2048})check(one.left==render(tone,48000,p,live,block).left,"sample-exact host block independence",block,live);
         const auto opposite=render(tone,48000,p,live,127,true,true);double error=0;
@@ -156,7 +156,7 @@ int main() {
         float* data[]{input.data(),second.data()};watched=true;d.process(data,2,127);d.setLiveMode(false);d.reset();d.setLiveMode(true);watched=false;
         check(d.latencySamples()==0&&d.maximumLatencySamples()>0,"LIVE reports zero; PRO context is preallocated",d.latencySamples(),d.maximumLatencySamples());
     }
-    for(bool live:{false}) {
+    for(bool live:{false,true}) {
         for(float natural:{0.f,100.f})for(int interval:{-12,12}) {
             auto p=solo(interval);p.natural=natural;const auto y=render(signal(48000,100,1,true),48000,p,live);
             const double expected=100*std::exp2(interval/12.0),found=pitch(y.left,48000,expected);
@@ -180,10 +180,27 @@ int main() {
         futureReads+=d.causalReadViolations();
         check(peak<.65&&jump<.18,"large pitch and NATURAL changes remain bounded without full-scale clicks",peak,jump);
     }
-    for(double fs:{8000.,44100.,96000.,192000.})for(bool live:{false})for(int shift:{-12,12}) {
+    for(double fs:{8000.,44100.,96000.,192000.})for(bool live:{false,true})for(int shift:{-12,12}) {
         const auto r=render(signal(fs,220,.75,true),fs,solo(shift),live);
         const double expected=220*std::exp2(shift/12.0),found=pitch(r.left,fs,expected);
         check(found>0&&std::abs(1200*std::log2(found/expected))<10,"octave audio accuracy across supported sample rates",found,fs);
+    }
+    for(bool live:{false,true}) {
+        HarmonyDSP d;d.setLiveMode(live);auto p=solo(7);d.setParameters(p);d.prepare(48000,127,1);
+        auto x=signal(48000,220,.8);float* data[]{x.data()};d.process(data,1,int(x.size()));
+        d.reset();std::vector<float> zero(48000);data[0]=zero.data();d.process(data,1,int(zero.size()));
+        check(rms(zero)==0&&d.detectedHz()==0,"reset clears detector, delayed grains and wet tails",live);
+        d.setLiveMode(!live);data[0]=zero.data();d.process(data,1,int(zero.size()));
+        check(rms(zero)==0,"quality switch leaves no stale wet tail",live);
+        auto impulse=std::vector<float>(48000);impulse[23]=.5f;p=solo(0);
+        const auto unison=render(impulse,48000,p,live);int first=-1;
+        for(int i=0;i<int(unison.left.size());++i)if(std::abs(unison.left[i])>1e-6){first=i;break;}
+        HarmonyDSP probe;probe.setLiveMode(live);probe.prepare(48000,127,1);
+        check(first==23+probe.wetLatencySamples(),"wet unison onset independently matches disclosed wet delay",first,probe.wetLatencySamples());
+        auto input=signal(48000,220,1);HarmonyDSP bypass;bypass.setLiveMode(live);bypass.prepare(48000,127,1);p=solo(7);bypass.setParameters(p);auto y=input;
+        for(int n=0;n<int(y.size());n+=64){if(n==24000){p.bypass=true;bypass.setParameters(p);}float* ptr[]{y.data()+n};bypass.process(ptr,1,std::min(64,int(y.size())-n));}
+        double error=0;for(int n=30000;n<int(y.size());++n)error=std::max(error,std::abs(double(y[n])-input[n-bypass.latencySamples()]));
+        check(error==0,"automated bypass settles to exact latency-aligned input",error,live);
     }
     for(const auto& preset:harmonyPresets()) {
         bool valid=preset.name&&std::strlen(preset.name)>3;

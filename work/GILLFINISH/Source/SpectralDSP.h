@@ -77,7 +77,7 @@ public:
         for (auto& a : input) a.fill(0.f);
         for (auto& a : overlap) a.fill(0.f);
         envelopeDb.fill(0.f); history.fill(0.f); power.fill(0.f); targetDb.fill(0.f);
-        view.fill(0.f); peakDb = 0.f;
+        view.fill(0.f); peakDb = 0.f; stable.fill(0.f); previousPower.fill(0.f);
         inputPosition = outputPosition = untilFrame = 0;
         currentMix = settings.mix; currentOutput = settings.output;
     }
@@ -175,7 +175,14 @@ private:
                 for (int j = std::max(1, bin - radius); j <= std::min(bins - 1, bin + radius); ++j) if (std::abs(j - bin) > 2) { surroundings += power[static_cast<std::size_t>(j)]; ++neighbours; }
                 const float baseline = neighbours > 0 ? surroundings / neighbours : power[k];
                 const float prominence = 10.f * std::log10((power[k] + 1.e-10f) / (baseline + 1.e-10f));
-                amount = std::clamp((prominence - threshold) * .85f, 0.f, 18.f) * settings.depth;
+                // A speech harmonic is narrow too. Require sustained energy with a
+                // stable envelope before treating the peak as a resonance.
+                const float change=std::abs(10.f*std::log10((power[k]+1e-12f)/(previousPower[k]+1e-12f)));
+                const bool steady=change<1.5f&&prominence>threshold&&power[k]>1e-8f;
+                stable[k]=steady?std::min(1.f,stable[k]+float(hop/(sampleRate*.45))):std::max(0.f,stable[k]-float(hop/(sampleRate*.025)));
+                previousPower[k]=power[k];
+                const float confidence=std::clamp((stable[k]-.5f)/.5f,0.f,1.f);
+                amount = std::clamp((prominence - threshold) * .85f, 0.f, 18.f) * settings.depth * confidence;
             }
             targetDb[k] = amount * focus(bin);
         }
@@ -222,7 +229,7 @@ private:
     std::array<Complex, Capacity / 2> twiddles{};
     std::array<float, Capacity> window{};
     std::array<int, Capacity> reversal{};
-    std::array<float, Capacity / 2 + 1> frequencies{}, power{}, history{}, targetDb{}, envelopeDb{};
+    std::array<float, Capacity / 2 + 1> frequencies{}, power{}, history{}, targetDb{}, envelopeDb{}, stable{}, previousPower{};
     std::array<int, Capacity / 2 + 1> viewIndex{};
     std::array<float, 128> view{};
 };

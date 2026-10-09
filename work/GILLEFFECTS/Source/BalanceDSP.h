@@ -57,7 +57,7 @@ public:
         fineStage.setAmount(requestedAmount);
     }
     void startLearning(bool entireSong=false) noexcept {fullSong=entireSong;clearLearning();learnState=1;}
-    void finishLearning() noexcept {if(learnState!=1)return;if(activeSamples<fs*2.){learnState=profile.valid?2:0;return;}completeProfile();}
+    void finishLearning() noexcept {if(learnState!=1)return;if(activeSamples<fs*2.){learnState=3;return;}completeProfile();}
     void cancelLearning() noexcept {clearLearning();learnState=profile.valid?2:0;}
     int latencySamples() const noexcept {return 0;}
     int learningState() const noexcept {return learnState;}

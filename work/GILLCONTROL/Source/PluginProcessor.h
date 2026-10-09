@@ -11,10 +11,10 @@ public:
     void prepareToPlay(double, int) override { setLatencySamples(0); }
     void releaseResources() override {}
     bool isBusesLayoutSupported(const BusesLayout& layout) const override;
-    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override {}
-    void processBlockBypassed(juce::AudioBuffer<float>&, juce::MidiBuffer&) override {}
-    void processBlock(juce::AudioBuffer<double>&, juce::MidiBuffer&) override {}
-    void processBlockBypassed(juce::AudioBuffer<double>&, juce::MidiBuffer&) override {}
+    void processBlock(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void processBlockBypassed(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
+    void processBlock(juce::AudioBuffer<double>&, juce::MidiBuffer&) override;
+    void processBlockBypassed(juce::AudioBuffer<double>&, juce::MidiBuffer&) override;
     bool supportsDoublePrecisionProcessing() const override { return true; }
     juce::AudioProcessorEditor* createEditor() override;
     bool hasEditor() const override { return true; }

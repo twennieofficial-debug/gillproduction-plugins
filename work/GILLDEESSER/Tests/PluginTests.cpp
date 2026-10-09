@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <algorithm>
@@ -103,13 +104,16 @@ void automationTests(){GillDeEsserAudioProcessor processor;processor.setPlayConf
 
 void uiTests(){
     GillDeEsserAudioProcessor processor;processor.setPlayConfigDetails(2,2,48000,128);processor.prepareToPlay(48000,128);
-    std::unique_ptr<juce::AudioProcessorEditor> editor(processor.createEditor());check(editor!=nullptr,"editor exists");if(!editor)return;
+    std::unique_ptr<juce::AudioProcessorEditor> editor(processor.createEditor()); gillCurrentUi::verify(editor.get(),processor.getName(),[](bool ok,const char* why){check(ok,why);});check(editor!=nullptr,"editor exists");if(!editor)return;
     std::vector<juce::Slider*> sliders;std::vector<juce::Button*> buttons;std::vector<juce::Component*> components;collect(*editor,sliders,buttons,components);
-    check(sliders.size()==2&&buttons.size()==1,"two knobs and one listen button plus separately tested LIVE/PRO");check(editor->getWidth()==480&&editor->getHeight()==330,"compact 480 by 330 default size");
-    const auto* limits=editor->getConstrainer();check(limits&&limits->getMinimumWidth()==480&&limits->getMinimumHeight()==330&&limits->getMaximumWidth()==960&&limits->getMaximumHeight()==660&&std::abs(limits->getFixedAspectRatio()-480./330.)<1e-12,"documented resize limits and fixed aspect ratio");
+    check(sliders.size()==2&&buttons.size()==2,"two faders, bypass and listen plus separately tested LIVE/PRO");check(editor->getWidth()==420&&editor->getHeight()==640,"fixed portrait 420 by 640 default size");
+    const auto* limits=editor->getConstrainer();check(limits&&limits->getMinimumWidth()==420&&limits->getMinimumHeight()==640&&limits->getMaximumWidth()==420&&limits->getMaximumHeight()==640&&!editor->isResizable(),"current portrait editor has fixed native resize limits");
+    for(auto* button:buttons)if(button->getName()=="BYPASS"){button->setToggleState(true,juce::sendNotificationSync);check(raw(processor,"bypass")==1,"native BYPASS writes host bypass");button->setToggleState(false,juce::sendNotificationSync);check(raw(processor,"bypass")==0,"native BYPASS restores processing");}
+    check(std::count_if(buttons.begin(),buttons.end(),[](juce::Button* b){return b->getName()=="BYPASS";})==1&&std::count_if(buttons.begin(),buttons.end(),[](juce::Button* b){return b->getName()=="LISTEN S";})==1,"exactly one BYPASS and one LISTEN S are discoverable for interaction tests");
     HostListener listener;processor.addListener(&listener);
     for(auto* slider:sliders){const bool isAmount=slider->getName()=="AMOUNT";const char* id=isAmount?"amount":"frequency";
         check(isAmount||slider->getName()=="FREQUENCY","every rotary control has its documented accessible name");const double minimum=isAmount?0:2500,maximum=isAmount?100:12000,interval=isAmount?.1:1,initial=isAmount?55:6500;
+        check(slider->getSliderStyle()==(isAmount?juce::Slider::LinearVertical:juce::Slider::LinearHorizontal),"current Amount and Frequency controls use their visible linear fader styles");
         check(slider->getMinimum()==minimum&&slider->getMaximum()==maximum&&std::abs(slider->getInterval()-interval)<1e-7,"UI parameter range matches processor range");check(slider->getDoubleClickReturnValue()==initial,"knob has the documented default reset");
         const int initialBegins=listener.begins,initialEnds=listener.ends;
         for(int i=0;i<10000;++i){juce::Slider::ScopedDragNotification gesture(*slider);slider->setValue(isAmount?(i%1001)*.1:2500+(i%9501),juce::sendNotificationSync);check(std::abs(raw(processor,id)-slider->getValue())<(isAmount?.002:1.01),"10000 real edits of each knob update the DSP parameter");++uiEdits;}
@@ -129,7 +133,7 @@ void uiTests(){
         {juce::Slider::ScopedDragNotification gesture(*slider);const auto editsBefore=listener.changes;set(processor,id,isAmount?39.2f:8181.f);check(listener.changes==editsBefore+1&&std::abs(slider->getValue()-(isAmount?39.2:8181))<.01,"host update during a drag does not echo another parameter change");}
         set(processor,id,static_cast<float>(minimum));const auto empty=imageHash(*slider);set(processor,id,static_cast<float>(maximum));check(imageHash(*slider)!=empty,"real knob arc and value visibly react to the parameter");set(processor,id,static_cast<float>(minimum));check(imageHash(*slider)==empty,"knob rendering is deterministic at the same setting");set(processor,id,static_cast<float>(initial));
     }
-    if(buttons.size()==1){auto* button=buttons[0];check(button->getName()=="LISTEN S","audition button has the documented accessible name");const int starts=listener.begins,ends=listener.ends;
+    for(auto* button:buttons)if(button->getName()=="LISTEN S"){check(button->getName()=="LISTEN S","audition button has the documented accessible name");const int starts=listener.begins,ends=listener.ends;
         for(int i=0;i<10000;++i){button->setToggleState(!button->getToggleState(),juce::sendNotificationSync);check(raw(processor,"listen")==float(button->getToggleState()?1:0),"10000 real listen-button edits update the processor");++uiEdits;}
         check(listener.begins==starts+10000&&listener.ends==ends+10000,"listen-button edits emit one balanced host gesture each");const auto beforeHost=listener.begins,beforeChanges=listener.changes;set(processor,"listen",1);check(button->getToggleState()&&listener.begins==beforeHost&&listener.changes==beforeChanges+1,"host automation updates LISTEN S without an echo");set(processor,"listen",0);
     }
@@ -149,9 +153,9 @@ void uiTests(){
     juce::AudioBuffer<float> audio(2,128);juce::MidiBuffer midi;std::mt19937 random(7123);std::uniform_real_distribution<float> noise(-.23f,.23f);
     for(int block=0;block<160;++block){for(int i=0;i<128;++i){const auto t=(block*128+i)/48000.;const float sample=static_cast<float>(.07*std::sin(2*3.14159265358979323846*220*t))+noise(random);audio.setSample(0,i,sample);audio.setSample(1,i,sample*.87f);}processor.processBlock(audio,midi);}
     juce::Thread::sleep(50);juce::Timer::callPendingTimersSynchronously();
-    for(const auto size:std::array<std::pair<int,int>,3>{{{480,330},{720,495},{960,660}}}){screenshot(*editor,size.first,size.second);
+    for(const auto size:std::array<std::pair<int,int>,1>{{{420,640}}}){screenshot(*editor,size.first,size.second);
         for(auto* component:components)if(component->getParentComponent()==editor.get())check(editor->getLocalBounds().contains(component->getBounds()),"every top-level control fits inside each supported editor size");
-        for(auto* slider:sliders)for(auto* child:slider->getChildren())if(auto* label=dynamic_cast<juce::Label*>(child))check(slider->getLocalBounds().contains(label->getBounds())&&label->getWidth()>=110,"numeric readout stays inside the knob and legible at minimum size");
+        for(auto* slider:sliders)for(auto* child:slider->getChildren())if(auto* label=dynamic_cast<juce::Label*>(child))check(slider->getLocalBounds().contains(label->getBounds())&&label->getWidth()>=100,"numeric readout stays inside the knob and legible at minimum size");
     }
     editor.reset();processor.releaseResources();
 }

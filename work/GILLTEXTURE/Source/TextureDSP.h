@@ -201,7 +201,11 @@ private:
             // External mode with no signal must not leak modulator through the
             // consonant path. Internally voiced modes can retain speech detail.
             const double voicedFraction = carrierBlend[0] + carrierBlend[1] + carrierBlend[2];
-            output[channel] = 1.5 * output[channel] + (input[channel] - breathLow[channel]) * (.008 * state.unvoiced) * voicedFraction;
+            // The overlapping analysis/synthesis bands sum correlated energy.
+            // Calibrate the bank as a whole, including consonants: per-band
+            // carrier compensation is timbral balancing, not an output gain.
+            // Fixed gain preserves the modulator's dynamics (no pumping AGC).
+            output[channel] = .28 * (1.5 * output[channel] + (input[channel] - breathLow[channel]) * (.008 * state.unvoiced) * voicedFraction);
         }
         previousCarrier = carrier;
         return output;

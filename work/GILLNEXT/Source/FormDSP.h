@@ -3,6 +3,7 @@
 #include "FormantEnvelopeDSP.h"
 #include "../ThirdParty/signalsmith-stretch/signalsmith-stretch.h"
 #include <vector>
+#include "../../GILLTOOLS/Source/HarmonyDSP.h"
 
 namespace gillnext {
 struct FormParameters {float pitchSemitones=0,formantSemitones=0,mix=100;bool link=false,preserveTransients=true;};
@@ -18,7 +19,7 @@ public:
     void prepare(double fs,int maxBlock,int channels){
         (void)maxBlock;prepared_=false;latency_=0;
         if(!std::isfinite(fs)||fs<8000||fs>192000)return;
-        fs_=fs;channels_=std::clamp(channels,1,2);int fft=128;while(fft<fs*(live_?.004:.042))fft*=2;
+        fs_=fs;channels_=std::clamp(channels,1,2);int fft=128;while(fft<fs*(live_?.012:.042))fft*=2;
         stretch_.configure(channels_,fft*2,fft/2,false);
         formants_.prepare(fs,channels_,fft);
         stretch_.setFormantFactor(1,false);
@@ -93,33 +94,109 @@ private:
     bool live_=false;
     bool prepared_=false,processed_=false,preserve_=true,wasOnset_=false;
 };
+// LIVE uses a causal period-synchronous vocal engine. Independent grain read
+// speed moves formants; output mark spacing sets pitch. Unvoiced material takes
+// the context-aligned original path instead of manufacturing a periodic tone.
+class FormLiveEngine {
+public:
+    void setLiveMode(bool) noexcept {}
+    void prepare(double fs,int block,int channels){
+        prepared_=false;if(!std::isfinite(fs)||fs<8000||fs>192000)return;
+        fs_=fs;channels_=std::clamp(channels,1,2);detector_.prepare(fs);
+        voice_.setLiveMode(true);voice_.prepare(fs,block,channels_);latency_=voice_.latencySamples();
+        for(auto&d:dry_)d.assign(latency_,0);confidence_.assign(latency_,0);transients_.assign(latency_,0);
+        shortAlpha_=1-std::exp(-1/(fs*.001));longAlpha_=1-std::exp(-1/(fs*.040));releaseAlpha_=1-std::exp(-1/(fs*.010));
+        alpha_=1-std::exp(-1/(fs*.008));prepared_=true;reset();
+    }
+    void setParameters(const FormParameters&p)noexcept{
+        pitchTarget_=std::clamp(detail::finite(p.pitchSemitones),-12.,12.);
+        formantTarget_=p.link?pitchTarget_:std::clamp(detail::finite(p.formantSemitones),-12.,12.);preserve_=p.preserveTransients;
+        if(!processed_){pitch_=pitchTarget_;formant_=formantTarget_;}
+    }
+    void reset()noexcept{
+        detector_.reset();voice_.reset();for(auto&d:dry_)std::fill(d.begin(),d.end(),0.f);
+        std::fill(confidence_.begin(),confidence_.end(),0.f);std::fill(transients_.begin(),transients_.end(),0.f);index_=hold_=0;blend_=shortPower_=longPower_=transient_=0;onset_=false;
+        pitch_=pitchTarget_;formant_=formantTarget_;processed_=false;
+    }
+    void process(float*const*audio,int channels,int frames)noexcept{
+        if(!prepared_||!audio||channels<1||frames<1)return;const int active=std::min(channels,channels_);
+        for(int c=0;c<active;++c)if(!audio[c])return;processed_=true;
+        for(int i=0;i<frames;++i){std::array<float,2>x{},wet{},dry{};
+            for(int c=0;c<channels_;++c){x[c]=c<active?float(detail::input(audio[c][i])):0;wet[c]=x[c];dry[c]=dry_[c][index_];dry_[c][index_]=x[c];}
+            double power=0;for(int c=0;c<channels_;++c)power+=double(x[c])*x[c]/channels_;
+            shortPower_+=shortAlpha_*(power-shortPower_);longPower_+=longAlpha_*(power-longPower_);
+            const bool onset=shortPower_>1e-5&&shortPower_>longPower_*8;
+            if(onset&&!onset_)hold_=std::max(1,int(fs_*.005));onset_=onset;
+            if(hold_>0){transient_=1;--hold_;}else transient_+=releaseAlpha_*(0-transient_);
+            const double transient=transients_[index_];transients_[index_]=float(transient_);
+            detector_.sample(x,channels_);pitch_+=alpha_*(pitchTarget_-pitch_);formant_+=alpha_*(formantTarget_-formant_);
+            voice_.setParameters(float(pitch_),float(formant_),detector_.hz());
+            float*ptr[]{&wet[0],&wet[1]};voice_.process(ptr,channels_,1);
+            const float delayedConfidence=confidence_[index_];confidence_[index_]=detector_.confidence();
+            blend_+=alpha_*((delayedConfidence>.8f?1.:0.)-blend_);
+            for(int c=0;c<active;++c)audio[c][i]=float(dry[c]+blend_*(preserve_?1-transient:1)*(wet[c]-dry[c]));
+            if(++index_==latency_)index_=0;
+        }
+    }
+    int latencySamples()const noexcept{return prepared_?latency_:0;}
+    double tailSeconds()const noexcept{return prepared_?double(latency_)/fs_+.04:0;}
+private:
+    gill::tools::harmony_detail::Detector detector_;gill::tools::harmony_detail::VoiceEngine voice_;
+    std::array<std::vector<float>,2>dry_;std::vector<float>confidence_,transients_;
+    double fs_=48000,pitch_=0,formant_=0,pitchTarget_=0,formantTarget_=0,alpha_=0,blend_=0;
+    double shortPower_=0,longPower_=0,transient_=0,shortAlpha_=0,longAlpha_=0,releaseAlpha_=0;
+    int channels_=1,latency_=0,index_=0,hold_=0;bool prepared_=false,processed_=false,preserve_=true,onset_=false;
+};
 class FormDSP {
 public:
-    // Strict LIVE is an unbuffered monitor. Pitch/formant resynthesis requires
-    // past/future context and is deliberately reserved for PRO.
-    void setLiveMode(bool live) noexcept { if(live_!=live){live_=live;pro_.reset();liveMeter_.reset();} }
+    // LIVE keeps the dry branch immediate and uses the period-synchronous engine
+    // for generated sound. Wet analysis has an intrinsic onset delay; zero
+    // host PDC does not mean that resynthesis can predict future samples.
+    void setLiveMode(bool live) noexcept { if(live_!=live){live_=live;reset();} }
     void prepare(double fs,int block,int channels) {
-        pro_.setLiveMode(false);pro_.prepare(fs,block,channels);liveMeter_.prepare(fs);
+        pro_.setLiveMode(false);pro_.prepare(fs,block,channels);
+        liveEngine_.setLiveMode(true);liveEngine_.prepare(fs,block,channels);
+        liveMeter_.prepare(fs);coefficient_=1-std::exp(-1/(std::max(8000.,fs)*.005));
+        initialized_=false;
     }
-    void setParameters(const FormParameters& p) noexcept {pro_.setParameters(p);}
-    void reset() noexcept {pro_.reset();liveMeter_.reset();}
+    void setParameters(const FormParameters& p) noexcept {
+        pro_.setParameters(p);auto wet=p;wet.mix=100;liveEngine_.setParameters(wet);
+        const double pitch=std::clamp(detail::finite(p.pitchSemitones),-12.,12.);
+        const double formant=p.link?pitch:std::clamp(detail::finite(p.formantSemitones),-12.,12.);
+        mixTarget_=(pitch==0&&formant==0)?0:std::clamp(detail::finite(p.mix),0.,100.)*.01;
+        if(!initialized_)mix_=mixTarget_;
+    }
+    void reset() noexcept {pro_.reset();liveEngine_.reset();liveMeter_.reset();initialized_=false;mix_=mixTarget_;}
     void process(float*const* audio,int channels,int frames) noexcept {
         if(!live_){pro_.process(audio,channels,frames);return;}
         if(!audio||channels<=0||frames<=0)return;
         const int active=std::min(channels,2);for(int c=0;c<active;++c)if(!audio[c])return;
-        for(int i=0;i<frames;++i){double power=0,peak=0;for(int c=0;c<active;++c){
-            const float x=std::isfinite(audio[c][i])?audio[c][i]:0.f;audio[c][i]=x;
-            power+=double(x)*x/active;peak=std::max(peak,std::abs(double(x)));}
-            liveMeter_.sample(power,power,peak,peak);}
+        initialized_=true;
+        for(int at=0;at<frames;at+=64){const int n=std::min(64,frames-at);
+            std::array<std::array<float,64>,2> dry{},wet{};
+            for(int c=0;c<active;++c)for(int i=0;i<n;++i)
+                dry[c][i]=wet[c][i]=float(detail::input(audio[c][at+i]));
+            float* ptr[]{wet[0].data(),wet[1].data()};liveEngine_.process(ptr,active,n);
+            for(int i=0;i<n;++i){mix_+=coefficient_*(mixTarget_-mix_);if(std::abs(mixTarget_-mix_)<1e-10)mix_=mixTarget_;
+                double power=0,peak=0,outPower=0,outPeak=0;
+                for(int c=0;c<active;++c){const double x=dry[c][i];
+                    const double y=mix_==0?x:x+mix_*(wet[c][i]-x);audio[c][at+i]=float(y);
+                    power+=x*x/active;peak=std::max(peak,std::abs(x));
+                    outPower+=y*y/active;outPeak=std::max(outPeak,std::abs(y));}
+                liveMeter_.sample(power,outPower,peak,outPeak);
+            }
+        }
         liveMeter_.publish();
     }
     int latencySamples()const noexcept{return live_?0:pro_.latencySamples();}
     int maximumLatencySamples()const noexcept{return pro_.latencySamples();}
-    double tailSeconds()const noexcept{return live_?0:pro_.tailSeconds();}
+    int liveWetLatencySamples()const noexcept{return liveEngine_.latencySamples();}
+    double tailSeconds()const noexcept{return live_?liveEngine_.tailSeconds():pro_.tailSeconds();}
     float inputRms()const noexcept{return live_?liveMeter_.in.load():pro_.inputRms();}
     float outputRms()const noexcept{return live_?liveMeter_.out.load():pro_.outputRms();}
     float gainReductionDb()const noexcept{return 0;}
 private:
-    FormEngine pro_;detail::Meter liveMeter_;bool live_=false;
+    FormEngine pro_;FormLiveEngine liveEngine_;detail::Meter liveMeter_;bool live_=false,initialized_=false;
+    double mix_=0,mixTarget_=0,coefficient_=.004;
 };
 }

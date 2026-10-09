@@ -37,8 +37,11 @@ public:
     juce::AudioProcessorParameter* getBypassParameter() const override;
     static juce::AudioProcessorValueTreeState::ParameterLayout createParameterLayout();
     juce::AudioProcessorValueTreeState apvts;
+    float getInputDb() const noexcept { return inputDb.load(std::memory_order_relaxed); }
+    float getOutputDb() const noexcept { return outputDb.load(std::memory_order_relaxed); }
     gill::QualityClient qualityClient{*this, apvts};
 private:
+    std::atomic<float> inputDb{-100.f}, outputDb{-100.f};
     gill::ModeTransition qualityTransition;
     template<class T> void process(juce::AudioBuffer<T>&, bool);
     const gillrestoration::Mode mode;

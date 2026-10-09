@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../Source/PluginProcessor.h"
 #include <cstdio>
 #include <cstdlib>
@@ -69,7 +70,7 @@ void carrierTests(){
     check(energy>1.e-4&&p.carrierConnected,"VOCODE connected external carrier creates audible wet",energy);check(preserved,"VOCODE never overwrites carrier bus");p.setPlayHead(nullptr);
 }
 void guiTests(GillTextureProcessor& p){
-    p.setCurrentProgram(0);p.prepareToPlay(48000,127);juce::AudioBuffer<float> b(2,127);Head head;for(int i=0;i<200;++i){fill(b,head);process(p,head,b);}std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());const auto info=textureInfo(p.kind);check(editor->getWidth()==info.width&&editor->getHeight()==info.height,p.getName()+" exact catalog dimensions");
+    p.setCurrentProgram(0);p.prepareToPlay(48000,127);juce::AudioBuffer<float> b(2,127);Head head;for(int i=0;i<200;++i){fill(b,head);process(p,head,b);}std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});const auto info=textureInfo(p.kind);check(editor->getWidth()==info.width&&editor->getHeight()==info.height,p.getName()+" exact catalog dimensions");
     std::vector<juce::Component*> components;gather(*editor,components);bool focus=!editor->getWantsKeyboardFocus(),fits=true;int knobs=0;juce::ComboBox* presets=nullptr;juce::ComboBox* patterns=nullptr;
     for(auto* c:components){if(dynamic_cast<juce::TextEditor*>(c)==nullptr)focus=focus&&!c->getWantsKeyboardFocus();if(c->isVisible())fits=fits&&editor->getLocalBounds().contains(editor->getLocalArea(c,c->getLocalBounds()));if(auto* slider=dynamic_cast<juce::Slider*>(c))if(slider->getComponentID().isNotEmpty()){const auto id=slider->getComponentID();auto* param=p.apvts.getParameter(id);check(param!=nullptr&&slider->getWidth()>20&&slider->getHeight()>20,p.getName()+" visible control has usable bounds and parameter "+id);if(param){slider->setValue(param->convertFrom0to1(.37f),juce::sendNotificationSync);check(std::abs(p.value(id)-float(slider->getValue()))<.011f,p.getName()+" visible control actually edits "+id);++knobs;}}if(auto* combo=dynamic_cast<juce::ComboBox*>(c)){if(combo->getComponentID()=="preset")presets=combo;if(combo->getComponentID()=="pattern")patterns=combo;}}
     check(focus,p.getName()+" normal controls preserve DAW keyboard");check(fits,p.getName()+" every visible control fits editor");check(knobs>=7,p.getName()+" meaningful sound controls wired");

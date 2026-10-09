@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <fstream>
@@ -39,7 +40,7 @@ juce::MouseEvent mouse(juce::Component&c,juce::Point<float>pt,juce::ModifierKeys
 void click(juce::Button&b){auto pt=b.getLocalBounds().getCentre().toFloat();juce::Component&c=b;c.mouseDown(mouse(c,pt));c.mouseUp(mouse(c,pt,juce::ModifierKeys()));++edits;}
 void tick(){juce::Thread::sleep(45);juce::Timer::callPendingTimersSynchronously();}
 template<class Predicate>bool waitUi(Predicate&&condition){for(int i=0;i<10;++i){if(condition())return true;tick();}return condition();}
-void ui(DynKind k){auto p=std::make_unique<GillDynamicsProcessor>(k);product=p->getName().toStdString();prepare(*p);auto editor=std::unique_ptr<juce::AudioProcessorEditor>(p->createEditor());check(editor!=nullptr,"native editor constructs");if(!editor)return;editor->setVisible(true);Components c;c.scan(*editor);HostListener listener;p->addListener(&listener);std::set<std::string>covered;juce::ComboBox*preset=nullptr;
+void ui(DynKind k){auto p=std::make_unique<GillDynamicsProcessor>(k);product=p->getName().toStdString();prepare(*p);auto editor=std::unique_ptr<juce::AudioProcessorEditor>(p->createEditor()); gillCurrentUi::verify(editor.get(),p->getName(),[](bool ok,const char* why){check(ok,why);});check(editor!=nullptr,"native editor constructs");if(!editor)return;editor->setVisible(true);Components c;c.scan(*editor);HostListener listener;p->addListener(&listener);std::set<std::string>covered;juce::ComboBox*preset=nullptr;
     if(k==DynKind::Buss){
         render(*p,24000);tick();
         juce::FileOutputStream out(juce::File::getCurrentWorkingDirectory().getChildFile("GILLBUSS-UI-800x330.png"));out.setPosition(0);out.truncate();juce::PNGImageFormat png;

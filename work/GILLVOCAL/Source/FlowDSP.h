@@ -46,7 +46,9 @@ public:
     void startLearning(bool entireSong=false) noexcept {fullSong=entireSong;clearLearning();learnState=1;}
     void finishLearning() noexcept {
         if(learnState!=1)return;
-        if(activeSamples<fs*2.){learnState=profile.valid?2:0;return;}
+        // FINISH/STOP must distinguish an insufficient new capture from success.
+        // Keep the old profile active, but do not report it as a newly learned one.
+        if(activeSamples<fs*2.){learnState=3;return;}
         LearnProfile next;next.version=2;next.valid=true;
                 next.rmsDb=static_cast<float>(std::clamp(percentile(rmsHistogram,.5),-72.,6.));
                 next.peakDb=static_cast<float>(std::clamp(std::max(static_cast<double>(next.rmsDb),percentile(peakHistogram,.8)),-72.,18.));next.crestDb=next.peakDb-next.rmsDb;
@@ -66,12 +68,16 @@ public:
     LearnProfile learnedProfile() const noexcept {return profile;}
     bool setLearnedProfile(const LearnProfile& imported) noexcept {
         if(imported.version!=1&&imported.version!=2)return false;
-        if(!imported.valid){profile=LearnProfile{};updateLearnedDynamics();cancelLearning();return true;}
+        if(!imported.valid){profile=LearnProfile{};if(!hasAudio)threshold=-18;updateLearnedDynamics();cancelLearning();return true;}
         if(!inRange(imported.rmsDb,-72,6)||!inRange(imported.peakDb,-72,18)||!inRange(imported.crestDb,0,48)
             ||!inRange(imported.thresholdDb,imported.version==1?-48:-66,imported.version==1?-8:-3)||imported.peakDb<imported.rmsDb)return false;
         if(imported.version==2&&(!inRange(imported.dynamicRangeDb,0,48)||!inRange(imported.motionDb,0,48)
             ||!inRange(imported.attackMs,6,30)||!inRange(imported.releaseMs,70,280)))return false;
-        profile=imported;updateLearnedDynamics();cancelLearning();return true;
+        profile=imported;
+        // State restored before playback must begin with its saved threshold.
+        // During playback the existing smooth threshold transition is retained.
+        if(!hasAudio)threshold=profile.thresholdDb;
+        updateLearnedDynamics();cancelLearning();return true;
     }
     void process(float* const* buffers,int channels,int samples) noexcept {
         if(!buffers||channels<1||samples<=0||!buffers[0])return;

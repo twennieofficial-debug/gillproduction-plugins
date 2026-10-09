@@ -62,12 +62,12 @@ private:
 class Engine {
 public:
  explicit Engine(Kind k):kind(k){}
- void prepare(double rate){fs=rate;for(auto&v:ring)v.assign(size_t(kind==Kind::Trail?std::ceil(fs*6.2):4),0);reset();}
+ void prepare(double rate){fs=rate;for(auto&v:ring)v.assign(size_t(kind==Kind::Trail?std::ceil(fs*6.2):4),0);reset();initialised=false;}
  // Transport seeks also clear effect memory. Preserve the current bypass ramp
  // so an already bypassed effect cannot reappear when the playhead loops.
  void reset(){for(auto&v:ring)std::fill(v.begin(),v.end(),0);lp={};hp={};envelope={};phase=0;position=0;delaySmooth=0;smoothed=Settings{};seed=0x947ab31u;}
  void process(float*l,float*r,int n,const Settings&s){
-  if(designer(kind))return;const float smooth=float(1-std::exp(-1/(fs*.015))),tk=float(1-std::exp(-2*pi*(1100+s.tone*9000)/fs));
+  if(designer(kind)){for(int i=0;i<n;++i){l[i]=clean(l[i]);if(r)r[i]=clean(r[i]);}return;}if(!initialised){smoothed=s;bypass=s.bypass?1.:0.;initialised=true;}const float smooth=float(1-std::exp(-1/(fs*.015))),tk=float(1-std::exp(-2*pi*(1100+s.tone*9000)/fs));
   const double requested=fs*60/std::clamp(s.bpm,20.,400.)*division(s.rhythm);if(delaySmooth==0)delaySmooth=requested;
   for(int i=0;i<n;++i){smoothed.amount+=smooth*(s.amount-smoothed.amount);smoothed.mix+=smooth*(s.mix-smoothed.mix);smoothed.dry+=smooth*(s.dry-smoothed.dry);smoothed.width+=smooth*(s.width-smoothed.width);smoothed.level+=smooth*(s.level-smoothed.level);
    // A float accumulator stalls before reaching even 1e-5 at high rates.
@@ -90,7 +90,7 @@ public:
   }
  }
 private:
- Kind kind;double fs=48000,phase=0,delaySmooth=0,bypass=0;int position=0;unsigned seed=0;Settings smoothed;
+ bool initialised=false;Kind kind;double fs=48000,phase=0,delaySmooth=0,bypass=0;int position=0;unsigned seed=0;Settings smoothed;
  std::array<std::vector<float>,2>ring;std::array<float,2>lp{},hp{},envelope{};
 };
 
@@ -103,25 +103,47 @@ inline bool pitchVoice(const std::vector<float>&in,double fs,double semitones,do
 inline bool render(Kind kind,const Clip&clip,const Settings&s,Render&out,const std::function<bool()>&cancel={}){
  if(clip.rate<8000||clip.rate>192000||!std::isfinite(clip.rate)||clip.left.size()!=clip.right.size()||clip.left.size()<2||clip.left.size()>clip.rate*12.1)return false;
  const double fs=clip.rate,bpm=std::clamp(s.bpm,20.,400.);const int begin=std::clamp(int(s.start*clip.left.size()),0,int(clip.left.size())-2),end=std::clamp(int(s.end*clip.left.size()),begin+2,int(clip.left.size())),size=end-begin;
- Clip trimmed;trimmed.rate=fs;trimmed.left.assign(clip.left.begin()+begin,clip.left.begin()+end);trimmed.right.assign(clip.right.begin()+begin,clip.right.begin()+end);
+ Clip trimmed;trimmed.rate=fs;trimmed.left.assign(clip.left.begin()+begin,clip.left.begin()+end);trimmed.right.assign(clip.right.begin()+begin,clip.right.begin()+end);for(auto& x:trimmed.left)x=clean(x);for(auto& x:trimmed.right)x=clean(x);
  out=Render{};out.rate=fs;out.bpm=bpm;out.onset=clip.onset+begin;out.anchored=clip.anchored;out.settings=s;out.endsAtOnset=kind==Kind::Stutter;
  int length=size;if(kind==Kind::Stutter||kind==Kind::Brake)length=int(std::round(fs*60/bpm*std::clamp(s.beats,.25f,16.f)));else if(kind==Kind::Crowd)length+=int(fs*.7);else if(kind==Kind::Trail)length+=int(fs*std::min(90.,60/bpm*division(s.rhythm)*(2+std::ceil(std::log(.00001)/std::log(std::clamp(double(s.time),.01,.75))))));else length+=int(fs*.1);
  length=std::max(2,length);out.left.assign(length,0);out.right.assign(length,0);const int edge=std::max(1,int(fs*.004));
  if(kind==Kind::Brake){double pos=0;for(int i=0;i<length;++i){const double t=double(i)/(length-1),speed=s.style==1?.08+1.42*std::pow(t,.4+s.amount*3):std::pow(1-t,.35+s.amount*3);out.left[i]=sample(trimmed.left,pos,s.pro);out.right[i]=sample(trimmed.right,pos,s.pro);pos+=speed;}}
  else if(kind==Kind::Stutter){
-  std::vector<std::pair<int,int>>syllables;float peak=0;for(float v:trimmed.left)peak=std::max(peak,std::abs(v));double env=0;int beginSyllable=-1,quiet=0,lastVoiced=0;const double release=std::exp(-1/(fs*.004));
-  for(int i=0;i<size;++i){env=std::max(double(std::abs(trimmed.left[i])),env*release);const bool voiced=env>std::max(.001,double(peak)*.07);if(voiced){if(beginSyllable<0)beginSyllable=std::max(0,i-int(fs*.004));lastVoiced=i;quiet=0;}else if(beginSyllable>=0&&++quiet>=int(fs*.04)){if(lastVoiced-beginSyllable>=int(fs*.025))syllables.emplace_back(beginSyllable,std::min(size,lastVoiced+int(fs*.008)));beginSyllable=-1;}}
+  std::vector<std::pair<int,int>>syllables;float peak=0;double energyL=0,energyR=0;for(int i=0;i<size;++i){peak=std::max({peak,std::abs(trimmed.left[i]),std::abs(trimmed.right[i])});energyL+=double(trimmed.left[i])*trimmed.left[i];energyR+=double(trimmed.right[i])*trimmed.right[i];}double env=0;int beginSyllable=-1,quiet=0,lastVoiced=0;const double release=std::exp(-1/(fs*.004));
+  for(int i=0;i<size;++i){env=std::max(double(std::max(std::abs(trimmed.left[i]),std::abs(trimmed.right[i]))),env*release);const bool voiced=env>std::max(.001,double(peak)*.07);if(voiced){if(beginSyllable<0)beginSyllable=std::max(0,i-int(fs*.004));lastVoiced=i;quiet=0;}else if(beginSyllable>=0&&++quiet>=int(fs*.04)){if(lastVoiced-beginSyllable>=int(fs*.025))syllables.emplace_back(beginSyllable,std::min(size,lastVoiced+int(fs*.008)));beginSyllable=-1;}}
   if(beginSyllable>=0)syllables.emplace_back(beginSyllable,std::min(size,lastVoiced+int(fs*.008)));if(syllables.empty())syllables.emplace_back(0,size);if(syllables.size()>size_t(s.syllables))syllables.resize(std::clamp(s.syllables,1,3));
-  double at=0;int hit=0;while(at<length){if(cancel&&cancel())return false;const double progress=at/length;double step=division(s.rhythm);if(s.style==1)step*=progress<.5?2:progress<.75?1:.5;else if(s.style==2)step*=progress<.75?1:.5;const int first=int(std::llround(at)),last=std::min(length,int(std::llround(at+fs*60/bpm*step))),count=last-first;const double pan=(hit%2?-1.:1.)*s.width,gain=std::pow(.025+.975*progress,s.amount*2.2);const float gl=float(std::cos((pan+1)*pi/4)*gain),gr=float(std::sin((pan+1)*pi/4)*gain);const auto chunk=syllables[size_t(hit)%syllables.size()];const int chunkSize=std::min(count,chunk.second-chunk.first);float chunkPeak=0;for(int j=chunk.first;j<chunk.second;++j)chunkPeak=std::max(chunkPeak,std::abs(.5f*(trimmed.left[j]+trimmed.right[j])));const float balance=std::min(4.f,peak/std::max(.0001f,chunkPeak));for(int j=0;j<count;++j){const int index=chunk.first+std::min(j,chunkSize-1);const float x=j<chunkSize?.5f*(trimmed.left[index]+trimmed.right[index])*fade(j,chunkSize,std::min(edge,std::max(1,chunkSize/4))):0;out.left[first+j]=x*gl*balance;out.right[first+j]=x*gr*balance;}at+=fs*60/bpm*step;++hit;}}
- else if(kind==Kind::Crowd){std::vector<float>mono(size),voice;for(int i=0;i<size;++i)mono[i]=(trimmed.left[i]+trimmed.right[i])*.5f;const int people=std::clamp(s.voices,4,24);unsigned random=0x637217u;auto unit=[&]{random=random*1664525u+1013904223u;return double(random>>8)/16777216.;};
-  for(int v=0;v<people;++v){const int role=s.style==1?(v%3==0?2:1):s.style==2?(v%3==0?2:0):v%3;const double jitter=(unit()-.5)*.8,semi=(role==0?3.5:role==1?-5.5:-.8)+jitter,formant=(role==0?1.13:role==1?.81:.96)+(unit()-.5)*.055;if(!pitchVoice(mono,fs,semi,formant,voice,cancel))return false;const int offset=int(fs*(.006+unit()*(.01+.105*s.time)));const double speed=1+(unit()-.5)*.025*s.amount,pan=(2*(v+.5)/people-1)*s.width,level=(.65+unit()*.35)/std::sqrt(double(people))*s.mix;double lo=0;const double coefficient=1-std::exp(-2*pi*(role==1?3800:role==0?10000:6500)/fs);for(int i=offset;i<length;++i){const double pos=(i-offset)*speed;if(pos>=size-1)break;const double x=sample(voice,pos)*(.85+.15*std::sin(2*pi*(.8+v*.13)*i/fs+v));lo+=coefficient*(x-lo);out.left[i]+=float(lo*level*std::cos((pan+1)*pi/4));out.right[i]+=float(lo*level*std::sin((pan+1)*pi/4));}}
+  double at=0;int hit=0;while(at<length){if(cancel&&cancel())return false;const double progress=at/length;double step=division(s.rhythm);if(s.style==1)step*=progress<.5?2:progress<.75?1:.5;else if(s.style==2)step*=progress<.75?1:.5;const int first=int(std::llround(at)),last=std::min(length,int(std::llround(at+fs*60/bpm*step))),count=last-first;const double pan=(hit%2?-1.:1.)*s.width,gain=std::pow(.025+.975*progress,s.amount*2.2);const float gl=float(std::cos((pan+1)*pi/4)*gain),gr=float(std::sin((pan+1)*pi/4)*gain);const auto chunk=syllables[size_t(hit)%syllables.size()];const int chunkSize=std::min(count,chunk.second-chunk.first);float chunkPeak=0;for(int j=chunk.first;j<chunk.second;++j)chunkPeak=std::max(chunkPeak,std::max(std::abs(trimmed.left[j]),std::abs(trimmed.right[j])));const float balance=std::min(4.f,peak/std::max(.0001f,chunkPeak));for(int j=0;j<count;++j){const int index=chunk.first+std::min(j,chunkSize-1);const float f=j<chunkSize?fade(j,chunkSize,std::min(edge,std::max(1,chunkSize/4))):0;const float sourceL=energyL<energyR*.001?trimmed.right[index]:trimmed.left[index],sourceR=energyR<energyL*.001?trimmed.left[index]:trimmed.right[index];const float mid=.5f*(sourceL+sourceR),side=.5f*(sourceL-sourceR)*s.width;out.left[first+j]=(mid+side)*f*gl*balance;out.right[first+j]=(mid-side)*f*gr*balance;}at+=fs*60/bpm*step;++hit;}}
+ else if(kind==Kind::Crowd){std::vector<float>source(size),voice;const int people=std::clamp(s.voices,4,24);unsigned random=0x637217u;auto unit=[&]{random=random*1664525u+1013904223u;return double(random>>8)/16777216.;};
+  // A choir sings the same note: balanced cents, never arbitrary intervals.
+  // Alternate source channels so hard-panned and polarity-opposed takes survive.
+  double energyL=0,energyR=0;for(int i=0;i<size;++i){energyL+=double(trimmed.left[i])*trimmed.left[i];energyR+=double(trimmed.right[i])*trimmed.right[i];}
+  for(int v=0;v<people;++v){const auto& channel=energyL<energyR*.001?trimmed.right:energyR<energyL*.001?trimmed.left:(v%2?trimmed.right:trimmed.left);source=channel;
+   const double spread=(2.*(v+.5)/people-1),semi=spread*(.035+.145*s.amount),formant=(s.style==1?.88:s.style==2?1.10:1.)+spread*.07*s.amount;
+   if(!pitchVoice(source,fs,semi,formant,voice,cancel))return false;
+   const int offset=int(fs*(.008+unit()*(.008+.065*s.time)));const double pan=spread*s.width,level=(.85+unit()*.15)*1.65/people*s.mix;double lo=0;
+   const double coefficient=1-std::exp(-2*pi*(s.style==1?4200:s.style==2?10500:7200)/fs),phase=unit()*2*pi;
+   for(int i=offset;i<length;++i){if((i&4095)==0&&cancel&&cancel())return false;const double t=double(i-offset)/fs;
+    // Bounded timing drift gives small natural vibrato without repitching a phrase.
+    const double pos=i-offset+fs*.0007*s.amount*std::sin(2*pi*(.65+v*.037)*t+phase);if(pos>=size-1)break;
+    const double x=sample(voice,pos)*(.94+.06*s.amount*std::sin(2*pi*(.8+v*.13)*t+phase));lo+=coefficient*(x-lo);
+    out.left[i]+=float(lo*level*std::cos((pan+1)*pi/4));out.right[i]+=float(lo*level*std::sin((pan+1)*pi/4));}}
   // A short diffuse room belongs to the synthetic group, never the direct voice.
   std::array<std::vector<float>,4>room;std::array<int,4>head{};constexpr double times[]{.027,.041,.053,.071};for(int j=0;j<4;++j)room[j].assign(size_t(fs*times[j]),0);
   const float roomMix=.08f+.12f*(people-4)/20.f;for(int i=0;i<length;++i){if((i&4095)==0&&cancel&&cancel())return false;std::array<float,4>d{};float sum=0;for(int j=0;j<4;++j){d[j]=room[j][head[j]];sum+=d[j];}for(int j=0;j<4;++j){room[j][head[j]]=.25f*(j%2?out.right[i]:out.left[i])+(d[j]-.5f*sum)*.47f;if(++head[j]>=int(room[j].size()))head[j]=0;}const float roomL=(d[0]+d[2])*roomMix,roomR=(d[1]+d[3])*roomMix,roomMid=(roomL+roomR)*.5f,roomSide=(roomL-roomR)*.5f*s.width;out.left[i]+=roomMid+roomSide;out.right[i]+=roomMid-roomSide;}
-  for(int i=0;i<size;++i){out.left[i]+=trimmed.left[i]*s.dry;out.right[i]+=trimmed.right[i]*s.dry;}
+
+  // Offline wet-only loudness calibration: decorrelated voices must not grow
+  // quieter as the group expands. Measure total energy, including the room,
+  // before adding the direct voice; MIX therefore remains a true wet control.
+  // One constant gain per render avoids syllable pumping. The final shared
+  // peak guard still protects the complete wet + dry export.
+  double wetEnergy=0;for(int i=0;i<length;++i)wetEnergy+=double(out.left[i])*out.left[i]+double(out.right[i])*out.right[i];
+  const double reference=2*std::max(energyL,energyR);
+  const double targetEnergy=reference*.64*double(s.mix)*s.mix;
+  const float crowdGain=wetEnergy>1.e-18?float(std::min(8.,std::sqrt(targetEnergy/wetEnergy))):1.f;
+  for(int i=0;i<length;++i){out.left[i]*=crowdGain;out.right[i]*=crowdGain;}
  }else{Engine engine(kind);engine.prepare(fs);std::copy(trimmed.left.begin(),trimmed.left.end(),out.left.begin());std::copy(trimmed.right.begin(),trimmed.right.end(),out.right.begin());Settings c=s;c.level=0;c.bypass=false;for(int offset=0;offset<length;offset+=512){if(cancel&&cancel())return false;engine.process(out.left.data()+offset,out.right.data()+offset,std::min(512,length-offset),c);}}
  const float tk=float(1-std::exp(-2*pi*(600+s.tone*15000)/fs));std::array<float,2>lp{};float peak=0;
- for(int i=0;i<length;++i){if((i&4095)==0&&cancel&&cancel())return false;const float f=fade(i,length,edge);for(int c=0;c<2;++c){auto&x=c==0?out.left[i]:out.right[i];if(designer(kind)){lp[c]+=tk*(x-lp[c]);x=lp[c];}x=clean(x)*f;peak=std::max(peak,std::abs(x));}}
- if(peak<1e-8)return false;const float gain=std::min(16.f,std::pow(10.f,(s.level-1)/20)/peak);for(int i=0;i<length;++i){out.left[i]*=gain;out.right[i]*=gain;}out.peak=peak*gain;return !(cancel&&cancel());
+ for(int i=0;i<length;++i){if((i&4095)==0&&cancel&&cancel())return false;const float f=fade(i,length,edge);for(int c=0;c<2;++c){auto&x=c==0?out.left[i]:out.right[i];if(designer(kind)){lp[c]+=tk*(x-lp[c]);x=lp[c]*(kind==Kind::Crowd?1.f:s.mix);if(i<size)x+=(c==0?trimmed.left[i]:trimmed.right[i])*s.dry;}x=clean(x)*f;peak=std::max(peak,std::abs(x));}}
+ if(peak<1e-8)return false;const float gain=std::pow(10.f,s.level/20)*std::min(1.f,.89125094f/peak);for(int i=0;i<length;++i){out.left[i]*=gain;out.right[i]*=gain;}out.peak=peak*gain;return !(cancel&&cancel());
 }
 }

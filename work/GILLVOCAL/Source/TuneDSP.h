@@ -326,9 +326,9 @@ private:
     bool prepared_ = false, voiced_ = false, hasProcessed_ = false;
 };
 
-// Both paths allocate only during prepare. LIVE monitors the original signal
-// at the same sample position; pitch/formant correction is PRO-only. The LIVE
-// analysis runs on a fixed stack scratch buffer and is metering, never audio.
+// Both paths allocate only during prepare. LIVE emits generated correction,
+// mixing against the immediate original. Host PDC is zero; generated audio
+// still needs the explicitly exposed analysis/envelope context.
 class TuneDSP {
 public:
     void setQualityMode(int mode) noexcept { setLiveMode(mode != 0); }
@@ -337,31 +337,36 @@ public:
     void prepare(double fs,int block,int channels){
         pro_.setQualityMode(0);low_.setQualityMode(1);pro_.prepare(fs,block,channels);low_.prepare(fs,block,channels);
         supported_=pro_.latencySamples()>0;
-        if(supported_)formant_.prepare(fs,channels);
+        if(supported_){formant_.prepare(fs,channels);liveFormant_.prepare(fs,channels,true);}
+        mixCoefficient_=1-std::exp(-1/(std::max(8000.,fs)*.005));initialized_=false;mix_=mixTarget_;
     }
-    void reset(){pro_.reset();low_.reset();formant_.reset();}
+    void reset(){pro_.reset();low_.reset();formant_.reset();liveFormant_.reset();initialized_=false;mix_=mixTarget_;}
     void setParameters(int key,int scale,float retune,float humanize,float mix)noexcept{
-        pro_.setParameters(key,scale,retune,humanize,mix);low_.setParameters(key,scale,retune,humanize,mix);formant_.setMix(mix);
+        pro_.setParameters(key,scale,retune,humanize,mix);low_.setParameters(key,scale,retune,humanize,100);formant_.setMix(mix);liveFormant_.setMix(100);
+        mixTarget_=std::isfinite(mix)?std::clamp(double(mix)*.01,0.,1.):0;if(!initialized_)mix_=mixTarget_;
     }
-    void setFormant(float semitones)noexcept{formant_.setSemitones(semitones);}
+    void setFormant(float semitones)noexcept{formant_.setSemitones(semitones);liveFormant_.setSemitones(semitones);}
     void process(float*const* buffers,int channels,int samples)noexcept{
         if(!supported_||!buffers||channels<1||samples<1)return;
         if(!live_){pro_.process(buffers,channels,samples);formant_.process(buffers,channels,samples);return;}
         const int active=std::min(channels,2);for(int c=0;c<active;++c)if(!buffers[c])return;
-        constexpr int chunk=128;std::array<std::array<float,chunk>,2>scratch{};
+        initialized_=true;constexpr int chunk=128;std::array<std::array<float,chunk>,2>scratch{};
         for(int at=0;at<samples;at+=chunk){const int n=std::min(chunk,samples-at);std::array<float*,2>ptr{};
             for(int c=0;c<active;++c){ptr[c]=scratch[c].data();for(int i=0;i<n;++i){const float x=buffers[c][at+i];buffers[c][at+i]=std::isfinite(x)?std::clamp(x,-32.f,32.f):0;ptr[c][i]=buffers[c][at+i];}}
-            low_.process(ptr.data(),active,n);
+            low_.process(ptr.data(),active,n);liveFormant_.process(ptr.data(),active,n);
+            for(int i=0;i<n;++i){mix_+=mixCoefficient_*(mixTarget_-mix_);if(std::abs(mix_-mixTarget_)<1e-10)mix_=mixTarget_;for(int c=0;c<active;++c){const double dry=buffers[c][at+i];buffers[c][at+i]=float(mix_==0?dry:dry+mix_*(ptr[c][i]-dry));}}
         }
     }
     int latencySamples()const noexcept{return live_?0:maximumLatencySamples();}
     int maximumLatencySamples()const noexcept{return supported_?pro_.latencySamples()+formant_.latencySamples():0;}
+    int liveWetLatencySamples()const noexcept{return supported_?low_.latencySamples()+liveFormant_.latencySamples():0;}
     int formantLatencySamples()const noexcept{return supported_?formant_.latencySamples():0;}
     float detectedHz()const noexcept{return selected().detectedHz();}
     float targetHz()const noexcept{return selected().targetHz();}
     float confidence()const noexcept{return selected().confidence();}
 private:
     const TuneEngine& selected()const noexcept{return live_?low_:pro_;}
-    TuneEngine pro_,low_;FormantDSP formant_;bool live_=false,supported_=false;
+    TuneEngine pro_,low_;FormantDSP formant_,liveFormant_;bool live_=false,supported_=false,initialized_=false;
+    double mix_=1,mixTarget_=1,mixCoefficient_=.004;
 };
 } // namespace gill

@@ -80,8 +80,10 @@ public:
             const double earlyR=.60*read(1,.0149*fs_)+.30*read(0,.0293*fs_)+.10*read(1,.0479*fs_);
             const double delayL=(.012+.00065*std::sin(phase_[0]))*fs_;
             const double delayR=(.019+.00085*std::sin(phase_[1]))*fs_;
-            const double doubleL=.5*(read(0,delayL)+read(1,delayL));
-            const double doubleR=.5*(read(0,delayR)+read(1,delayR));
+            // Keep each side's recorded performance. Summing to mono before
+            // doubling used to erase side-only/antiphase stereo completely.
+            const double doubleL=read(0,delayL);
+            const double doubleR=read(1,delayR);
             for(int c=0;c<2;++c){phase_[c]+=phaseStep_[c];if(phase_[c]>=2*pi)phase_[c]-=2*pi;}
             const double amount=current_[doubling],directGain=(1-.18*amount)*current_[direct];
             std::array<double,2> wet{

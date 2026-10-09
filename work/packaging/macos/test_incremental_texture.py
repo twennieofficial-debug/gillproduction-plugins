@@ -32,7 +32,7 @@ def source_fixture():
              "GILLTEXTURE/Source/PluginEditor.cpp": "c" * 64,
              "GILLTEXTURE/Source/TextureDSP.h": "d" * 64,
              "JUCE_PIN": p.JUCE_COMMIT, "PRODUCT_CATALOG": "e" * 64, "CTEST_MATRIX": "f" * 64}
-    old = {"products": 60, "groups": p.GROUPS, "files": files, "source_sha256": p.digest_manifest(files)}
+    old = {"products": p.PRODUCT_COUNT, "groups": p.GROUPS, "files": files, "source_sha256": p.digest_manifest(files)}
     new = copy.deepcopy(old)
     new["files"]["GILLTEXTURE/Source/PluginEditor.cpp"] = "9" * 64
     new["source_sha256"] = p.digest_manifest(new["files"])

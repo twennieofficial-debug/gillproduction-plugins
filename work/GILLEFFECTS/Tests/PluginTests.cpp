@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include "Presets.h"
@@ -309,7 +310,7 @@ void learning() {
     check(restored.learnState==2&&restored.learnProgress==1&&sameProfile(learned,restored.savedProfile()),"release after stopped profile restore preserves pending READY status");
     prepare(restored);silence(restored,128);
     check(sameProfile(learned,restored.savedProfile())&&restored.learnState==2,"learned profile restores into a new processor across sample rates");
-    restored.requestLearning(true);silence(restored,128);restored.requestLearning(false);silence(restored,128);check(sameProfile(learned,restored.savedProfile())&&restored.learnState==2,"cancelled relearn retains saved profile");
+    restored.requestLearning(true);silence(restored,128);restored.requestLearning(false);silence(restored,128);check(sameProfile(learned,restored.savedProfile())&&restored.learnState==3,"insufficient manual FINISH reports failure and retains saved profile");
     for(const auto* badField:{"learnVersion","learnRate","learnRms","learnBand2","learnUse3","fineRate","fineFrames","fineBin127"}){auto tree=juce::ValueTree::fromXml(*juce::AudioProcessor::getXmlFromBinary(state.getData(),static_cast<int>(state.getSize())));tree.setProperty(badField,"NaN",nullptr);stateFromTree(restored,tree);silence(restored,128);check(sameProfile(learned,restored.savedProfile()),std::string("malformed ")+badField+" cannot poison saved profile");}
     auto tree=juce::ValueTree::fromXml(*juce::AudioProcessor::getXmlFromBinary(state.getData(),static_cast<int>(state.getSize())));tree.removeProperty("learnBand0",nullptr);stateFromTree(restored,tree);silence(restored,128);check(sameProfile(learned,restored.savedProfile()),"partial learned profile is rejected atomically");
     p.releaseResources();prepare(p,96000);silence(p,128);check(sameProfile(learned,p.savedProfile())&&p.learnState==2,"release/prepare preserves learned profile");
@@ -375,10 +376,10 @@ void bypassTransitions(GillKind kind) {
 
 void ui(GillKind kind) {
     GillEffectProcessor p(kind);product=p.getName().toStdString();prepare(p);
-    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());check(editor!=nullptr,"native editor constructs");if(!editor)return;editor->setVisible(true);
+    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});check(editor!=nullptr,"native editor constructs");if(!editor)return;editor->setVisible(true);
     Components components;components.collect(*editor);
-    const int width=kind==GillKind::Air?440:kind==GillKind::Space?660:680;
-    const int height=kind==GillKind::Air?300:kind==GillKind::Echo?440:kind==GillKind::Balance?420:410;
+    const int width=kind==GillKind::Air?440:kind==GillKind::Space?660:kind==GillKind::Balance?740:680;
+    const int height=kind==GillKind::Air?300:kind==GillKind::Echo?440:kind==GillKind::Balance?450:410;
     const int sliders=kind==GillKind::Air?4:kind==GillKind::Balance?1:7;
     const auto* limits=editor->getConstrainer();
     check(editor->getWidth()==width&&editor->getHeight()==height&&limits&&limits->getMinimumWidth()==width&&limits->getMaximumWidth()==2*width&&std::abs(limits->getFixedAspectRatio()-static_cast<double>(width)/height)<1e-9&&components.sliders.size()==static_cast<size_t>(sliders),"real control count, intended dimensions and fixed-aspect 2x resizing");
@@ -422,8 +423,8 @@ void ui(GillKind kind) {
     }
     if(kind==GillKind::Balance) {
         auto* target=components.combo("TARGET");bool correct=target&&target->getNumItems()==5;if(target)for(int i=1;i<=5;++i){target->setSelectedId(i,juce::sendNotificationSync);++uiEdits;correct=correct&&p.value("target")==i-1;}check(correct,"all five actual tonal targets change real DSP choice");
-        auto* learn=components.button("LEARN");if(learn)click(*learn);silence(p,128);check(waitForVisualState([&]{return learn&&p.learnState==1&&learn->getButtonText()=="FINISH";}),"actual LEARN click begins analysis and exposes CANCEL");
-        if(learn)click(*learn);silence(p,128);check(waitForVisualState([&]{return learn&&p.learnState==0&&learn->getButtonText()=="LEARN";}),"actual CANCEL click stops incomplete learning");
+        auto* learn=components.button("LEARN");if(learn)click(*learn);silence(p,128);check(waitForVisualState([&]{return learn&&p.learnState==1&&learn->getButtonText()=="FINISH";}),"actual LEARN click begins analysis and exposes FINISH");
+        if(learn)click(*learn);silence(p,128);check(waitForVisualState([&]{return learn&&p.learnState==3&&learn->getButtonText()=="LEARN";}),"actual insufficient FINISH stops capture with actionable failure");
         if(learn)click(*learn);feedVocal(p,10.1);if(learn)click(*learn);silence(p,128);tick();check(p.savedProfile().valid&&p.learnState==2,"actual LEARN button reaches READY from audio");set(p,"amount",60);set(p,"target",2);
     }
     auto* bypass=components.button("BYPASS");if(bypass)click(*bypass);check(bypass&&p.value("bypass")==1,"actual BYPASS click changes native host parameter");if(bypass)click(*bypass);

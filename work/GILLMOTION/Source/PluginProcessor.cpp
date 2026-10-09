@@ -34,6 +34,7 @@ void GillMotionProcessor::process(juce::AudioBuffer<float>&b,bool hostBypass){ju
  if(auto*h=getPlayHead())if(auto t=h->getPosition()){host=true;playing=t->getIsPlaying();if(auto p=t->getTimeInSamples()){position=*p;known=true;}if(auto bpm=t->getBpm())if(std::isfinite(*bpm)&&*bpm>=20&&*bpm<=400){tempo=*bpm;tempoKnown=true;s.bpm=*bpm;}}
  hostTempo=tempoKnown;if(!tempoKnown)s.bpm=value("bpm");if((wasPlaying&&!playing)||(known&&hadPosition&&playing&&position!=nextPosition))engine.reset();wasPlaying=playing;hadPosition=known;nextPosition=position+(playing?n:0);
  if(!isNonRealtime())capture.process(b.getReadPointer(0),channels>1?b.getReadPointer(1):nullptr,n,playing,host,position,known,s.bpm,s.syllables,kind!=MotionKind::Stutter,!s.bypass);
+ for(int c=0;c<channels;++c)for(int i=0;i<n;++i)b.setSample(c,i,gill::motion::clean(b.getSample(c,i)));
  if(hostBypass){int old=3;previewState.compare_exchange_strong(old,2);previewing=false;previewCommand=0;return;}engine.process(b.getWritePointer(0),channels>1?b.getWritePointer(1):nullptr,n,s);
  const int cmd=previewCommand.exchange(0);if(s.bypass||isNonRealtime()){int old=3;previewState.compare_exchange_strong(old,2);previewing=false;}
  if(cmd==2&&previewState==3)previewStop=std::max(1,int(sampleRateView*.01));if(cmd==1&&!s.bypass&&!isNonRealtime()){int old=2;if(previewState.compare_exchange_strong(old,3)){previewPosition=0;previewStop=0;previewing=true;}}

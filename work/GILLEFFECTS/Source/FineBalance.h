@@ -109,10 +109,15 @@ public:
         const double scale=24/std::max(24.,total);for(auto& x:targets)x*=scale;
         view.count=count;for(int i=0;i<count;++i){view.frequency[i]=static_cast<float>(frequencies[i]);view.q[i]=static_cast<float>(quality[i]);}
     }
-    void setAmount(float a) noexcept {amount=std::clamp(static_cast<double>(a)*.01,0.,1.);}
+    void setAmount(float a) noexcept {
+        amount=std::clamp(static_cast<double>(a)*.01,0.,1.);
+        const double destination=amount>0?1.:0.;
+        if(destination!=wetDestination){wetDestination=destination;wetRemaining=std::max(1,static_cast<int>(fs*.080));wetStep=(destination-wetBlend)/wetRemaining;}
+    }
     FineBalanceView snapshot() const noexcept {return view;}
     bool active() const noexcept {return enabled;}
     void update(const std::array<double,8>& powers,double fullPower,const std::array<bool,8>& available) noexcept {
+        if(wetRemaining>0){wetBlend+=wetStep;if(--wetRemaining==0)wetBlend=wetDestination;}
         if(transitionRemaining>0){--transitionRemaining;transitionBlend=1-static_cast<double>(transitionRemaining)/transitionLength;}
         if(!enabled)return;
         if(++quantum<16)return;quantum=0;
@@ -125,12 +130,13 @@ public:
         for(int b=0;b<12;++b){const double dest=enabled&&b<count?targets[b]*amount:0;gain[b]+=(1-std::exp(-16/(fs*.080)))*(dest-gain[b]);if(amount==0&&std::abs(gain[b])<1e-6)gain[b]=0;coefficients[b]=bell(frequencies[b],quality[b],gain[b]);view.gain[b]=static_cast<float>(gain[b]);}
     }
     double process(double x,int channel) noexcept {
+        if(wetBlend==0){states[channel]={};previousStates[channel]={};return x;}
         const double input=x;bool neutral=!enabled;
         if(amount==0&&enabled){neutral=true;for(auto g:gain)neutral&=g==0;for(auto d:dynamics)neutral&=d==0;}
         auto chain=[&](double value,const auto& cfs,auto& memory){for(int b=0;b<20;++b){const auto& c=cfs[b];auto& s=memory[channel][b];const double y=c[0]*value+s[0];s[0]=c[1]*value-c[3]*y+s[1];s[1]=c[2]*value-c[4]*y;if(std::abs(s[0])<1e-30)s[0]=0;if(std::abs(s[1])<1e-30)s[1]=0;value=y;}return value;};
         if(neutral)states[channel]={};else x=chain(x,coefficients,states);
         if(transitionRemaining>0){const double previous=chain(input,previousCoefficients,previousStates);x=previous+(x-previous)*transitionBlend;}
-        return x;
+        return input+(x-input)*wetBlend;
     }
 private:
     using Coeff=std::array<double,5>;
@@ -145,6 +151,7 @@ private:
     std::array<Coeff,20> previousCoefficients{};
     std::array<std::array<std::array<double,2>,20>,2> previousStates{};
     int transitionRemaining=0,transitionLength=1;double transitionBlend=1;
+    double wetBlend=1,wetDestination=1,wetStep=0;int wetRemaining=0;
     FineBalanceView view;
 };
 }

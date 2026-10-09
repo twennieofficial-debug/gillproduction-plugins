@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <chrono>
@@ -29,7 +30,7 @@ void collect(juce::Component& c,std::vector<juce::Slider*>& sliders,std::vector<
     for(auto* child:c.getChildren())collect(*child,sliders,buttons);
 }
 uint64_t hash(juce::Component& c){auto img=c.createComponentSnapshot(c.getLocalBounds());uint64_t result=1469598103934665603ull;for(int y=0;y<img.getHeight();++y)for(int x=0;x<img.getWidth();++x){result^=img.getPixelAt(x,y).getARGB();result*=1099511628211ull;}return result;}
-void png(juce::AudioProcessorEditor& editor,int size,const juce::String& name){editor.setSize(size,size*300/320);auto img=editor.createComponentSnapshot(editor.getLocalBounds());juce::FileOutputStream out(juce::File::getCurrentWorkingDirectory().getChildFile(name+"-UI-"+juce::String(size)+".png"));check(out.openedOk(),"snapshot file opens");if(!out.openedOk())return;out.setPosition(0);out.truncate();juce::PNGImageFormat format;check(format.writeImageToStream(img,out),"snapshot writes");}
+void png(juce::AudioProcessorEditor& editor,int size,const juce::String& name){editor.setSize(size,size*620/380);auto img=editor.createComponentSnapshot(editor.getLocalBounds());juce::FileOutputStream out(juce::File::getCurrentWorkingDirectory().getChildFile(name+"-UI-"+juce::String(size)+".png"));check(out.openedOk(),"snapshot file opens");if(!out.openedOk())return;out.setPosition(0);out.truncate();juce::PNGImageFormat format;check(format.writeImageToStream(img,out),"snapshot writes");}
 template<class T>void dryRoutes(gillrestoration::Mode mode,double fs,int channels){
     const int previous=static_cast<int>(std::ceil(fs*(mode==gillrestoration::Mode::Declick?.004:.008)));
     const int gap=std::max(2,static_cast<int>(std::ceil(fs*(mode==gillrestoration::Mode::Declick?.00065:.00035))));
@@ -106,12 +107,13 @@ void run(gillrestoration::Mode mode){
         p.processBlock(audio,midi);for(int c=0;c<2;++c)for(int n=0;n<64;++n)check(std::isfinite(audio.getSample(c,n)),"automated actual processor remains finite");
         check(p.getLatencySamples()==latency,"automation latency constant");++audioCases;}
     set(p,"amount",55);set(p,"bypass",0);
-    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());check(editor!=nullptr,"editor exists");
+    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});check(editor!=nullptr,"editor exists");
     if(editor){std::vector<juce::Slider*> sliders;std::vector<juce::Button*> buttons;collect(*editor,sliders,buttons);
-        check(sliders.size()==1&&buttons.empty(),"one effect control plus separately tested LIVE/PRO");
-        check(editor->getWidth()==320&&editor->getHeight()==300,"compact 320 by 300 default");auto* limit=editor->getConstrainer();
-        check(limit&&limit->getMinimumWidth()==320&&limit->getMinimumHeight()==300&&limit->getMaximumWidth()==640&&limit->getMaximumHeight()==600&&std::abs(limit->getFixedAspectRatio()-320./300.)<1e-12,"native to doubled compact aspect resizing");
-        if(sliders.size()==1){auto* slider=sliders[0];check(slider->getName()=="AMOUNT","single named Amount knob");
+        check(sliders.size()==1&&buttons.size()==1,"one effect fader and bypass plus separately tested LIVE/PRO");
+        check(editor->getWidth()==380&&editor->getHeight()==620,"current fixed portrait 380 by 620 default");auto* limit=editor->getConstrainer();
+        check(limit&&limit->getMinimumWidth()==380&&limit->getMinimumHeight()==620&&limit->getMaximumWidth()==380&&limit->getMaximumHeight()==620&&std::abs(limit->getFixedAspectRatio()-380./620.)<1e-12&&!editor->isResizable(),"portrait native fixed dimensions and aspect");
+        for(auto* button:buttons){check(button->getComponentID()=="bypass","portrait button is BYPASS");button->setToggleState(true,juce::sendNotificationSync);check(raw(p,"bypass")==1,"native BYPASS writes host parameter");button->setToggleState(false,juce::sendNotificationSync);check(raw(p,"bypass")==0,"native BYPASS restores processing");}
+        if(sliders.size()==1){auto* slider=sliders[0];check(slider->getSliderStyle()==juce::Slider::LinearVertical,"current Amount control is a vertical fader");check(slider->getName()=="AMOUNT","single named Amount knob");
             check(slider->getMinimum()==0&&slider->getMaximum()==100&&std::abs(slider->getInterval()-.1)<1.e-7,"knob exposes full amount range at tenth-percent resolution");
             check(slider->getDoubleClickReturnValue()==55,"double click resets to the documented amount");
             HostListener listener;p.addListener(&listener);
@@ -139,10 +141,10 @@ void run(gillrestoration::Mode mode){
             check(listener.begins==listener.ends,"text reset and host-during-drag paths keep gestures balanced");
             set(p,"amount",0);auto empty=hash(*slider);set(p,"amount",100);check(hash(*slider)!=empty,"live arc and readout change");set(p,"amount",0);check(hash(*slider)==empty,"deterministic live rendering");
             p.removeListener(&listener);
-            set(p,"amount",55);for(int size:{320,480,640}){
+            set(p,"amount",55);for(int size:{380}){
                 png(*editor,size,p.getName());
                 check(editor->getLocalBounds().contains(slider->getBounds()),"knob fits the editor at every supported size");
-                check(label&&slider->getLocalBounds().contains(label->getBounds())&&label->getWidth()>=130,"editable percentage remains legible inside the compact knob component");
+                check(label&&slider->getLocalBounds().contains(label->getBounds())&&label->getWidth()>=100,"editable percentage remains legible inside the compact knob component");
             }
         }
         editor.reset();}

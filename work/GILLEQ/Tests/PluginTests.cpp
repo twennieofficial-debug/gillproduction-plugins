@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <fstream>
@@ -181,7 +182,7 @@ int main() {
     p.resetAllBands();p.releaseResources();p.setPlayConfigDetails(2,2,48000,128);p.prepareToPlay(48000,128);
     juce::AudioBuffer<double> bd(2,128);bd.clear();bd.setSample(0,0,0.123456789012345);p.processBlock(bd,midi);
     check(bd.getSample(0,0)==0.123456789012345,"double precision exact null");
-    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());
+    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});
     check(editor!=nullptr,"editor creation");
     if(editor) {
         // A host shows its editor. JUCE getComponentAt intentionally rejects

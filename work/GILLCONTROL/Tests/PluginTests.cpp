@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "PluginProcessor.h"
 #include "../../GILLCommon/QualityUi.h"
 #include <iostream>
@@ -103,7 +104,7 @@ int main() {
             passthrough<float>(controller); passthrough<double>(controller);
         }
         { gill::QualitySelector selector(first.state, first); check(selector.getWidth() == 110 && selector.getHeight() == 26, "compact selector size"); }
-        std::unique_ptr<juce::AudioProcessorEditor> editor(controller.createEditor());
+        std::unique_ptr<juce::AudioProcessorEditor> editor(controller.createEditor()); gillCurrentUi::verify(editor.get(),controller.getName(),[](bool ok,const char* why){check(ok,why);});
         check(editor && editor->getWidth() == 420 && editor->getHeight() == 220, "compact controller dimensions");
         auto snapshot = editor->createComponentSnapshot(editor->getLocalBounds());
         juce::File file = juce::File::getCurrentWorkingDirectory().getChildFile("GILLCONTROL-UI-Compact.png"); file.deleteFile();

@@ -32,8 +32,8 @@ GROUPS = sorted({p["group"] for p in PRODUCTS})
 PRODUCT_COUNT = len(PRODUCTS)
 JUCE_COMMIT = "29396c22c93392d6738e021b83196283d6e4d850"
 MIN_MACOS = "11.0"
-RELEASE = "14"
-SUITE_VERSION = "0.14.0"
+RELEASE = "20"
+SUITE_VERSION = "0.20.0"
 QUALITY_SAMPLE_RATES = (44100, 48000, 96000, 192000)
 PLUGINVAL_URL = "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip"
 PLUGINVAL_SHA256 = "3c4c533bda0c5059eea3ddaea752d757ee2025041f0f47e6bcb0e87f6082b29f"
@@ -189,6 +189,14 @@ def source_check(source):
             if path.is_file() and (code or fixture or mix_host_cmake):
                 selected[path.relative_to(source).as_posix()] = sha(path)
     juce = source / "dependencies" / "JUCE"
+    # These existing sources are shared by the newer nested Studio groups.
+    # Keep the transitive compilation inputs in the source fingerprint and ZIP.
+    for relative in ("GILLSTUDIO/Source/Dynamics/Dynamics.h",
+                     "GILLSTUDIO/Next03/Source/Spectral/Spectral.h",
+                     "Effects16/advanced-ui/AdvancedScalpel.h"):
+        if any(group.startswith("GILLSTUDIO/") for group in GROUPS):
+            require((source / relative).is_file(), f"Missing shared Studio source: {relative}")
+            selected[relative] = sha(source / relative)
     require((juce / "CMakeLists.txt").is_file(), "Pinned JUCE source is missing")
     if (juce / ".git").exists():
         require(run(["git", "-C", juce, "rev-parse", "HEAD"]) == JUCE_COMMIT, "JUCE commit differs")
@@ -259,9 +267,12 @@ def verify_ctest_listing(group, listing):
             f"duplicate_entries={len(discovered) - len(set(discovered))}")
 
 
-def collect_test_evidence(source_group, build_dir, dest, since_ns):
+def collect_test_evidence(source_group, build_dir, dest, since_ns, group=None):
     """Collect only fresh results, including those left by a failed CTest run."""
     source_group = Path(source_group)
+    group = group or source_group.name
+    require(not Path(group).is_absolute() and ".." not in Path(group).parts,
+            "Unsafe evidence source group")
     candidates = list((source_group / "Tests").glob("*"))
     # New groups keep generated evidence in their build directory. Include only
     # result-shaped files there, not CMake caches or unrelated build inputs.
@@ -269,13 +280,13 @@ def collect_test_evidence(source_group, build_dir, dest, since_ns):
     candidates += list(Path(build_dir).glob("*-report.json"))
     for path in candidates:
         if path.is_file() and path.stat().st_mtime_ns >= since_ns and path.suffix in (".png", ".json", ".txt", ".csv"):
-            target = Path(dest) / "test-evidence" / source_group.name / path.name
+            target = Path(dest) / "test-evidence" / group / path.name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
     for name in ("LastTest.log", "LastTestsFailed.log"):
         path = Path(build_dir) / "Testing/Temporary" / name
         if path.is_file() and path.stat().st_mtime_ns >= since_ns:
-            target = Path(dest) / "logs" / f"{source_group.name}-{name}"
+            target = Path(dest) / "logs" / f"{group}-{name}"
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(path, target)
 
@@ -297,11 +308,11 @@ def build_group(group, source, root, dest, arch, start, jobs):
         # Preserve the CTest error even if collecting diagnostic files also
         # fails; copying screenshots must never turn a failed test green.
         try:
-            collect_test_evidence(source / group, build_dir, dest, start)
+            collect_test_evidence(source / group, build_dir, dest, start, group)
         except Exception as evidence_error:
             print(f"Could not collect all failure evidence: {evidence_error}", file=sys.stderr)
         raise
-    collect_test_evidence(source / group, build_dir, dest, start)
+    collect_test_evidence(source / group, build_dir, dest, start, group)
     for product in (p for p in PRODUCTS if p["group"] == group):
         name = product["name"] + ".vst3"
         bundle = build_dir / f'{product["target"]}_artefacts/Release/VST3' / name
@@ -356,6 +367,10 @@ def verify_quality_result(result, rate, bundle_paths=None):
             require(pro == math.ceil(rate*.068)+112, "Harmony PRO context differs")
         elif name == "GILLRESCUE":
             require(pro == max(64, math.ceil(rate*.012)), "Rescue PRO context differs")
+        elif name == "GILLTAPE":
+            require(pro == math.ceil(rate*.004)+64, "Tape PRO lookahead and antialias delay differ")
+        elif name in ("GILLVITAL", "GILLHARMONIC", "GILLRACK"):
+            require(pro == 64, f"Studio PRO antialias delay differs: {name}")
 
 
 
@@ -985,6 +1000,9 @@ def main():
     elif args.command == "check-source":
         result = source_check(args.source)
         print(json.dumps({k: v for k, v in result.items() if k != "files"}, indent=2))
+    elif args.command == "package":
+        import individuals
+        individuals.package(args)
     else:
         {"build": build, "merge": merge, "validate": validate, "package": package,
          "source-archive": create_source_archive}[args.command](args)

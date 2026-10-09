@@ -318,6 +318,8 @@ public:
     }
     int latencySamples() const noexcept { return latency_; }
     int maximumLatencySamples() const noexcept { return maximumLatency_; }
+    // Generated voices are causal but delayed; LIVE reports only dry-path latency to the host.
+    int wetLatencySamples() const noexcept { return (live_?voices_[0].live.latencySamples():voices_[0].pro.latencySamples())+chunk; }
     unsigned causalReadViolations() const noexcept {
         unsigned count=0;for(const auto& v:voices_)count+=v.live.causalReadViolations()+v.pro.causalReadViolations();return count;
     }
@@ -350,35 +352,18 @@ public:
         if(!prepared_||!audio||frames<=0||channels<=0)return;
         const int active=std::min(channels_,channels); for(int c=0;c<active;++c)if(!audio[c])return;
         processed_=true;
-        if(live_) {
-            // No generated harmony can meet a strict zero-sample timing budget.
-            // Monitor the current input (or silence with DIRECT OFF), retaining
-            // output trim, bypass and causal input analysis without an audio FIFO.
-            for(int n=0;n<frames;++n){std::array<float,2> input{};
-                for(int c=0;c<active;++c)input[c]=static_cast<float>(std::clamp(harmony_detail::clean(audio[c][n]),-32.0,32.0));
-                detector_.sample(input,active);slew(direct_,parameters_.direct?1:0);
-                slew(bypass_,parameters_.bypass?1:0);slew(output_,harmony_detail::gain(parameters_.outputDb));
-                double ip=0,op=0;for(int c=0;c<active;++c){const double dry=input[c],wet=direct_*dry*output_;
-                    audio[c][n]=static_cast<float>(bypass_==1?dry:wet+bypass_*(dry-wet));
-                    ip=std::max(ip,std::abs(dry));op=std::max(op,std::abs(double(audio[c][n])));}
-                inputPeakValue_=std::max(ip,inputPeakValue_*peakDecay_);outputPeakValue_=std::max(op,outputPeakValue_*peakDecay_);}
-            hzView_=detector_.hz();confidenceView_=detector_.confidence();
-            inputPeakView_=static_cast<float>(inputPeakValue_);outputPeakView_=static_cast<float>(outputPeakValue_);
-            for(auto& v:voiceLevelView_)v=0;for(auto& v:voiceSemitonesView_)v=0;
-            return;
-        }
         for(int n=0;n<frames;++n,++clock_) {
             std::array<float,2> input{};
             for(int c=0;c<active;++c) { input[c]=static_cast<float>(std::clamp(harmony_detail::clean(audio[c][n]),-32.0,32.0)); frame_[c][phase_]=input[c]; }
             for(int c=active;c<channels_;++c)frame_[c][phase_]=0;
             if(detector_.sample(input,active))publishVoicing();
-            const auto delayedTime=clock_-latency_;
+            const auto delayedTime=clock_-wetLatencySamples();
             const bool voiced=delayedTime<0?false:delayedTime>lastVoiceTime_?lastVoiced_:voiceHistory_[static_cast<size_t>(delayedTime)&historyMask_]!=0;
             slew(direct_,parameters_.direct?1:0); slew(bypass_,parameters_.bypass?1:0);
             slew(output_,harmony_detail::gain(parameters_.outputDb));
             const int read=(dryAt_+static_cast<int>(dry_[0].size())-latency_)%static_cast<int>(dry_[0].size());
             std::array<double,2> mixed{},dry{};
-            for(int c=0;c<active;++c) { dry[c]=dry_[c][read];dry_[c][dryAt_]=input[c];mixed[c]=direct_*dry[c]; }
+            for(int c=0;c<active;++c) { dry[c]=live_?input[c]:dry_[c][read];dry_[c][dryAt_]=input[c];mixed[c]=direct_*dry[c]; }
             for(int voice=0;voice<3;++voice) {
                 auto& v=voices_[voice];const auto& p=parameters_.voices[voice];
                 slew(v.gain,p.enabled?harmony_detail::gain(p.levelDb):0);
@@ -427,8 +412,13 @@ private:
     void updateVoiceParameters() noexcept {
         for(int i=0;i<3;++i) {
             auto& v=voices_[i];const auto& p=parameters_.voices[i];
-            if(p.intervalMode==1)v.pitch=static_cast<float>(p.interval);
-            else if(detector_.hz()>0)v.pitch=scaleSemitones(detector_.hz(),parameters_.key,parameters_.scale,p.interval);
+            float target=v.pitch;
+            if(p.intervalMode==1)target=static_cast<float>(p.interval);
+            else if(detector_.hz()>0)target=scaleSemitones(detector_.hz(),parameters_.key,parameters_.scale,p.interval);
+            // Bound control changes independently of host block size. Existing grains
+            // retain their own pitch/formant trajectory; new grains follow a 12 ms slew.
+            const float limit=static_cast<float>(12.0*chunk/(fs_*.012));
+            v.pitch=processed_?v.pitch+std::clamp(target-v.pitch,-limit,limit):target;
             const float formant=v.pitch*(1-parameters_.natural*.01f);
             v.live.setParameters(v.pitch,formant,detector_.hz());v.pro.setParameters(v.pitch,formant,detector_.hz());
         }

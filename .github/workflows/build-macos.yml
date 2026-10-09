@@ -309,7 +309,10 @@ jobs:
   installer:
     needs: universal-validation
     runs-on: macos-15
-    timeout-minutes: 90
+    timeout-minutes: 120
+    permissions:
+      contents: write
+      actions: read
     env:
       GILL_APPLICATION_IDENTITY: ${{ inputs.notarize && secrets.GILL_APPLICATION_IDENTITY || '' }}
       GILL_INSTALLER_IDENTITY: ${{ inputs.notarize && secrets.GILL_INSTALLER_IDENTITY || '' }}
@@ -337,7 +340,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/universal"
           tar -xzf "$RUNNER_TEMP/downloads/universal.tar.gz" -C "$RUNNER_TEMP/universal"
-          python3 "$PIPELINE" source-archive --source work --destination "$RUNNER_TEMP/GILL-QUELLCODE.zip"
+          python3 "$PIPELINE" source-archive --source work --destination "$RUNNER_TEMP/GILL-QUELLCODE-20.zip"
       - name: Prepare optional Installer and notarization credentials
         if: inputs.notarize
         env:
@@ -349,19 +352,28 @@ jobs:
           GILL_NOTARY_KEY_ID: ${{ secrets.GILL_NOTARY_KEY_ID }}
           GILL_NOTARY_ISSUER: ${{ secrets.GILL_NOTARY_ISSUER }}
         run: python3 work/packaging/macos/ci_signing.py package
-      - name: Produce PKG and verified DMG
+      - name: Produce 74 individual DMGs and separate 73-plugin bundle
         env:
           NOTARIZE: ${{ inputs.notarize }}
         run: |
           options=()
           if [ "$NOTARIZE" = true ]; then options+=(--notarize); fi
-          python3 "$PIPELINE" package --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE.zip" --staging "$RUNNER_TEMP/package-staging" --destination "$RUNNER_TEMP/delivery" --test-install "${options[@]}"
+          python3 "$PIPELINE" package --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE-20.zip" --staging "$RUNNER_TEMP/package-staging" --destination "$RUNNER_TEMP/delivery" --test-install "${options[@]}"
+      - name: Retain exact corresponding source ZIP
+        if: success()
+        run: cp "$RUNNER_TEMP/GILL-QUELLCODE-20.zip" "$RUNNER_TEMP/delivery/GILL-QUELLCODE-20.zip"
+      - name: Publish only verified Mac20 downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python3 -B work/packaging/macos/publish20.py --delivery "$RUNNER_TEMP/delivery" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE-20.zip" --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation"
       - name: Retain installer failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: failed-mac-installer
           path: |
+            ${{ runner.temp }}/delivery/verification
             ${{ runner.temp }}/delivery/*.txt
             ${{ runner.temp }}/delivery/*.json
           retention-days: 14

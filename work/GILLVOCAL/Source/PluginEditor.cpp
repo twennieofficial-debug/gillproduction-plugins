@@ -1,4 +1,5 @@
 #include "PluginEditor.h"
+#include "../../GILLCommon/TwinLensUi.h"
 #include "../../GILLCommon/PrismUi.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
@@ -34,6 +35,7 @@ public:explicit Display(GillVocalProcessor& v):p(v){pitch.fill(std::numeric_limi
         const bool voiced=std::isfinite(pitch.back());const float level=voiced?juce::jlimit(0.f,1.f,std::sqrt(std::max(0.f,p.inputPeak.load()))*1.4f*p.pitchConfidence.load()):0.f;energy+=(level-energy)*(level>energy?.38f:.12f);std::move(energyHistory.begin()+1,energyHistory.end(),energyHistory.begin());energyHistory.back()=level;if(voiced)++signalTicks;noteHistory.back()=voiced?69.f+12.f*std::log2(a/440.f):std::numeric_limits<float>::quiet_NaN();targetHistory.back()=voiced?69.f+12.f*std::log2(b/440.f):std::numeric_limits<float>::quiet_NaN();repaint();}
     void paint(juce::Graphics& g)override{
         if(p.kind==GillKind::Tune){paintWheel(g);return;}
+        if(p.kind==GillKind::Flow){g.addTransform(juce::AffineTransform::scale(getWidth()/696.f,getHeight()/270.f));gill::twin::History a,b;for(size_t i=0;i<pre.size();++i){a.values[i]=juce::Decibels::gainToDecibels(pre[i],-90.f);b.values[i]=juce::Decibels::gainToDecibels(post[i],-90.f);}gill::twin::levelLens(g,{0,0,270,270},"BEFORE",a);gill::twin::levelLens(g,{426,0,270,270},"AFTER",b);return;}
         auto r=getLocalBounds().toFloat();g.setGradientFill(juce::ColourGradient(dark,0,0,juce::Colour(0xff071727),0,r.getHeight(),false));g.fillRoundedRectangle(r,12);g.setColour(cream.withAlpha(.22f));g.drawRoundedRectangle(r.reduced(1),11,1);
         if(!p.rateSupported.load()){g.setColour(cream);g.setFont(font(16,true));g.drawText("SAMPLE RATE UNSUPPORTED / BYPASS",getLocalBounds(),juce::Justification::centred);return;}
         g.setColour(cream.withAlpha(.7f));g.setFont(font(12,true));g.drawText(p.kind==GillKind::Flow?"VOCAL LEVEL  /  PRE + POST":p.kind==GillKind::Heat?"INPUT / OUTPUT":"PITCH / TARGET",16,10,getWidth()-32,16,juce::Justification::left);
@@ -70,15 +72,15 @@ const auto r=getLocalBounds().toFloat();gill::prism::glass(g,r,9);
             if(energy>.015f&&std::isfinite(noteHistory.back())){const size_t index=noteHistory.size()-1-std::size_t(signalTicks%23);if(std::isfinite(noteHistory[index])){const juce::Point<float>pos{xFor(index),yFor(noteHistory[index])};g.setGradientFill(juce::ColourGradient(gill::prism::white.withAlpha(.60f*energy),pos.x,pos.y,juce::Colours::transparentWhite,pos.x+7,pos.y+7,true));g.fillEllipse(pos.x-7,pos.y-7,14,14);g.setColour(gill::prism::white);g.fillEllipse(pos.x-1,pos.y-1,2,2);}}
         }
         if(energy>.01f&&std::isfinite(noteHistory.back())){const float x=xFor(noteHistory.size()-1);juce::Path playhead;playhead.startNewSubPath(x,a.getY());playhead.lineTo(x,a.getBottom());gill::prism::electricTrace(g,playhead,gill::prism::cyan,energy,.65f);juce::Path cap;cap.addTriangle(x-4,a.getY()-1,x+4,a.getY()-1,x,a.getY()+6);g.setColour(gill::prism::white);g.fillPath(cap);}
-        const bool live=p.value("gillQuality")<.5f;g.setFont(font(10));g.setColour(gill::prism::white.withAlpha(.70f));g.drawText(live?"LIVE / DRY MONITOR / 0 SAMPLES":"PRO / INPUT PITCH + CORRECTED TARGET",r.withY(r.getBottom()-18).withHeight(14).reduced(8,0),juce::Justification::centredLeft);
-        if(!any){g.setColour(gill::prism::white.withAlpha(.75f));g.setFont(font(14));g.drawText(live?"SWITCH TO PRO FOR PITCH + FORMANT":"PLAY A MONOPHONIC VOCAL",a,juce::Justification::centred);}
+        const bool live=p.value("gillQuality")<.5f;g.setFont(font(10));g.setColour(gill::prism::white.withAlpha(.70f));g.drawText(live?"LIVE / PITCH + FORMANT / DRY PDC 0":"PRO / INPUT PITCH + CORRECTED TARGET",r.withY(r.getBottom()-18).withHeight(14).reduced(8,0),juce::Justification::centredLeft);
+        if(!any){g.setColour(gill::prism::white.withAlpha(.75f));g.setFont(font(14));g.drawText("PLAY A MONOPHONIC VOCAL",a,juce::Justification::centred);}
         if(!p.rateSupported.load()){g.setColour(gill::prism::pink);g.drawText("RATE UNSUPPORTED / BYPASS",a,juce::Justification::centred);}
     }
     GillVocalProcessor& p;std::array<float,100> pre{},post{},pitch{};std::array<float,240> noteHistory{},targetHistory{},energyHistory{};float energy=0;unsigned signalTicks=0;
 };
 }
 struct GillVocalEditor::Impl:private juce::Timer {
-    GillVocalEditor& owner;GillVocalProcessor& p;OakLook look;juce::Image wood;Display display;juce::TooltipWindow tooltip;
+    GillVocalEditor& owner;GillVocalProcessor& p;OakLook look;gill::twin::Look twinLook;juce::Image wood;Display display;juce::TooltipWindow tooltip;
     std::vector<std::unique_ptr<Binding>> controls;std::array<juce::TextButton,3> modes;
     std::array<juce::TextButton,5> tunePresets;
     juce::TextButton learn{"LEARN"},autogain{"AUTO GAIN"},bypass{"BYPASS"};juce::ComboBox preset,key,scale;
@@ -88,18 +90,18 @@ struct GillVocalEditor::Impl:private juce::Timer {
     int baseWidth=700,baseHeight=470;
     gill::QualitySelector quality{p.apvts, p};
     Impl(GillVocalEditor& o,GillVocalProcessor& v):owner(o),p(v),display(v),tooltip(&o,600){
-        owner.setLookAndFeel(&look);owner.addAndMakeVisible(quality);wood=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);owner.addAndMakeVisible(display);
+        owner.setLookAndFeel(p.kind==GillKind::Flow?static_cast<juce::LookAndFeel*>(&twinLook):&look);owner.addAndMakeVisible(quality);wood=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);owner.addAndMakeVisible(display);
         auto add=[&](const char* id,const char* title,const char* suffix,bool vertical=false){auto b=std::make_unique<Binding>(p,id,title,suffix,vertical);owner.addAndMakeVisible(b->slider);owner.addAndMakeVisible(b->label);controls.push_back(std::move(b));};
         bypass.setName("BYPASS");bypass.setClickingTogglesState(true);owner.addAndMakeVisible(bypass);bypassAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"bypass",bypass);bypass.setTooltip("VERARBEITUNG UMGEHEN; GEMELDETE LATENZ BLEIBT GLEICH");
-        if(p.kind==GillKind::Flow){baseWidth=340;baseHeight=480;add("amount","AMOUNT"," %",true);owner.addAndMakeVisible(learn);owner.addAndMakeVisible(autogain);owner.addAndMakeVisible(status);
+        if(p.kind==GillKind::Flow){baseWidth=740;baseHeight=450;add("amount","AMOUNT"," %",true);owner.addAndMakeVisible(learn);owner.addAndMakeVisible(autogain);owner.addAndMakeVisible(status);
             autogain.setClickingTogglesState(true);autoAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"autogain",autogain);autogain.setTooltip("LAUTSTAERKE LANGSAM AUSGLEICHEN; MAXIMAL +9 DB");
-            learn.setName("LEARN");learn.setTooltip("LEARN, SONG ABSPIELEN, DANN STOP. BIS 5 MINUTEN. ERNEUTER KLICK SCHLIESST DIE ANALYSE AB.");learn.onClick=[this]{const auto state=p.learnState.load();p.requestLearning(state!=1&&state!=4);};status.setJustificationType(juce::Justification::centred);status.setColour(juce::Label::textColourId,ink);status.setFont(font(12,true));
+            learn.setName("LEARN");learn.setTooltip("LEARN, SONG ABSPIELEN, DANN STOP. MINDESTENS 2 SEKUNDEN AKTIVE STIMME, BIS 5 MINUTEN. ERNEUTER KLICK WENDET DIE ANALYSE AN. AMOUNT BLEIBT DEINE EINSTELLUNG; SCHWELLE UND ZEITEN WERDEN GELERNT.");learn.onClick=[this]{const auto state=p.learnState.load();p.requestLearning(state!=1&&state!=4);};status.setJustificationType(juce::Justification::centred);status.setColour(juce::Label::textColourId,ink);status.setFont(font(12,true));
         }else if(p.kind==GillKind::Heat){baseWidth=580;baseHeight=380;add("low","LOW"," %",true);add("mid","MID"," %",true);add("high","HIGH"," %",true);add("mix","MIX"," %");add("output","OUTPUT"," DB");for(int i=0;i<3;++i){controls[i]->slider.textFromValueFunction=[](double v){return juce::String(v/24.*100.,1);};controls[i]->slider.valueFromTextFunction=[](const juce::String& t){return t.getDoubleValue()*.24;};controls[i]->slider.updateText();controls[i]->slider.setTooltip("SATURATION: STUFENLOS VON CLEAN BIS EXTREME. DIE FAERBUNG NIMMT UEBER DEN GANZEN REGELWEG ZU; ABHAENGIG VOM EINGANGSSIGNAL.");}}
         else{baseWidth=760;baseHeight=430;add("retune","RETUNE"," MS");add("humanize","HUMANIZE"," %");add("mix","MIX"," %");add("formant","FORMANT"," ST");
-            controls[0]->slider.commandWheel=false;controls[0]->slider.setSliderStyle(juce::Slider::Rotary);controls[0]->slider.setRotaryParameters(juce::MathConstants<float>::pi*1.2f,juce::MathConstants<float>::pi*2.8f,true);controls[0]->slider.setMouseCursor(juce::MouseCursor::PointingHandCursor);controls[0]->slider.setTooltip("RETUNE 0 BIS 200 MS: DEN REGLER IM KREIS ZIEHEN. KLEINER = SCHNELLERE KORREKTUR. PRO: PITCH + FORMANT. LIVE: CLEAN DRY MONITOR, 0 SAMPLES.");
+            controls[0]->slider.commandWheel=false;controls[0]->slider.setSliderStyle(juce::Slider::Rotary);controls[0]->slider.setRotaryParameters(juce::MathConstants<float>::pi*1.2f,juce::MathConstants<float>::pi*2.8f,true);controls[0]->slider.setMouseCursor(juce::MouseCursor::PointingHandCursor);controls[0]->slider.setTooltip("RETUNE 0 BIS 200 MS: DEN REGLER IM KREIS ZIEHEN. KLEINER = SCHNELLERE KORREKTUR. LIVE UND PRO: PITCH + FORMANT. LIVE: DRY OHNE PDC; KORREKTUR MIT ANALYSEZEIT.");
             for(int i=0;i<p.getNumPrograms();++i)preset.addItem(p.getProgramName(i),i+1);preset.setName("PRESET");preset.onChange=[this]{if(preset.getSelectedId()>0)p.setCurrentProgram(preset.getSelectedId()-1);};owner.addAndMakeVisible(preset);
             for(int i:{1,2,3}){controls[i]->slider.setSliderStyle(juce::Slider::LinearHorizontal);controls[i]->slider.setTextBoxStyle(juce::Slider::TextBoxBelow,false,76,21);}
-            controls[3]->slider.setTooltip("FORMANT: -12 TO +12 SEMITONES. PRO ONLY; LIVE MONITORS THE CLEAN ORIGINAL AT ZERO PLUG-IN DELAY.");
+            controls[3]->slider.setTooltip("FORMANT: -12 TO +12 SEMITONES. LIVE AND PRO. LIVE DRY PATH HAS ZERO PDC; GENERATED SOUND NEEDS ANALYSIS CONTEXT.");
             auto* kp=dynamic_cast<juce::AudioParameterChoice*>(p.apvts.getParameter("key"));auto* sp=dynamic_cast<juce::AudioParameterChoice*>(p.apvts.getParameter("scale"));key.addItemList(kp->choices,1);scale.addItemList(sp->choices,1);key.setName("KEY");scale.setName("SCALE");owner.addAndMakeVisible(key);owner.addAndMakeVisible(scale);keyAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.apvts,"key",key);scaleAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.apvts,"scale",scale);
             key.setTooltip("GRUNDTON DES SONGS; BEI CHROMATIC WERDEN ALLE HALBTOENE VERWENDET");scale.setTooltip("PASSENDE SONG-SKALA WAEHLEN; EINZELNE VOCALSPUR VERWENDEN");
             keyLabel.setText("KEY",juce::dontSendNotification);scaleLabel.setText("SCALE",juce::dontSendNotification);for(auto* label:{&keyLabel,&scaleLabel}){label->setColour(juce::Label::textColourId,ink);label->setFont(font(12,true));owner.addAndMakeVisible(*label);}
@@ -109,12 +111,12 @@ struct GillVocalEditor::Impl:private juce::Timer {
     }
     ~Impl(){stopTimer();owner.setLookAndFeel(nullptr);}
     void timerCallback()override{display.tick();if(p.kind!=GillKind::Tune){const int selected=juce::roundToInt(p.value(p.kind==GillKind::Flow?"mode":"style"));for(int i=0;i<3;++i)modes[i].setToggleState(i==selected,juce::dontSendNotification);}
-        if(p.kind==GillKind::Flow){const int state=p.learnState.load();learn.setButtonText(state==1?"FINISH":state==4?"CANCEL":"LEARN");status.setText(state==4?"ARMED / PRESS PLAY":state==1?"LISTENING  "+juce::String(p.learnProgress.load()*300,0)+" S / STOP TO FINISH":state==2?"PROFILE READY":state==3?"MORE VOCAL NEEDED":"PLAY VOCAL + LEARN",juce::dontSendNotification);}
+        if(p.kind==GillKind::Flow){const int state=p.learnState.load();learn.setButtonText(state==1?"FINISH":state==4?"CANCEL":"LEARN");status.setText(state==4?"ARMED / PRESS PLAY":state==1?"LISTENING  "+juce::String(p.learnProgress.load()*300,0)+" S / STOP TO FINISH":state==2?"APPLIED / THR "+juce::String(p.savedProfile().thresholdDb,1)+" DB":state==3?(p.savedProfile().valid?"MORE VOCAL / PREV ACTIVE":"MORE VOCAL NEEDED"):"PLAY VOCAL + LEARN",juce::dontSendNotification);}
         else if(p.kind==GillKind::Tune){preset.setSelectedId(p.getCurrentProgram()+1,juce::dontSendNotification);preset.setText(p.getProgramName(p.getCurrentProgram())+(p.presetMatches()?"":" *"),juce::dontSendNotification);}owner.repaint();
     }
     void bounds(juce::Component& c,float x,float y,float w,float h){const float s=owner.getWidth()/static_cast<float>(baseWidth);c.setBounds(juce::Rectangle<float>(x*s,y*s,w*s,h*s).toNearestInt());}
     void control(int i,float x,float y,float w,float h){bounds(controls[i]->label,x,y,w,21);bounds(controls[i]->slider,x,y+24,w,h-24);}
-    void resized(){bounds(quality,p.kind==GillKind::Flow?94.f:baseWidth-232.f,p.kind==GillKind::Flow?36.f:21.f,110,26);if(p.kind==GillKind::Flow){bounds(bypass,235,19,84,29);bounds(display,20,65,300,115);control(0,66,197,133,185);for(int i=0;i<3;++i)bounds(modes[i],20+i*101.f,382,97,29);bounds(learn,20,418,115,29);bounds(autogain,145,418,123,29);bounds(status,20,451,300,19);}
+    void resized(){bounds(quality,baseWidth-232.f,21,110,26);if(p.kind==GillKind::Flow){bounds(bypass,635,19,84,29);bounds(display,22,72,696,270);control(0,320,155,100,171);bounds(learn,325,99,90,40);for(int i=0;i<3;++i)bounds(modes[i],115+i*174.f,361,162,30);bounds(autogain,289,402,162,28);bounds(status,92,335,556,22);}
         else if(p.kind==GillKind::Heat){bounds(bypass,475,19,84,29);bounds(display,20,65,540,89);for(int i=0;i<3;++i)control(i,22+i*108.f,168,98,140);for(int i=0;i<3;++i)bounds(modes[i],20+i*108.f,335,102,29);control(3,356,197,88,114);control(4,466,197,91,114);}
         else{bounds(quality,534,19,110,26);bounds(bypass,653,18,86,28);bounds(preset,269,18,249,29);
             bounds(keyLabel,22,85,89,18);bounds(key,22,110,89,31);bounds(scaleLabel,22,167,89,18);bounds(scale,22,192,89,31);
@@ -123,6 +125,7 @@ struct GillVocalEditor::Impl:private juce::Timer {
         }
     }
     void paint(juce::Graphics& g){const float scale=owner.getWidth()/static_cast<float>(baseWidth);g.addTransform(juce::AffineTransform::scale(scale));const float s=1.f;
+        if(p.kind==GillKind::Flow){gill::twin::chassis(g,740,450,p.getName());g.setColour(gill::twin::ink);g.setFont(font(11));g.drawText("GAIN REDUCTION  "+juce::String(p.reduction.load(),1)+" dB",juce::Rectangle<float>(265,72,210,20),juce::Justification::centred);return;}
         gill::prism::chassis(g,float(baseWidth),float(baseHeight),p.kind==GillKind::Tune?274.f:p.kind==GillKind::Flow?187.f:160.f,p.kind==GillKind::Flow?61.f:57.f,true,p.kind==GillKind::Tune?65.f:23.f,display.getActivity());
         if(p.kind==GillKind::Tune)gill::prism::tuneKeyPanel(g);
         gill::prism::title(g,p.getName(),{75,p.kind==GillKind::Flow?11.f:16.f,p.kind==GillKind::Flow?153.f:p.kind==GillKind::Tune?178.f:baseWidth-309.f,31},p.kind==GillKind::Flow?20.f:23.f);

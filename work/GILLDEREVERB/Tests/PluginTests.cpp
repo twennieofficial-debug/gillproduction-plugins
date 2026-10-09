@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <array>
@@ -214,16 +215,17 @@ int main() {
         check(p.isAutomaticMode()==(iteration<5000),"host parameter updates never migrate processing mode");++automationCases;
     }
     p.resetAllParameters();enterLegacy(p);set(p,"amount",47.0f);
-    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());check(editor!=nullptr,"CORE editor creates");
+    std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});check(editor!=nullptr,"CORE editor creates");
     check(!p.isAutomaticMode(),"opening CORE editor does not migrate old projects");
     if(editor) {
         std::vector<juce::Slider*> sliders;std::vector<juce::Button*> buttons;collect(*editor,sliders,buttons);
-        check(sliders.size()==1,"CORE has exactly one continuous control");check(buttons.empty(),"CORE has no extra effect buttons beyond separately tested LIVE/PRO");
-        check(editor->getWidth()==320&&editor->getHeight()==300,"CORE default dimensions are compact 320 by 300");
+        check(sliders.size()==1,"CORE has exactly one continuous control");check(buttons.size()==2,"portrait panel exposes BYPASS and LISTEN REMOVED plus separately tested LIVE/PRO");for(auto* button:buttons){const auto id=button->getComponentID();check(id=="bypass"||id=="removed","portrait button has its real retained parameter");if(id=="bypass"||id=="removed"){button->setToggleState(true,juce::sendNotificationSync);check(raw(p,id)==1,"portrait toggle writes bound parameter");button->setToggleState(false,juce::sendNotificationSync);check(raw(p,id)==0,"portrait toggle restores bound parameter");}};
+        int bypassCount=0,removedCount=0;for(auto* button:buttons){bypassCount+=button->getComponentID()=="bypass";removedCount+=button->getComponentID()=="removed";}check(bypassCount==1&&removedCount==1,"exactly one bypass and one removed-audition button are tested");
+        check(editor->getWidth()==380&&editor->getHeight()==620,"current portrait dimensions are 380 by 620");
         auto* constrainer=editor->getConstrainer();check(constrainer!=nullptr,"CORE has a resize constrainer");
-        if(constrainer){check(std::abs(constrainer->getFixedAspectRatio()-320./300.)<1.e-9,"CORE resize aspect ratio matches its compact panel");check(constrainer->getMinimumWidth()==320&&constrainer->getMinimumHeight()==300,"CORE minimum size is 320 by 300");check(constrainer->getMaximumWidth()==640&&constrainer->getMaximumHeight()==600,"CORE maximum size is twice the native panel");}
+        if(constrainer){check(std::abs(constrainer->getFixedAspectRatio()-380./620.)<1.e-9,"CORE resize aspect ratio matches its compact panel");check(constrainer->getMinimumWidth()==380&&constrainer->getMinimumHeight()==620,"portrait minimum size is 380 by 620");check(constrainer->getMaximumWidth()==380&&constrainer->getMaximumHeight()==620&&!editor->isResizable(),"portrait maximum remains the fixed native panel");}
         if(sliders.size()==1) {
-            auto* amount=sliders.front();check(amount->getName()=="AMOUNT","sole knob is AMOUNT");
+            auto* amount=sliders.front();check(amount->getSliderStyle()==juce::Slider::LinearVertical,"current Amount control is a vertical fader");check(amount->getName()=="AMOUNT","sole knob is AMOUNT");
             check(std::abs(amount->getMinimum())<1.e-9&&std::abs(amount->getMaximum()-100)<1.e-9,"knob covers zero to one hundred percent");
             check(std::abs(amount->getDoubleClickReturnValue()-55)<1.e-9,"double-click reset value is 55 percent");
             StateListener listener;p.addListener(&listener);
@@ -287,7 +289,7 @@ int main() {
             p.removeListener(&listener);
         }
         p.resetAllParameters();
-        renderPng(*editor,320,300,"GILLDEREVERB-UI-320.png");renderPng(*editor,480,450,"GILLDEREVERB-UI-480.png");renderPng(*editor,640,600,"GILLDEREVERB-UI-640.png");
+        renderPng(*editor,380,620,"GILLDEREVERB-UI-380x620.png");
         editor.reset();
     }
     p.releaseResources();

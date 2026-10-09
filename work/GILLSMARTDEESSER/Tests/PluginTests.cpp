@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "PluginProcessor.h"
 #include "Signals.h"
 #include <thread>
@@ -45,8 +46,8 @@ int main(int argc,char** argv){std::cout<<std::unitbuf;
     delta.setValue("bypass",1,false);juce::AudioBuffer<float>bypass(2,2048);for(int c=0;c<2;++c)for(int i=0;i<2048;++i)bypass.setSample(c,i,.125f);delta.processBlock(bypass,midi);check(bypass.getSample(0,2047)==.125f,"bypass returns dry even during removed audition");
     GillSmartDeEsserProcessor realtime;realtime.prepareToPlay(48000,128);juce::AudioBuffer<float> scratch(2,128);scratch.clear();
     for(int mode:{0,1})for(bool capture:{false,true}){realtime.setValue(gill::qualityParameterId,static_cast<float>(mode),false);if(capture)realtime.startLearning();allocationAudit::count=0;allocationAudit::enabled=true;for(int i=0;i<100;++i)realtime.processBlock(scratch,midi);allocationAudit::enabled=false;check(allocationAudit::count==0,"LIVE/PRO audio callback including learning performs no C++ heap allocation");}
-    p.setCurrentProgram(0);std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor());check(editor&&editor->getWidth()==480&&editor->getHeight()==360,"compact editor dimensions");pump();
-    auto image=editor->createComponentSnapshot(editor->getLocalBounds());auto directory=juce::File::getCurrentWorkingDirectory();if(argc==3&&juce::String(argv[1])=="--screenshots")directory=juce::File(argv[2]);directory.createDirectory();auto file=directory.getChildFile("GILLSMARTDEESSER-UI-480x360.png");file.deleteFile();if(auto stream=file.createOutputStream()){juce::PNGImageFormat png;check(png.writeImageToStream(image,*stream),"actual editor screenshot written");}else check(false,"screenshot path writable");
+    p.setCurrentProgram(0);std::unique_ptr<juce::AudioProcessorEditor> editor(p.createEditor()); gillCurrentUi::verify(editor.get(),p.getName(),[](bool ok,const char* why){check(ok,why);});check(editor&&editor->getWidth()==740&&editor->getHeight()==450,"compact editor dimensions");pump();
+    auto image=editor->createComponentSnapshot(editor->getLocalBounds());auto directory=juce::File::getCurrentWorkingDirectory();if(argc==3&&juce::String(argv[1])=="--screenshots")directory=juce::File(argv[2]);directory.createDirectory();auto file=directory.getChildFile("GILLSMARTDEESSER-UI-740x450.png");file.deleteFile();if(auto stream=file.createOutputStream()){juce::PNGImageFormat png;check(png.writeImageToStream(image,*stream),"actual editor screenshot written");}else check(false,"screenshot path writable");
  }
  return test::finish();
 }

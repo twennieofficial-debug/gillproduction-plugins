@@ -22,7 +22,16 @@ GillDynamicsProcessor::GillDynamicsProcessor(DynKind k):AudioProcessor(BusesProp
  if(kind==DynKind::Buss){syncGroups();for(const auto&d:definitions)if(d.id.size()>2&&d.id[0]=='g'&&d.id[1]>='1'&&d.id[1]<='8')apvts.addParameterListener(d.id,this);}
 }
 GillDynamicsProcessor::~GillDynamicsProcessor(){if(kind==DynKind::Buss){for(const auto&d:definitions)apvts.removeParameterListener(d.id,this);std::lock_guard<std::mutex>lock(groupLifetimeMutex);if(--groupInstances==0)clearGroups();}}
-juce::AudioProcessorValueTreeState::ParameterLayout GillDynamicsProcessor::layout(DynKind k){juce::AudioProcessorValueTreeState::ParameterLayout l;for(const auto&d:gilldyn::specs(k)){if(d.choices.empty())l.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{d.id,1},d.name,juce::NormalisableRange<float>(d.lo,d.hi,d.step,d.skew),d.def));else if(d.choices.size()==2&&juce::String(d.choices[0])=="OFF")l.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{d.id,1},d.name,d.def>.5f));else{juce::StringArray a;for(auto c:d.choices)a.add(c);l.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{d.id,1},d.name,a,juce::roundToInt(d.def)));}}l.add(gill::qualityParameter()); return l;}
+juce::AudioProcessorValueTreeState::ParameterLayout GillDynamicsProcessor::layout(DynKind k){juce::AudioProcessorValueTreeState::ParameterLayout l;for(const auto&d:gilldyn::specs(k)){
+ juce::String hostName(d.name);
+ // Display labels are independent of stable automation IDs and editor captions.
+ if(k==DynKind::Buss && d.id.size()>2 && d.id[0]=='g' && d.id[1]>='1' && d.id[1]<='8')
+  hostName="GROUP "+juce::String(d.id[1]-'0')+" "+hostName;
+ if(k==DynKind::Quad && d.id.size()>2 && d.id[0]=='b' && d.id[1]>='1' && d.id[1]<='4') {
+  const auto field=d.id.substr(2);
+  hostName="BAND "+juce::String(d.id[1]-'0')+" "+juce::String(field).toUpperCase();
+ }
+ if(d.choices.empty())l.add(std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{d.id,1},hostName,juce::NormalisableRange<float>(d.lo,d.hi,d.step,d.skew),d.def));else if(d.choices.size()==2&&juce::String(d.choices[0])=="OFF")l.add(std::make_unique<juce::AudioParameterBool>(juce::ParameterID{d.id,1},hostName,d.def>.5f));else{juce::StringArray a;for(auto c:d.choices)a.add(c);l.add(std::make_unique<juce::AudioParameterChoice>(juce::ParameterID{d.id,1},hostName,a,juce::roundToInt(d.def)));}}l.add(gill::qualityParameter()); return l;}
 const juce::String GillDynamicsProcessor::getName()const{return names[static_cast<int>(kind)];}
 float GillDynamicsProcessor::value(const juce::String&id)const{auto*p=apvts.getRawParameterValue(id);return p?safe(p->load()):0;}
 float GillDynamicsProcessor::at(const char*id)const{for(size_t i=0;i<definitions.size();++i)if(definitions[i].id==id)return safe(values[i]->load(std::memory_order_relaxed),definitions[i].def);return 0;}

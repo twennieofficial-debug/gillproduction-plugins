@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "FinishEditor16.h"
 #include "RideDSP.h"
 #include "PocketDSP.h"
 #include "FinishDSP.h"
@@ -170,5 +171,5 @@ std::vector<std::pair<juce::RangedAudioParameter*,float>>accepted;
  for(auto c:incoming){auto id=c.getProperty("id").toString();auto*param=apvts.getParameter(id);double v=0;if(!param||!numeric(c.getProperty("value"),v))continue;const auto&r=param->getNormalisableRange();const float legal=r.snapToLegalValue(float(std::clamp(v,double(r.start),double(r.end))));auto target=clean.getChildWithProperty("id",id);if(target.isValid()){target.setProperty("value",legal,nullptr);auto found=std::find_if(accepted.begin(),accepted.end(),[&](const auto&a){return a.first==param;});if(found!=accepted.end())found->second=param->convertTo0to1(legal);else accepted.emplace_back(param,param->convertTo0to1(legal));}}
  if(kind==NextKind::Align){impl->captureCommand=-1;auto path=incoming.getProperty("alignedAudio").toString();{std::lock_guard<std::mutex>l(impl->statusMutex);++impl->generation;impl->result=nullptr;impl->previous=nullptr;impl->audioPath=path;alignState=path.isEmpty()?0:2;impl->workerCommand=path.isEmpty()?0:((std::uint64_t(impl->generation.load())<<8)|3);}double seconds=0;if(numeric(incoming.getProperty("anchorSeconds"),seconds))impl->dubAnchorSeconds=std::clamp(seconds,-86400.,86400.);impl->dubHasHost=bool(incoming.getProperty("hostAnchor",false));if(path.isNotEmpty())impl->notify();else{auto target=clean.getChildWithProperty("id","preview");if(target.isValid())target.setProperty("value",0.f,nullptr);for(auto&item:accepted)if(item.first==apvts.getParameter("preview"))item.second=0;}}
  if(!accepted.empty()){if(kind==NextKind::Finish&&!incoming.getChildWithProperty("id","boost").isValid())accepted.emplace_back(apvts.getParameter("boost"),0.f);apvts.replaceState(clean);for(const auto&a:accepted)a.first->setValueNotifyingHost(a.second);}double program=0;if(numeric(incoming.getProperty("program"),program))currentProgram=juce::jlimit(0,getNumPrograms()-1,int(std::clamp(program,0.,double(getNumPrograms()-1))));}}
-juce::AudioProcessorEditor*GillNextProcessor::createEditor(){return new GillNextEditor(*this);}
+juce::AudioProcessorEditor*GillNextProcessor::createEditor(){if(kind==NextKind::Finish)return new FinishEditor16(*this);return new GillNextEditor(*this);}
 

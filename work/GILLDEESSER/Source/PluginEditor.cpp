@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "../../GILLCommon/PrismUi.h"
+#include "../../GILLCommon/ScalpelUi.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
 #include "../../GILLCommon/MaterialUi.h"
@@ -9,7 +10,7 @@
 
 namespace
 {
-const juce::Colour ink(0xff102237), sage(0xff54b8d5);
+const juce::Colour ink=gill::scalpel::ink, sage=gill::scalpel::cyan;
 
 juce::Font coreFont (float height, bool bold = false)
 {
@@ -36,7 +37,7 @@ public:
     }
 };
 
-class CoreLookAndFeel final : public gill::prism::Look {  };
+class CoreLookAndFeel final : public gill::scalpel::Look {  };
 }
 
 
@@ -46,7 +47,7 @@ public:
     AmountSlider slider;
     explicit SliderBinding(GillDeEsserAudioProcessor& p,const char* id,const char* name,double initial)
         : parameter(*p.apvts.getParameter(id)) {
-        slider.setColour(juce::Slider::textBoxTextColourId,gill::prism::white);slider.setColour(juce::Slider::textBoxBackgroundColourId,gill::prism::dark);slider.setColour(juce::Slider::textBoxOutlineColourId,gill::prism::cyan.withAlpha(.3f));slider.setName(name);slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+        slider.setColour(juce::Slider::textBoxTextColourId,gill::prism::white);slider.setColour(juce::Slider::textBoxBackgroundColourId,gill::prism::dark);slider.setColour(juce::Slider::textBoxOutlineColourId,gill::prism::cyan.withAlpha(.3f));slider.setName(name);slider.setComponentID(id);slider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
         slider.setRotaryParameters(juce::MathConstants<float>::pi*1.25f,juce::MathConstants<float>::pi*2.75f,true);
         slider.setTextBoxStyle(juce::Slider::TextBoxBelow,false,130,31);
         const auto& r=parameter.getNormalisableRange();slider.setRange(r.start,r.end,r.interval);slider.setSkewFactor(r.skew,r.symmetricSkew);
@@ -75,13 +76,13 @@ public:
     double hzFor(float x)const{const auto r=plot();return 20*std::pow(1000.,juce::jlimit(0.f,1.f,(x-r.getX())/r.getWidth()));}
     double targetHz()const{return std::min(static_cast<double>(p.apvts.getRawParameterValue("frequency")->load()),.45*p.getUiSampleRate());}
     void paint(juce::Graphics& g)override{
-        auto r=getLocalBounds().toFloat().reduced(1);g.setGradientFill(juce::ColourGradient(juce::Colour(0xff173951),0,0,juce::Colour(0xff091d31),0,r.getBottom(),false));g.fillRoundedRectangle(r,11);
+        auto r=getLocalBounds().toFloat().reduced(3);g.setGradientFill(juce::ColourGradient(juce::Colour(0xff092623),0,0,juce::Colour(0xff020d0c),0,r.getBottom(),false));g.fillRoundedRectangle(r,11);
         g.setColour(gill::prism::white.withAlpha(.5f));g.drawRoundedRectangle(r,11,1);g.setColour(juce::Colours::white.withAlpha(.6f));g.drawRoundedRectangle(r.reduced(2),9,.7f);
         const auto a=plot();const auto y=[&](float db){return a.getBottom()-juce::jlimit(0.f,1.f,(db+90.f)/90.f)*a.getHeight();};
         g.setFont(coreFont(10,true));g.setColour(gill::prism::white.withAlpha(.65f));g.drawText("DBFS",4,8,35,14,juce::Justification::centred);
         g.drawText("PRE / POST | LEFT",static_cast<int>(a.getX()),7,150,14,juce::Justification::centredLeft);
         for(int db:{0,-24,-48,-72}){g.setColour(gill::prism::white.withAlpha(.1f));g.drawHorizontalLine(static_cast<int>(y(static_cast<float>(db))),a.getX(),a.getRight());g.setColour(gill::prism::white.withAlpha(.6f));g.drawText(juce::String(db),2,static_cast<int>(y(static_cast<float>(db)))-7,29,14,juce::Justification::right);}
-        for(int hz:{20,100,1000,5000,10000,20000}){const float x=xFor(hz);g.setColour(gill::prism::white.withAlpha(.10f));g.drawVerticalLine(static_cast<int>(x),a.getY(),a.getBottom());g.setColour(gill::prism::white.withAlpha(.7f));g.drawText(hz>=1000?juce::String(hz/1000)+"K":juce::String(hz),static_cast<int>(x)-15,static_cast<int>(a.getBottom())+6,30,13,juce::Justification::centred);}
+        for(int hz:{100,1000,10000}){const float x=xFor(hz);g.setColour(gill::prism::white.withAlpha(.10f));g.drawVerticalLine(static_cast<int>(x),a.getY(),a.getBottom());g.setColour(gill::prism::white.withAlpha(.7f));g.drawText(hz>=1000?juce::String(hz/1000)+"K":juce::String(hz),static_cast<int>(x)-15,static_cast<int>(a.getBottom())+6,30,13,juce::Justification::centred);}
         const double fs=p.getUiSampleRate(),centre=targetHz();const auto edges=gilldeesser::bandEdges(centre,fs);
         const float left=xFor(edges[0]),right=xFor(edges[1]),cx=xFor(centre);
         {juce::Graphics::ScopedSaveState save(g);g.reduceClipRegion(a.toNearestInt());
@@ -113,35 +114,25 @@ private:
 };
 class ReductionMeter final : public juce::Component,private juce::Timer{
 public:explicit ReductionMeter(GillDeEsserAudioProcessor& processor):p(processor){setName("GAIN REDUCTION METER");startTimerHz(25);}
-    void paint(juce::Graphics& g)override{const float s=getWidth()/100.f;const auto gr=juce::jlimit(0.f,12.f,p.getReductionDb());
-       #if JUCE_MAC
-        // Mac font metrics need a separate row for the bottom tick and readout.
-        const auto bar=juce::Rectangle<float>(22*s,24*s,19*s,86*s);
-       #else
-        const auto bar=juce::Rectangle<float>(22*s,24*s,19*s,96*s);
-       #endif
-        g.setFont(coreFont(12*s,true));g.setColour(ink);g.drawText("REDUCTION",0,0,getWidth(),static_cast<int>(18*s),juce::Justification::centred);
-        g.setColour(juce::Colour(0xff0c2138));g.fillRoundedRectangle(bar,4*s);
-       #if JUCE_MAC
-        for(int i=0;i<24;++i){const float y=bar.getY()+3*s+i*(bar.getHeight()-8*s)/24.f;g.setColour(i<gr*2?juce::Colour(0xff85e0fc):juce::Colour(0xff496278));g.fillRect(bar.getX()+4*s,y,11*s,2.1f*s);}
-        g.setFont(coreFont(10*s));g.setColour(ink);for(int db:{0,3,6,9,12})g.drawText(juce::String(db),static_cast<int>(47*s),juce::roundToInt(bar.getY()+db*bar.getHeight()/12.f-7.5f*s),static_cast<int>(27*s),static_cast<int>(15*s),juce::Justification::left);
-        g.setFont(coreFont(21*s,true));g.drawText((gr>.005f?"-":"")+juce::String(gr,1)+" DB",0,static_cast<int>(123*s),getWidth(),static_cast<int>(28*s),juce::Justification::centred);
-       #else
-        for(int i=0;i<24;++i){const float y=bar.getY()+3*s+i*3.7f*s;g.setColour(i<gr*2?juce::Colour(0xff85e0fc):juce::Colour(0xff496278));g.fillRect(bar.getX()+4*s,y,11*s,2.1f*s);}
-        g.setFont(coreFont(10*s));g.setColour(ink);for(int db:{0,3,6,9,12})g.drawText(juce::String(db),static_cast<int>(47*s),static_cast<int>((20+db*8)*s),static_cast<int>(27*s),static_cast<int>(15*s),juce::Justification::left);
-        g.setFont(coreFont(21*s,true));g.drawText((gr>.005f?"-":"")+juce::String(gr,1)+" DB",0,static_cast<int>(119*s),getWidth(),static_cast<int>(28*s),juce::Justification::centred);
-       #endif
+    void paint(juce::Graphics& g)override{
+        const float gr=juce::jlimit(0.f,12.f,p.getReductionDb());const float h=float(getHeight());
+        gill::scalpel::text(g,"REDUCTION",{0,0,float(getWidth()),18},10);
+        const juce::Rectangle<float> bar(18,25,13,h-60);g.setColour(juce::Colours::black);g.fillRoundedRectangle(bar,3);
+        for(int i=0;i<24;++i){const float y=bar.getY()+i*bar.getHeight()/24;g.setColour(i<gr*2?gill::scalpel::cyan:gill::scalpel::cyan.withAlpha(.13f));g.fillRect(bar.getX()+2,y,9.f,bar.getHeight()/24-1);}
+        for(int db:{0,3,6,9,12})gill::scalpel::text(g,juce::String(db),{35,bar.getY()+db*bar.getHeight()/12-6,22,12},9);
+        gill::scalpel::text(g,juce::String(gr,1)+" DB",{0,h-21,float(getWidth()),20},13,gill::scalpel::cyan);
     }
 private:void timerCallback()override{repaint();}GillDeEsserAudioProcessor& p;
 };
 }
 struct GillDeEsserAudioProcessorEditor::Impl {
     GillDeEsserAudioProcessorEditor& owner;GillDeEsserAudioProcessor& p;CoreLookAndFeel look;juce::Image reference;
+    juce::TextButton bypass{"BYPASS"};std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> bypassAttachment;
     SliderBinding amount,frequency;SibilanceDisplay graph;ReductionMeter meter;juce::TextButton listen{"LISTEN S"};
     std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> listenAttachment;juce::TooltipWindow tooltip;
     gill::QualitySelector quality{p.apvts, p};
     Impl(GillDeEsserAudioProcessorEditor& editor,GillDeEsserAudioProcessor& processor):owner(editor),p(processor),amount(p,"amount","AMOUNT",55),frequency(p,"frequency","FREQUENCY",6500),graph(p),meter(p),tooltip(&editor,600){
-        owner.setLookAndFeel(&look);owner.addAndMakeVisible(quality);reference=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);
+        amount.slider.setSliderStyle(juce::Slider::LinearVertical);frequency.slider.setSliderStyle(juce::Slider::LinearHorizontal);owner.setLookAndFeel(&look);owner.addAndMakeVisible(quality);quality.setLookAndFeel(&look);bypass.setName("BYPASS");bypass.setComponentID("bypass");bypass.setClickingTogglesState(true);owner.addAndMakeVisible(bypass);bypassAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"bypass",bypass);reference=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);
         owner.addAndMakeVisible(amount.slider);owner.addAndMakeVisible(frequency.slider);owner.addAndMakeVisible(graph);owner.addAndMakeVisible(meter);owner.addAndMakeVisible(listen);
         amount.slider.textFromValueFunction=[](double v){return juce::String(v,0)+" %";};amount.slider.valueFromTextFunction=[](const juce::String& s){return s.replaceCharacter(',','.').getDoubleValue();};amount.slider.updateText();
         frequency.slider.textFromValueFunction=[](double v){return juce::String(v/1000.,2)+" KHZ";};frequency.slider.valueFromTextFunction=[](const juce::String& s){const auto v=s.replaceCharacter(',','.').getDoubleValue();return s.containsIgnoreCase("k")||v<100?v*1000:v;};frequency.slider.updateText();
@@ -152,21 +143,23 @@ struct GillDeEsserAudioProcessorEditor::Impl {
         listenAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"listen",listen);
     }
     ~Impl(){listenAttachment.reset();owner.setLookAndFeel(nullptr);}
-    void resized(){const float s=owner.getWidth()/480.f;look.scale=s;
-        quality.setBounds(juce::Rectangle<float>(348*s,22*s,110*s,26*s).toNearestInt());
-        graph.setBounds(juce::Rectangle<float>(20*s,66*s,440*s,114*s).toNearestInt());
-        amount.slider.setBounds(juce::Rectangle<float>(31*s,203*s,138*s,115*s).toNearestInt());
-        frequency.slider.setBounds(juce::Rectangle<float>(185*s,203*s,135*s,87*s).toNearestInt());
-        meter.setBounds(juce::Rectangle<float>(359*s,187*s,89*s,138*s).toNearestInt());
-        listen.setBounds(juce::Rectangle<float>(193*s,293*s,120*s,28*s).toNearestInt());amount.slider.resized();frequency.slider.resized();
+    void resized(){const float s=owner.getWidth()/420.f;look.scale=s;
+        quality.setBounds(juce::Rectangle<float>(284*s,73*s,110*s,26*s).toNearestInt());
+        bypass.setBounds(juce::Rectangle<float>(25*s,73*s,84*s,26*s).toNearestInt());
+        graph.setBounds(juce::Rectangle<float>(163*s,121*s,230*s,345*s).toNearestInt());
+        amount.slider.setBounds(juce::Rectangle<float>(31*s,155*s,106*s,387*s).toNearestInt());
+        frequency.slider.setBounds(juce::Rectangle<float>(164*s,504*s,146*s,57*s).toNearestInt());
+        meter.setBounds(juce::Rectangle<float>(317*s,482*s,79*s,132*s).toNearestInt());
+        listen.setBounds(juce::Rectangle<float>(164*s,578*s,146*s,29*s).toNearestInt());
     }
-    void paint(juce::Graphics& g){
-const float scale=owner.getWidth()/480.f;g.addTransform(juce::AffineTransform::scale(scale));
- gill::prism::chassis(g,480,330,180);gill::prism::title(g,"GILL-DE-ESSER",{75,16,260,33},21);
- g.setFont(coreFont(12,true));g.setColour(ink);g.drawText("AMOUNT",31,185,138,17,juce::Justification::centred);g.drawText("FREQUENCY",185,185,135,17,juce::Justification::centred);
+    void paint(juce::Graphics& g){g.addTransform(juce::AffineTransform::scale(owner.getWidth()/420.f));
+        gill::scalpel::chassis(g,420,640,"GILL-DE-ESSER");
+        gill::scalpel::panel(g,{22,121,120,435});gill::scalpel::text(g,"C L E A N",{29,127,106,25},14);
+        gill::scalpel::text(g,"AMOUNT",{29,540,106,17},10);
+        gill::scalpel::panel(g,{156,478,244,137});gill::scalpel::text(g,"S-BAND FREQUENCY",{163,483,148,20},11);
     }
 };
-GillDeEsserAudioProcessorEditor::GillDeEsserAudioProcessorEditor(GillDeEsserAudioProcessor& p):juce::AudioProcessorEditor(&p){impl=std::make_unique<Impl>(*this,p);setResizable(true,true);setResizeLimits(480,330,960,660);if(auto* c=getConstrainer())c->setFixedAspectRatio(480./330.);setSize(480,330);}
+GillDeEsserAudioProcessorEditor::GillDeEsserAudioProcessorEditor(GillDeEsserAudioProcessor& p):juce::AudioProcessorEditor(&p){impl=std::make_unique<Impl>(*this,p);setResizable(false,false);setResizeLimits(420,640,420,640);setSize(420,640);}
 GillDeEsserAudioProcessorEditor::~GillDeEsserAudioProcessorEditor()=default;
 void GillDeEsserAudioProcessorEditor::paint(juce::Graphics& g){impl->paint(g);}
 void GillDeEsserAudioProcessorEditor::resized(){if(impl)impl->resized();}

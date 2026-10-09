@@ -33,6 +33,7 @@ bool GillRestorationAudioProcessor::isBusesLayoutSupported(const BusesLayout& la
 }
 void GillRestorationAudioProcessor::prepareToPlay(double fs, int) {
     if (!std::isfinite(fs) || fs < 8000 || fs > 192000) fs = 48000;
+    inputDb.store(-100.f,std::memory_order_relaxed);outputDb.store(-100.f,std::memory_order_relaxed);
     engine.prepare(fs, mode);
     engine.setLiveMode(!qualityClient.isPro());qualityClient.requestLatencySamples(engine.getLatencySamples());
     engine.setAmount(juce::jlimit(0.0,1.0,read(amountParam,55)*0.01));
@@ -41,11 +42,14 @@ void GillRestorationAudioProcessor::prepareToPlay(double fs, int) {
     engine.setLiveMode(!qualityClient.isPro());setLatencySamples(engine.getLatencySamples());
     qualityTransition.prepare(fs,qualityClient.mode());
 }
-void GillRestorationAudioProcessor::releaseResources() { engine.reset(); }
+void GillRestorationAudioProcessor::releaseResources() { engine.reset();inputDb.store(-100.f,std::memory_order_relaxed);outputDb.store(-100.f,std::memory_order_relaxed); }
 template<class T> void GillRestorationAudioProcessor::process(juce::AudioBuffer<T>& buffer, bool hostBypassed) {const int blockQuality=qualityClient.mode();
     juce::ScopedNoDenormals noDenormals;
     const int samples = buffer.getNumSamples(), channels = std::min(2, buffer.getNumChannels());
     if (samples <= 0 || channels <= 0) return;
+    // Block RMS metering: fixed scalar work, no audio-thread allocation or locks.
+    const auto blockDb=[&] { double energy=0;for(int c=0;c<channels;++c)for(int i=0;i<samples;++i){const double v=static_cast<double>(buffer.getSample(c,i));if(std::isfinite(v))energy+=v*v;}const auto rms=std::sqrt(energy/(static_cast<double>(channels)*samples));return std::isfinite(rms)?static_cast<float>(std::max(-100.0,20.0*std::log10(std::max(1.e-5,rms)))):120.f; };
+    inputDb.store(blockDb(),std::memory_order_relaxed);
     for (int c = getTotalNumInputChannels(); c < buffer.getNumChannels(); ++c) buffer.clear(c,0,samples);
     engine.setLiveMode(blockQuality==0);qualityClient.requestLatencySamples(engine.getLatencySamples());
     engine.setAmount(juce::jlimit(0.0,1.0,read(amountParam,55)*0.01));
@@ -70,6 +74,7 @@ template<class T> void GillRestorationAudioProcessor::process(juce::AudioBuffer<
         }
     }
     qualityTransition.process(buffer.getArrayOfWritePointers(),channels,samples,blockQuality);
+    outputDb.store(blockDb(),std::memory_order_relaxed);
 }
 void GillRestorationAudioProcessor::processBlock(juce::AudioBuffer<float>& b,juce::MidiBuffer& m){m.clear();process(b,false);}
 void GillRestorationAudioProcessor::processBlock(juce::AudioBuffer<double>& b,juce::MidiBuffer& m){m.clear();process(b,false);}

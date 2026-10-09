@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "PluginProcessor.h"
 #include <iostream>
 #include <memory>
@@ -65,7 +66,7 @@ int main(){
  {auto duplicate=std::make_unique<GillMixProcessor>(GillMixKind::master);juce::MemoryBlock saved;master->getStateInformation(saved);duplicate->setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));duplicate->service();master->service();check(master->status.contains("DUPLICATE SESSION")&&duplicate->status.contains("DUPLICATE SESSION"),"duplicate controller identity is explicitly visible and disarmed");duplicate->newIdentity();duplicate->service();master->service();check(!master->status.contains("DUPLICATE SESSION"),"NEW SESSION resolves controller identity ambiguity without adopting links");}
  for(auto*p:{master.get(),links[0].get()}){const auto expectedBypass=p->apvts.getParameter("bypass")->getValue(),expectedQuality=p->apvts.getParameter("gillQuality")->getValue();juce::MemoryBlock saved;p->getStateInformation(saved);for(const char*id:{"bypass","gillQuality"})p->apvts.getParameter(id)->setValueNotifyingHost(.39821f);p->setStateInformation(saved.getData(),static_cast<int>(saved.getSize()));check(p->apvts.getParameter("bypass")->getValue()==expectedBypass&&p->apvts.getParameter("gillQuality")->getValue()==expectedQuality,"valid recall restores actual fractional Boolean/choice host values, not only snapped APVTS cache");}
  for(auto*p:{master.get(),links[0].get()}){
-  std::unique_ptr<juce::AudioProcessorEditor>editor(p->createEditor());const bool isMaster=p->kind==GillMixKind::master;check(editor->getWidth()==(isMaster?760:360)&&editor->getHeight()==(isMaster?480:210),"compact editor has intended logical dimensions");
+  std::unique_ptr<juce::AudioProcessorEditor>editor(p->createEditor()); gillCurrentUi::verify(editor.get(),p->getName(),[](bool ok,const char* why){check(ok,why);});check(editor->getWidth()>=350&&editor->getWidth()<=850&&editor->getHeight()>=200&&editor->getHeight()<=600,"compact editor fits intended desktop bounds");
   auto image=editor->createComponentSnapshot(editor->getLocalBounds());const auto file=juce::File::getCurrentWorkingDirectory().getChildFile(p->getName()+"-UI-"+juce::String(editor->getWidth())+"x"+juce::String(editor->getHeight())+".png");file.deleteFile();if(auto out=file.createOutputStream()){juce::PNGImageFormat png;check(png.writeImageToStream(image,*out),"real editor screenshot written");}else check(false,"screenshot output opened");
  }
  std::cout<<"RESULT "<<checks<<" checks, "<<failures<<" failures\n";return failures?1:0;

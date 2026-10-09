@@ -25,6 +25,8 @@ void GillAssistProcessor::processBlock(juce::AudioBuffer<float>&b,juce::MidiBuff
 void GillAssistProcessor::processBlockBypassed(juce::AudioBuffer<float>&b,juce::MidiBuffer&){process(b,true);}
 void GillAssistProcessor::process(juce::AudioBuffer<float>&b,bool bypass){
     juce::ScopedNoDenormals guard;for(int c=getTotalNumInputChannels();c<b.getNumChannels();++c)b.clear(c,0,b.getNumSamples());if(b.getNumChannels()==0)return;
+    // Reject corrupt upstream samples before metering, monitoring or capture.
+    for(int c=0;c<b.getNumChannels();++c){auto*data=b.getWritePointer(c);for(int i=0;i<b.getNumSamples();++i)if(!std::isfinite(data[i]))data[i]=0;}
     bool playing=false,valid=false;std::int64_t position=0;if(auto*playhead=getPlayHead()){if(auto info=playhead->getPosition()){playing=info->getIsPlaying();if(auto samples=info->getTimeInSamples()){position=*samples;valid=true;}else if(auto seconds=info->getTimeInSeconds()){valid=std::isfinite(*seconds)&&std::abs(*seconds)<1.e9;if(valid)position=std::int64_t(std::llround(*seconds*engine.rateView.load()));}}}
     playingView=playing;float peak=0;for(int c=0;c<b.getNumChannels();++c)peak=std::max(peak,b.getMagnitude(c,0,b.getNumSamples()));inputPeak=peak;
     engine.process(b,playing,valid,position,bypass);peak=0;for(int c=0;c<b.getNumChannels();++c)peak=std::max(peak,b.getMagnitude(c,0,b.getNumSamples()));outputPeak=peak;

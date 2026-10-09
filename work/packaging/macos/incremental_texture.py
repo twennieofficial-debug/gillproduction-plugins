@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebuild TEXTURE only after proving that the other 57 native inputs are identical.
+"""Rebuild TEXTURE only after proving that all other native inputs are identical.
 
 This is a new candidate, never an approval or relabeling of the base release.
 The base run may be cancelled after its two successful native jobs upload their
@@ -76,8 +76,8 @@ def validate_remote_metadata(run, jobs, artifact, arch, run_id, commit):
 
 
 def verify_source_closure(base, current, source):
-    p.require(base.get("products") == current.get("products") == 60,
-              "The incremental candidate must contain exactly 60 products")
+    p.require(base.get("products") == current.get("products") == p.PRODUCT_COUNT,
+              "The incremental candidate must contain the exact current product set")
     p.require(base.get("groups") == current.get("groups") == p.GROUPS,
               "Source group catalog changed")
     old, new = base.get("files", {}), current.get("files", {})
@@ -173,7 +173,7 @@ def verify_base_report(base, source_sha, arch, base_root):
     p.require(base.get("source", {}).get("source_sha256") == source_sha, "Unexpected base source fingerprint")
     expected = {product["name"]: product for product in p.PRODUCTS}
     records = base.get("plugins", [])
-    p.require(len(records) == 60 and {item.get("name") for item in records} == set(expected),
+    p.require(len(records) == p.PRODUCT_COUNT and {item.get("name") for item in records} == set(expected),
               "Base native bundle catalog differs")
     for record in records:
         product = expected[record["name"]]

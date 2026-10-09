@@ -3,10 +3,11 @@ from pathlib import Path
 import hashlib
 import json
 import shutil
+import os
 
 ROOT = Path(__file__).resolve().parents[2]
 WORK = ROOT / "work"
-REPO = WORK / "packaging/repository"
+REPO = Path(os.environ.get("GILL_STAGING_REPOSITORY", WORK / "packaging/repository"))
 
 
 def selected_sources(work):
@@ -45,13 +46,22 @@ def selected_sources(work):
             if path.is_file() and (path.name in {"CMakeLists.txt", "LICENSE"} or path.suffix.lower() == ".md"):
                 selected.append(path)
     mac = work / "packaging/macos"
+    if any(group.startswith("GILLSTUDIO/") for group in groups):
+        for relative in ("GILLSTUDIO/Source/Dynamics/Dynamics.h",
+                         "GILLSTUDIO/Next03/Source/Spectral/Spectral.h",
+                         "Effects16/advanced-ui/AdvancedScalpel.h"):
+            path = work / relative
+            if not path.is_file():
+                raise RuntimeError("Missing required transitive Studio input: " + relative)
+            selected.append(path)
     for path in sorted(mac.rglob("*")):
         relative = path.relative_to(mac)
         guide = path.name.startswith("GILL-UPDATE-") and path.name.endswith("-ANLEITUNG.md")
         allowed = ((len(relative.parts) == 1 and (guide or path.name in {
             "pipeline.py", "products.json", "ctest-matrix.json", "ci_signing.py", "github-actions.yml",
             "README.md", "MAC-INSTALLATION.txt", "test_pipeline.py", "GILL-PLUGINS-UEBERSICHT.txt",
-            "incremental_texture.py", "test_incremental_texture.py"}))
+            "incremental_texture.py", "test_incremental_texture.py",
+            "individuals.py", "test_individuals.py", "publish20.py", "test_publish20.py"}))
             or relative.parts[0] == "resources")
         if path.is_file() and allowed and path.suffix.lower() in {".py", ".json", ".md", ".yml", ".yaml", ".sh", ".xml", ".html", ".txt"}:
             selected.append(path)
@@ -93,10 +103,11 @@ def main():
     (REPO / ".gitattributes").write_text("* text=auto\n*.sh text eol=lf\n*.py text eol=lf\n*.yml text eol=lf\n*.png binary\n*.wav binary\n*.flac binary\n", encoding="utf-8")
     (REPO / "README.md").write_text(
         "# GILLPRODUCTION Plugins\n\n"
-        "Update 14 development: 60 compact vocal, creative, mixing and mastering VST3 plugins,\n"
-        "all version 0.14.0. Windows x64 and native macOS Apple Silicon/Intel targets.\n"
-        "GILLVOCODE, GILLGRAIN and GILLPULSE are new. Existing factory identities are preserved.\n"
-        "All plugins require zero additional audio samples in LIVE; the audio interface and host still add latency.\n\n"
+        "Mac20: 74 current vocal, creative, mixing and mastering VST3 plugins,\n"
+        "all version 0.20.0, using the current Update19 DSP and approved interfaces.\n"
+        "Universal macOS Apple Silicon/Intel; 73 GILL products plus separate MOBINA.\n"
+        "Existing factory identities are preserved. LIVE reports zero additional PDC.\n"
+        "The audio interface, host and pitch/effect analysis windows still have latency.\n\n"
         "This source revision is not a download or a completed installer. Platform\n"
         "installers are published only after the corresponding native verification gates.\n"
         "The most recent completed public release remains available from [Releases]"
@@ -105,7 +116,7 @@ def main():
         "the pinned JUCE 8.0.12 submodule before compiling. Source groups and their\n"
         "third-party notices are under work/GILL*. The initial Mac test distribution is ad-hoc\n"
         "signed, not Apple-notarized. Native CI validation does not assert FL Studio\n"
-        "listening tests on Mac. Read MAC-INSTALLATION.txt and GILL-UPDATE-14-ANLEITUNG.md.\n",
+        "listening tests on Mac. Read MAC-INSTALLATION.txt and GILL-UPDATE-20-ANLEITUNG.md.\n",
         encoding="utf-8")
     (WORK / "packaging/repository-staging.json").write_text(
         json.dumps({"files": manifest, "bytes": sum(x["bytes"] for x in manifest)}, indent=2), encoding="utf-8")

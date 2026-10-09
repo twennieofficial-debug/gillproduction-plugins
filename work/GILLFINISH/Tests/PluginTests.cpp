@@ -1,3 +1,4 @@
+#include "CurrentUiChecks.h"
 #include "../../GILLCommon/QualityTests.h"
 #include "PluginProcessor.h"
 #include <fstream>
@@ -33,7 +34,7 @@ juce::MouseEvent mouse(juce::Component&c,juce::Point<float>pt,juce::ModifierKeys
 void click(juce::Button&b){auto pt=b.getLocalBounds().getCentre().toFloat();juce::Component&c=b;c.mouseDown(mouse(c,pt));c.mouseUp(mouse(c,pt,juce::ModifierKeys()));++edits;}
 void tick(){juce::Thread::sleep(45);juce::Timer::callPendingTimersSynchronously();}
 template<class Predicate>bool waitUi(Predicate&&condition){for(int i=0;i<10;++i){if(condition())return true;tick();}return condition();}
-void ui(FinishKind k){auto p=std::make_unique<GillFinishProcessor>(k);product=p->getName().toStdString();prepare(*p);auto editor=std::unique_ptr<juce::AudioProcessorEditor>(p->createEditor());check(editor!=nullptr,"native editor constructs");if(!editor)return;editor->setVisible(true);Components c;c.scan(*editor);HostListener listener;p->addListener(&listener);std::set<std::string>covered;juce::ComboBox*preset=nullptr;
+void ui(FinishKind k){auto p=std::make_unique<GillFinishProcessor>(k);product=p->getName().toStdString();prepare(*p);auto editor=std::unique_ptr<juce::AudioProcessorEditor>(p->createEditor()); gillCurrentUi::verify(editor.get(),p->getName(),[](bool ok,const char* why){check(ok,why);});check(editor!=nullptr,"native editor constructs");if(!editor)return;editor->setVisible(true);Components c;c.scan(*editor);HostListener listener;p->addListener(&listener);std::set<std::string>covered;juce::ComboBox*preset=nullptr;
     // Reproduce the original aggregate failure before allowing a timer refresh:
     // selecting the already-selected ID does not notify ComboBox listeners.
     for(auto*box:c.combos)if(box->getName()=="PRESET"&&!c.sliders.empty()){auto*first=c.sliders.front();auto*param=p->apvts.getParameter(first->getComponentID());if(param){first->setValue(param->convertFrom0to1(.31f),juce::sendNotificationSync);const bool modified=!p->presetMatches();const int id=box->getSelectedId();box->setSelectedId(id,juce::sendNotificationSync);std::cout<<"DIAG "<<product<<" original_same_preset_noop="<<(modified&&!p->presetMatches())<<" selected_id="<<id<<'\n';p->selectPreset(0,false);}}

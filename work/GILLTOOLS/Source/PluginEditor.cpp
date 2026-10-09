@@ -1,5 +1,6 @@
 #include "PluginEditor.h"
 #include "../../GILLCommon/PrismUi.h"
+#include "../../GILLCommon/ScalpelUi.h"
 #include "GillPlatform.h"
 #include "BinaryData.h"
 #include "../../GILLCommon/QualityUi.h"
@@ -23,7 +24,7 @@ struct Dial {
 }
 
 struct GillToolsEditor::Impl:private juce::Timer {
-    GillToolsEditor& owner;GillToolsProcessor& p;Look look;juce::Image wood;gill::QualitySelector quality;
+    GillToolsEditor& owner;GillToolsProcessor& p;Look look;gill::scalpel::Look scalpelLook;juce::Image wood;gill::QualitySelector quality;
     int width=540,height=440;bool syncing=false;
     juce::ComboBox preset;juce::TextButton previous{"<"},next{">"},bypass{"BYPASS"};
     juce::Label status;
@@ -40,8 +41,8 @@ struct GillToolsEditor::Impl:private juce::Timer {
     gill::tools::RescueDSP::Scope rescueView;
     Impl(GillToolsEditor& o,GillToolsProcessor& processor):owner(o),p(processor),quality(p.apvts,p){
         if(p.kind==ToolsKind::Reference){width=660;height=410;}
-        if(p.kind==ToolsKind::Rescue){width=540;height=390;look.accent=amber;}
-        owner.setLookAndFeel(&look);wood=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);
+        if(p.kind==ToolsKind::Rescue){width=420;height=650;look.accent=amber;quality.setLookAndFeel(&scalpelLook);}
+        owner.setLookAndFeel(p.kind==ToolsKind::Rescue?static_cast<juce::LookAndFeel*>(&scalpelLook):static_cast<juce::LookAndFeel*>(&look));wood=juce::ImageCache::getFromMemory(BinaryData::core_reference_png,BinaryData::core_reference_pngSize);
         for(auto* component:std::initializer_list<juce::Component*>{&quality,&preset,&previous,&next,&bypass,&status})owner.addAndMakeVisible(component);
         bypass.setName("BYPASS");bypass.setComponentID("bypass");bypass.setClickingTogglesState(true);buttonAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"bypass",bypass));
         preset.setName("PRESET");preset.setComponentID("preset");for(int i=0;i<p.getNumPrograms();++i)preset.addItem(p.getProgramName(i),i+1);
@@ -74,6 +75,7 @@ struct GillToolsEditor::Impl:private juce::Timer {
             learn.setTooltip("LEARN ARMS CAPTURE. PLAY THE WHOLE SONG (UP TO 5 MIN), THEN FINISH OR STOP THE HOST. ONLY REPEATED HARD-CLIP PLATEAUS SET NEW CLIP LIMITS.");
             dials[0]->slider.setTooltip("VORSICHTIGE SCHAETZUNG KURZER ABGESCHNITTENER SPITZEN. VERLORENE ORIGINALDETAILS SIND NICHT SICHER REKONSTRUIERBAR.");
         }
+        if(p.kind==ToolsKind::Rescue){for(size_t i=0;i<dials.size();++i){auto& d=*dials[i];d.slider.setSliderStyle(i==0?juce::Slider::LinearVertical:juce::Slider::LinearHorizontal);d.slider.setColour(juce::Slider::textBoxTextColourId,gill::scalpel::cyan);d.slider.setColour(juce::Slider::textBoxBackgroundColourId,gill::scalpel::dark);d.label.setColour(juce::Label::textColourId,gill::scalpel::ink);}status.setColour(juce::Label::textColourId,gill::scalpel::ink);}
         timerCallback();startTimerHz(24);
     }
     ~Impl()override{stopTimer();chooser.reset();owner.setLookAndFeel(nullptr);}
@@ -82,6 +84,11 @@ struct GillToolsEditor::Impl:private juce::Timer {
     void addToggle(const juce::String& id,const juce::String& title){auto button=std::make_unique<juce::TextButton>(title);button->setName(title);button->setComponentID(id);button->setClickingTogglesState(true);owner.addAndMakeVisible(*button);buttonAttachments.push_back(std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,id,*button));toggles.push_back(std::move(button));}
     void dialBounds(int index,int x,int y,int w,int h){dials[index]->label.setBounds(x,y,w,18);dials[index]->slider.setBounds(x,y+18,w,h-18);}
     void resized(){
+        if(p.kind==ToolsKind::Rescue){
+            quality.setBounds(211,72,110,26);bypass.setBounds(328,72,70,26);previous.setBounds(22,109,27,25);preset.setBounds(55,109,310,25);next.setBounds(371,109,27,25);status.setBounds(25,589,370,25);
+            dialBounds(0,30,170,108,367);dials[0]->label.setText("REPAIR",juce::dontSendNotification);dials[0]->label.setBounds(30,173,108,14);
+            dialBounds(1,157,425,115,60);dialBounds(2,280,425,115,60);dialBounds(3,157,489,115,60);dialBounds(4,280,489,115,60);learn.setBounds(155,555,117,29);toggles[0]->setBounds(278,555,121,29);return;
+        }
         quality.setBounds(width-199,17,116,30);bypass.setBounds(width-77,17,62,30);
         previous.setBounds(18,height-39,29,25);preset.setBounds(51,height-39,width-102,25);next.setBounds(width-47,height-39,29,25);status.setBounds(24,height-58,width-48,17);
         if(p.harmony){
@@ -105,6 +112,14 @@ struct GillToolsEditor::Impl:private juce::Timer {
         text(g,value>1e-6f?juce::String(db,1)+" DBFS":"-INF",box.withY(box.getBottom()-28).withHeight(23),13,true);
     }
     void paint(juce::Graphics& g){
+        if(p.kind==ToolsKind::Rescue){
+            gill::scalpel::chassis(g,420,650,p.getName());gill::scalpel::panel(g,{22,145,122,400});gill::scalpel::text(g,"C L E A N",{28,151,110,22},14);
+            gill::scalpel::panel(g,{155,145,243,268});gill::scalpel::text(g,"REPAIR WAVEFORM",{162,151,229,22},12);gill::scalpel::text(g,"PRE / POST / BEFORE OUTPUT TRIM",{160,177,233,17},9);
+            const juce::Rectangle<float> a(168,208,214,153);
+            for(int i=0;i<5;++i){g.setColour(gill::scalpel::silver.withAlpha(.13f));g.drawHorizontalLine(int(a.getY()+i*a.getHeight()/4),a.getX(),a.getRight());}
+            for(int pass=0;pass<2;++pass){juce::Path path;const auto& values=pass==0?rescueView.before:rescueView.after;for(size_t i=0;i<values.size();++i){const float x=a.getX()+float(i)*a.getWidth()/float(values.size()-1),y=a.getCentreY()-std::clamp(values[i],-1.5f,1.5f)*a.getHeight()*.3f;if(i==0)path.startNewSubPath(x,y);else path.lineTo(x,y);}g.setColour(pass==0?gill::scalpel::silver:gill::scalpel::cyan);g.strokePath(path,juce::PathStrokeType(pass==0?1.f:1.5f));}
+            gill::scalpel::text(g,juce::String(p.rescue->repairs())+" REPAIRS",{164,374,225,22},12,gill::scalpel::cyan);return;
+        }
         gill::prism::chassis(g,float(width),float(height),p.harmony?83.f:p.reference?293.f:203.f);
         gill::prism::title(g,p.getName(),{74,17,float(width-280),30},21);
         if(p.harmony){
@@ -132,7 +147,7 @@ struct GillToolsEditor::Impl:private juce::Timer {
                 if(int(intervals[i].getProperties().getWithDefault("itemsTag",-1))!=tag){intervals[i].clear(juce::dontSendNotification);for(int value=-limit;value<=limit;++value){juce::String label;if(mode)label=juce::String(value)+" SEMITONES";else if(value==0)label="UNISON";else if(std::abs(value)==limit)label=value>0?"OCTAVE UP":"OCTAVE DOWN";else if(scale==3)label=juce::String(value)+" SCALE NOTES";else{const char* ordinal[]{"UNISON","SECOND","THIRD","FOURTH","FIFTH","SIXTH","SEVENTH","OCTAVE"};label=juce::String(ordinal[std::abs(value)])+(value>0?" UP":" DOWN");}intervals[i].addItem(label,value+20);}intervals[i].getProperties().set("itemsTag",tag);}
                 intervals[i].setSelectedId(wanted+20,juce::dontSendNotification);
             }
-            status.setText((p.value("gillQuality")<.5f?juce::String("LIVE / DRY MONITOR  /  "):juce::String("ONE VOICE  /  "))+juce::String(1000.*p.getLatencySamples()/p.rateView.load(),1)+" MS",juce::dontSendNotification);
+            status.setText((p.value("gillQuality")<.5f?juce::String("LIVE / DRY 0 MS / WET "):juce::String("PRO / WET "))+juce::String(1000.*p.harmony->wetLatencySamples()/p.rateView.load(),1)+" MS",juce::dontSendNotification);
         }else if(p.reference){referenceView=p.reference->snapshot();
             toggles[0]->setButtonText(referenceView.referenceActive?"REF PLAYING":p.value("reference")>.5f?"REF ARMED":"MIX / REF");
             const auto matchStatus=p.value("match")<.5f?juce::String("MATCH OFF"):referenceView.mixMeasuring?juce::String("MEASURING ")+juce::String(referenceView.mixAnalysisSeconds,0)+" / 300 S":referenceView.mixComplete?(referenceView.loudnessValid?juce::String("MATCH READY"):juce::String("NEED 3 ACTIVE SECONDS")):juce::String("PLAY TO MEASURE");
