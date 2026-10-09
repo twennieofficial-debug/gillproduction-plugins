@@ -107,9 +107,9 @@ def run(command, *, log=None, timeout=3600):
         Path(log).parent.mkdir(parents=True, exist_ok=True)
         with Path(log).open("wb") as f:
             process = subprocess.run(command, stdout=f, stderr=subprocess.STDOUT, timeout=timeout)
-        if process.returncode != 0 and Path(command[0]).name.lower() in ("ctest", "ctest.exe"):
+        if process.returncode != 0:
             output = Path(log).read_text(encoding="utf-8", errors="replace")
-            print(f"\nCTEST FAILURE DETAILS — {Path(log).name}\n{ctest_failure_excerpt(output)}\nEND CTEST FAILURE DETAILS\n",
+            print(f"\nCOMMAND FAILURE DETAILS — {Path(log).name}\n{ctest_failure_excerpt(output)}\nEND COMMAND FAILURE DETAILS\n",
                   flush=True)
         require(process.returncode == 0, f"Command failed ({process.returncode}); see {log}")
         return Path(log).read_text(encoding="utf-8", errors="replace")
@@ -196,6 +196,11 @@ def source_check(source):
                      "Effects16/advanced-ui/AdvancedScalpel.h"):
         if any(group.startswith("GILLSTUDIO/") for group in GROUPS):
             require((source / relative).is_file(), f"Missing shared Studio source: {relative}")
+            selected[relative] = sha(source / relative)
+    if "GILLCREATIVE" in GROUPS:
+        for relative in ("Effects16/creative/before/CreativeDSP.h",
+                         "Effects16/creative/before-tempo/CreativeDSP.h"):
+            require((source / relative).is_file(), f"Missing Creative comparison source: {relative}")
             selected[relative] = sha(source / relative)
     require((juce / "CMakeLists.txt").is_file(), "Pinned JUCE source is missing")
     if (juce / ".git").exists():

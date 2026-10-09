@@ -54,11 +54,18 @@ def selected_sources(work):
             if not path.is_file():
                 raise RuntimeError("Missing required transitive Studio input: " + relative)
             selected.append(path)
+    if "GILLCREATIVE" in groups:
+        for relative in ("Effects16/creative/before/CreativeDSP.h",
+                         "Effects16/creative/before-tempo/CreativeDSP.h"):
+            path = work / relative
+            if not path.is_file():
+                raise RuntimeError("Missing Creative comparison source: " + relative)
+            selected.append(path)
     for path in sorted(mac.rglob("*")):
         relative = path.relative_to(mac)
         guide = path.name.startswith("GILL-UPDATE-") and path.name.endswith("-ANLEITUNG.md")
         allowed = ((len(relative.parts) == 1 and (guide or path.name in {
-            "pipeline.py", "products.json", "ctest-matrix.json", "ci_signing.py", "github-actions.yml",
+            "pipeline.py", "products.json", "ctest-matrix.json", "ci_signing.py", "github-actions.yml", "diagnose-group.yml",
             "README.md", "MAC-INSTALLATION.txt", "test_pipeline.py", "GILL-PLUGINS-UEBERSICHT.txt",
             "incremental_texture.py", "test_incremental_texture.py",
             "individuals.py", "test_individuals.py", "publish20.py", "test_publish20.py"}))
@@ -99,6 +106,8 @@ def main():
     destination = REPO / ".github/workflows/build-macos.yml"
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(workflow, destination)
+    diagnostic = WORK / "packaging/macos/diagnose-group.yml"
+    shutil.copy2(diagnostic, REPO / ".github/workflows/diagnose-current-group.yml")
     (REPO / ".gitignore").write_text("**/build*/\n**/*_artefacts/\n**/__pycache__/\n**/*.obj\n**/*.pdb\n**/*.exe\n**/*.vst3/\nartifacts/\noutputs/\n", encoding="utf-8")
     (REPO / ".gitattributes").write_text("* text=auto\n*.sh text eol=lf\n*.py text eol=lf\n*.yml text eol=lf\n*.png binary\n*.wav binary\n*.flac binary\n", encoding="utf-8")
     (REPO / "README.md").write_text(

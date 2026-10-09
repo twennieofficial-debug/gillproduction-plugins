@@ -1,0 +1,94 @@
+name: Diagnose current Mac group
+on:
+  workflow_dispatch:
+    inputs:
+      source_ref:
+        description: Exact source commit to diagnose
+        required: true
+        type: string
+      group:
+        description: Catalog source group
+        required: true
+        default: GILLCREATIVE
+        type: string
+      target:
+        description: Optional exact CMake target
+        required: false
+        default: ''
+        type: string
+permissions:
+  contents: read
+env:
+  DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+  CCACHE_DIR: ${{ github.workspace }}/.cache/ccache
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_MAXSIZE: 600M
+jobs:
+  diagnose:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - name: Validate diagnostic selection
+        env:
+          SOURCE_REF: ${{ inputs.source_ref }}
+          GROUP: ${{ inputs.group }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          python3 - <<'PY'
+          import os, re
+          assert re.fullmatch(r'[0-9a-f]{40}', os.environ['SOURCE_REF'])
+          assert re.fullmatch(r'(GILL[A-Z0-9]+(?:/[A-Za-z0-9]+)*|MOBINA)', os.environ['GROUP'])
+          assert re.fullmatch(r'[A-Za-z0-9_]*', os.environ['TARGET'])
+          PY
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+          submodules: recursive
+          persist-credentials: false
+      - uses: actions/cache/restore@v4
+        with:
+          path: .cache/ccache
+          key: macos15-arm64-xcode164-juce8012-diagnostic-${{ github.run_id }}
+          restore-keys: macos15-arm64-xcode164-juce8012-
+      - run: brew install ninja ccache
+      - name: Compile exact selected source with visible failure diagnostics
+        env:
+          GROUP: ${{ inputs.group }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          python3 - <<'PY'
+          import importlib.util, os, pathlib, subprocess
+          source = pathlib.Path('work').resolve()
+          spec = importlib.util.spec_from_file_location('mac', source/'packaging/macos/pipeline.py')
+          p = importlib.util.module_from_spec(spec)
+          spec.loader.exec_module(p)
+          group, target = os.environ['GROUP'], os.environ['TARGET']
+          p.require(group in p.GROUPS, 'Unknown catalog group')
+          root = pathlib.Path(os.environ['RUNNER_TEMP'])/'diagnostic'
+          root.mkdir()
+          build = root/'build'
+          commands = [['cmake', '-S', str(source/group), '-B', str(build), '-G', 'Ninja',
+                       '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_OSX_ARCHITECTURES=arm64',
+                       '-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache',
+                       '-DGILL_PREBUILT_RUNTIME=', '-DGILL_JUCE_EXPORT='],
+                      ['cmake', '--build', str(build), '--parallel', '2']]
+          if target:
+              commands[-1] += ['--target', target]
+          else:
+              commands.append(['ctest', '--test-dir', str(build), '--output-on-failure'])
+          for index, command in enumerate(commands):
+              log = root/(str(index)+'.txt')
+              with log.open('wb') as stream:
+                  result = subprocess.run(command, stdout=stream, stderr=subprocess.STDOUT, timeout=2400)
+              text = log.read_text(errors='replace')
+              print('COMMAND', command, 'EXIT', result.returncode, flush=True)
+              print(p.ctest_failure_excerpt(text) if result.returncode else text[-3000:], flush=True)
+              if result.returncode:
+                  raise SystemExit(result.returncode)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: current-group-diagnostic
+          path: ${{ runner.temp }}/diagnostic/*.txt
+          retention-days: 7

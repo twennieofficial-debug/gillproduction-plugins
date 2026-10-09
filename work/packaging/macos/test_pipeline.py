@@ -146,6 +146,31 @@ class ReleaseGateTests(unittest.TestCase):
 
 
 class SourceArchiveTests(unittest.TestCase):
+    def test_creative_comparison_targets_have_required_fingerprinted_headers(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            required = ("GILLCommon/QualityBus.h", "GILLCommon/QualityUi.h", "GILLCommon/MaterialUi.h",
+                        "GILLCommon/Tests/QualityHost.cpp", "GILLCommon/Tests/MacQualityHost.mm",
+                        "GILLCommon/Tests/QualityHostCMake/CMakeLists.txt", "dependencies/JUCE/CMakeLists.txt",
+                        "GILLCREATIVE/CMakeLists.txt", "Effects16/creative/before/CreativeDSP.h",
+                        "Effects16/creative/before-tempo/CreativeDSP.h")
+            for relative in required:
+                path = root / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("licensed historical regression input")
+            with patch.object(p, "GROUPS", ["GILLCREATIVE"]), patch.object(p, "CTEST_MATRIX", {"GILLCREATIVE": []}):
+                before = p.source_check(root)
+                for relative in required[-2:]:
+                    self.assertIn(relative, before["files"])
+                    file = root / relative
+                    original = file.read_text()
+                    file.write_text("changed regression input")
+                    self.assertNotEqual(before["source_sha256"], p.source_check(root)["source_sha256"])
+                    file.unlink()
+                    with self.assertRaisesRegex(RuntimeError, "Missing Creative comparison source"):
+                        p.source_check(root)
+                    file.write_text(original)
+
     def test_mix_host_build_recipe_is_required_and_fingerprinted(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
