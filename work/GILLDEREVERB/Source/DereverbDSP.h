@@ -266,10 +266,9 @@ private:
         trackDecay();
         lateDecay = std::exp(-13.815510557964274 * (predictionDelay * static_cast<double>(hopSize) / sampleRate) / (getEstimatedRoomMs() * 0.001));
         const int delayed = (s.historyIndex - predictionDelay + detail::Storage::historyFrames) % detail::Storage::historyFrames;
-        double frameNow=0,framePast=0;for(int k=1;k<numBins;++k){frameNow+=s.smoothedPower[k];framePast+=s.history[delayed][k];}
-        // Local spectral valleys occur in every clean vowel. Require a broad
-        // falling envelope before calling them late room energy.
-        const double decayConfidence=detail::smoothStep((.7-frameNow/(framePast+1e-24))/.55);
+        // Classify late energy per frequency. A new phoneme can keep the total
+        // power steady while the previous phoneme's room tail is still falling;
+        // a broadband falling-envelope veto would disable that separation.
         for (int k = 0; k < numBins; ++k) {
             const auto i = static_cast<std::size_t>(k);
             const double now = s.smoothedPower[i];
@@ -282,9 +281,14 @@ private:
                 neighbouring += s.power[static_cast<std::size_t>(std::clamp(k + offset, 0, numBins - 1))];
             neighbouring /= 7.0;
             const double tonalConfidence = detail::smoothStep((s.power[i] / (neighbouring + 1.0e-24) - 1.0) / 2.5);
-            const double stableTonal=tonalConfidence*detail::smoothStep(now/(past+1e-24));
+            // A tonal room resonance is not necessarily a sustained source.
+            // Map the predicted room decay to zero stationarity and an unchanged
+            // tone to one. lateDecay is strictly below one for sanitized rates
+            // and room times, so this normalization has a finite denominator.
+            const double stableTonal = tonalConfidence * detail::smoothStep(
+                (now / (past + 1.0e-24) - lateDecay) / (1.0 - lateDecay));
             const double protect = std::max({onsetConfidence, directConfidence * (0.4 + 0.6 * tonalConfidence),stableTonal*.80});
-            const double estimatedLate = late * (1.0 - 0.98 * current.preserve * protect) * current.lateWeight * decayConfidence;
+            const double estimatedLate = late * (1.0 - 0.98 * current.preserve * protect) * current.lateWeight;
             const double residualFraction = 1.0 - estimatedLate / (now + 1.0e-24);
             // Nonzero floor plus smoothing prevents isolated musical-noise bins.
             const double gainFloor=.12+.24*current.preserve*protect;

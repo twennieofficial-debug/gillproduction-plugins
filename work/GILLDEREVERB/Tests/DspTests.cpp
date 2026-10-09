@@ -212,10 +212,10 @@ void randomizedRobustness() {
         e.process(static_cast<double**>(nullptr), 2, 512); e.process(channels, 0, 512); e.process(channels, 2, 0);
     }
 }
-void simultaneousSpeechAndTail() {
+void simultaneousSpeechAndTail(int fs) {
     // A previous low-frequency phoneme leaves a tail while a new high-frequency
     // phoneme remains loud. Broadband gating cannot selectively remove this tail.
-    constexpr int fs = 48000, n = fs * 3;
+    const int n = fs * 3;
     std::vector<double> signal(n), reference(n), tailOnly(n);
     for (int i = 0; i < n; ++i) {
         const double t = static_cast<double>(i) / fs;
@@ -233,7 +233,7 @@ void simultaneousSpeechAndTail() {
     };
     const double lowReduction = db(measure(signal, 400) / measure(output, 400));
     const double voiceChange = db(measure(output, 2200) / measure(signal, 2200));
-    std::cerr << "OVERLAP tail_reduction_db=" << lowReduction << " voice_change_db=" << voiceChange << '\n';
+    std::cerr << "OVERLAP rate=" << fs << " tail_reduction_db=" << lowReduction << " voice_change_db=" << voiceChange << '\n';
     require(lowReduction > 2.0, "old phoneme tail suppressed while new voice remains present");
     require(std::abs(voiceChange) < 1.0, "simultaneous new voice preserved within1dB");
 }
@@ -243,7 +243,8 @@ int main(int argc, char** argv) {
     const auto start = std::chrono::steady_clock::now(); bool quick = false; std::filesystem::path fixtures = "fixtures";
     for (int i = 1; i < argc; ++i) { if (std::string(argv[i]) == "--quick") quick = true; else fixtures = argv[i]; }
     try {
-        speechQuality(fixtures); simultaneousSpeechAndTail();
+        speechQuality(fixtures);
+        for (int fs : {44100, 48000, 96000, 192000}) simultaneousSpeechAndTail(fs);
         if (!quick) { delayAndStereo<float>(); delayAndStereo<double>(); blockAndPrecision(); randomizedRobustness(); }
     } catch (const std::exception& e) { require(false, e.what()); }
     std::cout << std::setprecision(12) << "{\n  \"suite\": \"GILLDEREVERB DSP\",\n  \"passed\": " << (failures == 0 ? "true" : "false")
