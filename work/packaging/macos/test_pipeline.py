@@ -253,7 +253,7 @@ class SourceArchiveTests(unittest.TestCase):
         for old in baseline:
             for field in ("name", "code", "target", "bundle_id"):
                 self.assertEqual(current[old["name"]][field], old[field])
-        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 84)
+        self.assertEqual(sum(len(tests) for tests in p.CTEST_MATRIX.values()), 85)
         self.assertIn("LIVE_QUALITY_DSP", p.CTEST_MATRIX["GILLNEXT"])
         for product in p.PRODUCTS:
             self.assertLessEqual(product["default_size"][0], 1160)
@@ -318,7 +318,7 @@ class NativeEvidenceTests(unittest.TestCase):
             self.assertEqual(len(failure["failed_groups"]), 1)
 
     def test_all_expected_ctest_entries_match(self):
-        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 84)
+        self.assertEqual(sum(len(t) for t in p.CTEST_MATRIX.values()), 85)
         for group, expected in p.CTEST_MATRIX.items():
             p.verify_ctest_listing(group, {"tests": [{"name": name} for name in expected]})
 
@@ -348,6 +348,7 @@ class NativeEvidenceTests(unittest.TestCase):
     def test_new_full_song_and_new_product_tests_are_required(self):
         for group, name in (("GILLCREATIVE", "CREATIVE_FULL_SONG"),
                             ("GILLVOCAL", "FLOW_FULL_SONG"),
+                            ("GILLVOCAL", "FLOW_CANCEL"),
                             ("GILLEFFECTS", "BALANCE_FULL_SONG"),
                             ("GILLSMARTDEESSER", "SMARTDEESSER_FULL_SONG"),
                             ("GILLNEXT", "FINISH_SONG"),

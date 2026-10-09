@@ -341,7 +341,7 @@ void learning() {
     restored.setStateInformation(state.getData(), static_cast<int>(state.getSize()));
     prepare(restored); silence(restored, 128);
     check(sameProfile(learned, restored.savedProfile()) && restored.learnState.load() == 2, "completed profile restores into a new project instance");
-    restored.requestLearning(true); feedVocal(restored, 0.1); restored.requestLearning(false); silence(restored, 128);
+    restored.requestLearning(true); feedVocal(restored, 0.1); restored.requestCancelLearning(); silence(restored, 128);
     check(sameProfile(learned, restored.savedProfile()) && restored.learnState.load() == 2, "cancelled relearning preserves completed profile");
     auto bad = restored.apvts.copyState(); bad.setProperty("learnValid", true, nullptr);
     bad.setProperty("learnRms", "NaN", nullptr); bad.setProperty("learnPeak", 8, nullptr);
@@ -548,7 +548,9 @@ void ui(GillKind kind, bool liveTune = false) {
         auto* learn = components.button("LEARN"); if (learn) click(*learn); silence(p, 128);
         check(waitForVisualState([&] { return learn && p.learnState.load() == 1 && learn->getButtonText() == "FINISH"; }),
               "actual LEARN click starts analysis and exposes CANCEL");
-        if (learn) click(*learn); silence(p, 128);
+        auto* cancel = components.button("CANCEL");
+        check(cancel && cancel->isEnabled(), "running analysis exposes an enabled actual CANCEL button");
+        if (cancel) click(*cancel); silence(p, 128);
         check(waitForVisualState([&] { return learn && p.learnState.load() == 0 && learn->getButtonText() == "LEARN"; }),
               "actual CANCEL click stops unfinished analysis");
         if (learn) click(*learn); feedVocal(p, 10.1); if(learn)click(*learn); silence(p,128); tick();

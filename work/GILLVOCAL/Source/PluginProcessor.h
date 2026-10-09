@@ -38,6 +38,8 @@ public:
     float value(const juce::String&) const;
     void setValue(const juce::String&,float,bool gesture=true);
     void requestLearning(bool start) { learnCommand.store(start?1:2); }
+    // Cancellation is distinct from FINISH, including after enough audio was captured.
+    void requestCancelLearning() { learnCommand.store(3); }
     gill::LearnProfile savedProfile() const;
     const GillKind kind;
     const bool isLiveTune;

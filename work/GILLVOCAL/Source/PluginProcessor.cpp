@@ -73,7 +73,12 @@ void GillVocalProcessor::process(juce::AudioBuffer<float>& buffer,bool hostBypas
     latency=kind==GillKind::Heat?heat.latencySamples():kind==GillKind::Tune?tune.latencySamples():0;
     qualityClient.requestLatencySamples(latency);tail.store(double(latency)/uiRate.load()+.25);
     updateParameters();
-    if(kind==GillKind::Flow){exchangeProfile();songLearn.before(learnCommand.exchange(0),getPlayHead(),count,uiRate.load(),flow);}
+    if(kind==GillKind::Flow){
+        exchangeProfile();
+        const int command=learnCommand.exchange(0);
+        if(command==3){songLearn.reset();flow.cancelLearning();}
+        else songLearn.before(command,getPlayHead(),count,uiRate.load(),flow);
+    }
     const auto bypassIndex=kind==GillKind::Flow?3u:kind==GillKind::Heat?6u:5u;
     bypassFade.setTargetValue(hostBypass||!rateSupported.load()||parameter(bypassIndex)>.5f?1.f:0.f);
     constexpr int chunk=128;std::array<std::array<float,chunk>,2> dry{};

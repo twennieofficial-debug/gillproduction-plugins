@@ -6,6 +6,8 @@ Zusätzlich wird die PRO-Verarbeitung des De-Reverb korrigiert: Raumanteile werd
 
 Die LIVE-Raumerkennung greift früher bei fallenden Hüllkurven, damit gewöhnliche Raumfahnen tatsächlich reduziert werden. Die Prüfungen unterscheiden den unmittelbaren Direktanteil von absichtlich erzeugten Pitch-, Formant- und Harmoniestimmen. GILLNOTE bekommt deterministische Prüfungen seiner Render-Abbrüche; deren Synchronisationshilfen werden ausschließlich in das Testprogramm eingebaut.
 
+Bei GILLFLOW beendet FINISH die Analyse und übernimmt ein ausreichendes Lernprofil. Der zusätzliche CANCEL-Knopf verwirft die laufende Analyse und behält ein vorheriges Profil bei. Die ursprüngliche Fenstergröße bleibt erhalten.
+
 Vor der Installation die DAW schließen; danach den FL Studio Plugin Manager neu suchen lassen. GILL-Plugins liegen unter `/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION`, MOBINA unter `/Library/Audio/Plug-Ins/VST3/MOBINA`.
 
 Die Ausgabe ist ad-hoc signiert; die Installer und DMGs sind unsigniert und nicht Apple-notarisiert. Eine FL-Studio-Hörprüfung auf einem Mac ist noch erforderlich. Native CI-Prüfungen und Paketinhaltsprüfungen sind getrennt dokumentiert.

@@ -60,6 +60,7 @@
     "Heat_DSP",
     "Tune_DSP",
     "FLOW_FULL_SONG",
+    "FLOW_CANCEL",
     "AUDIO_REPAIR_13"
   ],
   "GILLCONTROL": [

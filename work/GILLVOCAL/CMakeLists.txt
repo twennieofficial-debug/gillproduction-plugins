@@ -129,3 +129,7 @@ foreach(engine Flow Heat Tune)
 endforeach()
 add_executable(GillFlowLearning16Tests Tests/FlowLearning16Tests.cpp)
 target_link_libraries(GillFlowLearning16Tests PRIVATE GillVocalShared GillVocalAssets)
+
+add_executable(GillFlowCancelTests Tests/FlowCancelTests.cpp)
+target_link_libraries(GillFlowCancelTests PRIVATE GillVocalShared GillVocalAssets)
+add_test(NAME FLOW_CANCEL COMMAND GillFlowCancelTests)
