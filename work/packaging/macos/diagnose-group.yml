@@ -68,7 +68,8 @@ jobs:
           root.mkdir()
           build = root/'build'
           commands = [['cmake', '-S', str(source/group), '-B', str(build), '-G', 'Ninja',
-                       '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_OSX_ARCHITECTURES=arm64',
+                       '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_CXX_FLAGS_RELEASE=-O2 -g -DNDEBUG',
+                       '-DCMAKE_OSX_ARCHITECTURES=arm64',
                        '-DCMAKE_OSX_DEPLOYMENT_TARGET=11.0', '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache',
                        '-DGILL_PREBUILT_RUNTIME=', '-DGILL_JUCE_EXPORT='],
                       ['cmake', '--build', str(build), '--parallel', '2']]
@@ -84,6 +85,22 @@ jobs:
               print('COMMAND', command, 'EXIT', result.returncode, flush=True)
               print(p.ctest_failure_excerpt(text) if result.returncode else text[-3000:], flush=True)
               if result.returncode:
+                  # Retain a real native trace; its outcome never overrides the failed CTest.
+                  if group == 'GILLNEXT' and command[0] == 'ctest':
+                      binary = build/'GillNextIntegrationTests'
+                      if binary.is_file():
+                          trace = root/'native-lldb.txt'
+                          debug = ['xcrun', 'lldb', '--batch',
+                                   '-o', 'settings set target.disable-aslr false',
+                                   '-o', 'run', '-o', 'thread backtrace all', '--', str(binary)]
+                          with trace.open('wb') as stream:
+                              try:
+                                  diagnostic = subprocess.run(debug, cwd=build, stdout=stream,
+                                      stderr=subprocess.STDOUT, timeout=300)
+                                  print('NATIVE_DEBUGGER_EXIT', diagnostic.returncode, flush=True)
+                              except subprocess.TimeoutExpired:
+                                  print('NATIVE_DEBUGGER_TIMEOUT: original CTest remains failed', flush=True)
+                          print(trace.read_text(errors='replace')[-24000:], flush=True)
                   raise SystemExit(result.returncode)
           PY
       - uses: actions/upload-artifact@v4
