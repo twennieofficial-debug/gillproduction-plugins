@@ -31,7 +31,7 @@ permissions:
   actions: read
 
 concurrency:
-  group: gill-macos-${{ github.ref }}
+  group: gill-macos-${{ github.ref }}-${{ github.sha }}
   cancel-in-progress: false
 
 env:

@@ -33,7 +33,8 @@
   "GILLFINISH": [
     "EFFECTS_INTEGRATION",
     "Character_DSP",
-    "Spectral_DSP"
+    "Spectral_DSP",
+    "SilkMoving_DSP"
   ],
   "GILLNEXT": [
     "NEXT_INTEGRATION",

@@ -96,8 +96,15 @@ private:
   const double breath=std::clamp(high/(body+1e-9)-1.,0.,1.)*std::clamp(1-body/(bodyHistory_*.7+1e-8),0.,1.);
   for(int k=0;k<bands;++k){const double hz=hz_[k];const double focus=std::clamp((hz-p_.low*.6)/(p_.low*.6),0.,1.)*std::clamp((p_.high*1.3-hz)/(p_.high*.3),0.,1.);double cut=0;
    if(kind_==Kind::Room){const double tail=std::clamp(1-power_[k]/(hold_[k]+1e-12),0.,1.);cut=p_.amount*(10-6*p_.preserve)*tail*roomTail*focus;}
-   if(kind_==Kind::Silk){double neighbours=0;int count=0;for(int j=std::max(0,k-3);j<=std::min(bands-1,k+3);++j)if(std::abs(j-k)>1){neighbours+=power_[j];++count;}
-    const double prominence=10*std::log10((power_[k]+1e-10)/(neighbours/std::max(1,count)+1e-10));const double steady=power_[k]/(slow_[k]+1e-20);const bool persistent=steady>.8&&steady<1.25&&prominence>(14-11*p_.sensitivity);stable_[k]=std::clamp(stable_[k]+16/(fs_*(persistent?.35:.025))*(persistent?1:-1),0.,1.);cut=p_.amount*std::clamp((prominence-(14-11*p_.sensitivity))*.6,0.,12.)*focus*std::clamp((stable_[k]-.45)/.55,0.,1.);}
+   if(kind_==Kind::Silk){double neighbours=0;int count=0;for(int j=std::max(0,k-3);j<=std::min(bands-1,k+3);++j)if(std::abs(j-k)>1){neighbours+=slow_[j];++count;}
+    // Compare averaged spectral shape: a fluctuating room mode remains a
+    // resonance even when its excitation rises or falls with speech.
+    const double prominence=10*std::log10((slow_[k]+1e-10)/(neighbours/std::max(1,count)+1e-10));
+    const bool persistent=prominence>(14-11*p_.sensitivity)&&slow_[k]>1e-8;
+    const double a=1-std::exp(-16/(fs_*(persistent?.045:.080)));
+    stable_[k]+=a*((persistent?1.:0.)-stable_[k]);
+    cut=p_.amount*std::clamp((prominence-(14-11*p_.sensitivity))*.6,0.,12.)*focus*std::clamp((stable_[k]-.35)/.65,0.,1.);}
+
    if(kind_==Kind::Spark){const double novelty=10*std::log10((power_[k]+1e-8)/(slow_[k]+1e-8));cut=p_.amount*std::clamp((novelty-(10-8*p_.sensitivity))*1.5,0.,p_.boost?9.:18.)*focus*(p_.boost?-1:1);}
    if(kind_==Kind::Clean){
     const double fraction=std::clamp(noiseEstimate_*noiseBandwidth_[k]/(power_[k]+1e-12),0.,.98);

@@ -14,7 +14,7 @@ import individuals
 import pipeline as core
 
 REPO = 'twennieofficial-debug/gillproduction-plugins'
-TAG = 'mac-bundle-20'
+TAG = 'mac-bundle-20.1'
 URL = f'https://github.com/{REPO}/releases/tag/{TAG}'
 ARCHIVE = 'GILL-QUELLCODE-20.zip'
 require = core.require

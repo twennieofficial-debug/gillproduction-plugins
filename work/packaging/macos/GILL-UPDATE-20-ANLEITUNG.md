@@ -8,6 +8,8 @@ Die LIVE-Raumerkennung greift früher bei fallenden Hüllkurven, damit gewöhnli
 
 Bei GILLFLOW beendet FINISH die Analyse und übernimmt ein ausreichendes Lernprofil. Der zusätzliche CANCEL-Knopf verwirft die laufende Analyse und behält ein vorheriges Profil bei. Die ursprüngliche Fenstergröße bleibt erhalten.
 
+Die korrigierte Ausgabe unter `mac-bundle-20.1` enthält zusätzlich die GILLSILK-Korrektur für wechselnde Resonanzen in PRO und LIVE. Die vorherige Erkennung konnte bei kurzen, wechselnden Vocal-Passagen vollständig ausbleiben. Neue Audiotests prüfen die Reduktion, die Stärke-Regler, unveränderte Frequenzbereiche und die Erhaltung bewegter Vocal-Harmonien. GILLSPARK behält seine Verarbeitung und die Preset-Werte von REMOVE MOUTH CLICKS; Testsignale werden gegen die frühere Ausgabe verglichen. Der gemeinsame LIVE-Baustein wird in einem vollständigen neuen Mac-Build geprüft.
+
 Vor der Installation die DAW schließen; danach den FL Studio Plugin Manager neu suchen lassen. GILL-Plugins liegen unter `/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION`, MOBINA unter `/Library/Audio/Plug-Ins/VST3/MOBINA`.
 
 Die Ausgabe ist ad-hoc signiert; die Installer und DMGs sind unsigniert und nicht Apple-notarisiert. Eine FL-Studio-Hörprüfung auf einem Mac ist noch erforderlich. Native CI-Prüfungen und Paketinhaltsprüfungen sind getrennt dokumentiert.

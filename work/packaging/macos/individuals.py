@@ -15,7 +15,7 @@ import xml.etree.ElementTree as ET
 import pipeline as core
 
 VST3 = Path('/Library/Audio/Plug-Ins/VST3')
-RELEASE_URL = 'https://github.com/twennieofficial-debug/gillproduction-plugins/releases/tag/mac-bundle-20'
+RELEASE_URL = 'https://github.com/twennieofficial-debug/gillproduction-plugins/releases/tag/mac-bundle-20.1'
 STATUS = 'UNSIGNIERT-TESTVERSION'
 
 

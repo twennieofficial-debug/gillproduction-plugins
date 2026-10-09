@@ -119,3 +119,7 @@ foreach(engine Character Spectral)
     set_tests_properties(${engine}_DSP PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
   endif()
 endforeach()
+
+add_executable(GillSilkMovingDspTests Tests/SilkMovingTests.cpp)
+target_include_directories(GillSilkMovingDspTests PRIVATE Source)
+add_test(NAME SilkMoving_DSP COMMAND GillSilkMovingDspTests)

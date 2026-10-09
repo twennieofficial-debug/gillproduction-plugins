@@ -153,6 +153,12 @@ private:
         const float release = static_cast<float>(std::exp(-hop / (.001 * settings.release * sampleRate)));
         const float historyUp = static_cast<float>(std::exp(-hop / (.030 * sampleRate)));
         const float historyDown = static_cast<float>(std::exp(-hop / (.150 * sampleRate)));
+        // Average spectral shape independently of its instantaneous envelope. Random
+        // excitation and syllabic modulation must not reset a room resonance.
+        if constexpr (!Transient) {
+            const float a = static_cast<float>(std::exp(-hop / (.080 * sampleRate)));
+            for (int k = 0; k <= bins; ++k) history[k] = power[k] + a * (history[k] - power[k]);
+        }
         const float threshold = Transient ? 16.f - 14.f * settings.sensitivity : 18.f - 15.f * settings.sensitivity;
         for (int bin = 0; bin <= bins; ++bin) {
             const auto k = static_cast<std::size_t>(bin);
@@ -172,16 +178,15 @@ private:
                 // A broad hump is retained; a narrow excess above its neighbours is cut.
                 const int radius = std::clamp(static_cast<int>(bin * .15f), 5, 48);
                 float surroundings = 0.f; int neighbours = 0;
-                for (int j = std::max(1, bin - radius); j <= std::min(bins - 1, bin + radius); ++j) if (std::abs(j - bin) > 2) { surroundings += power[static_cast<std::size_t>(j)]; ++neighbours; }
-                const float baseline = neighbours > 0 ? surroundings / neighbours : power[k];
-                const float prominence = 10.f * std::log10((power[k] + 1.e-10f) / (baseline + 1.e-10f));
-                // A speech harmonic is narrow too. Require sustained energy with a
-                // stable envelope before treating the peak as a resonance.
-                const float change=std::abs(10.f*std::log10((power[k]+1e-12f)/(previousPower[k]+1e-12f)));
-                const bool steady=change<1.5f&&prominence>threshold&&power[k]>1e-8f;
-                stable[k]=steady?std::min(1.f,stable[k]+float(hop/(sampleRate*.45))):std::max(0.f,stable[k]-float(hop/(sampleRate*.025)));
-                previousPower[k]=power[k];
-                const float confidence=std::clamp((stable[k]-.5f)/.5f,0.f,1.f);
+                for (int j = std::max(1, bin - radius); j <= std::min(bins - 1, bin + radius); ++j) if (std::abs(j - bin) > 2) { surroundings += history[static_cast<std::size_t>(j)]; ++neighbours; }
+                const float baseline = neighbours > 0 ? surroundings / neighbours : history[k];
+                const float prominence = 10.f * std::log10((history[k] + 1.e-10f) / (baseline + 1.e-10f));
+                // Persistence belongs to spectral prominence, not frame-to-frame
+                // amplitude. A leaky confidence tolerates brief excitation gaps.
+                const bool prominent=prominence>threshold&&history[k]>1e-8f;
+                const float a=static_cast<float>(std::exp(-hop/(sampleRate*(prominent?.045:.080))));
+                stable[k]=(prominent?1.f:0.f)+a*(stable[k]-(prominent?1.f:0.f));
+                const float confidence=std::clamp((stable[k]-.35f)/.65f,0.f,1.f);
                 amount = std::clamp((prominence - threshold) * .85f, 0.f, 18.f) * settings.depth * confidence;
             }
             targetDb[k] = amount * focus(bin);

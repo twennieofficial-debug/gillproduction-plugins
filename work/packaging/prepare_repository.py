@@ -68,6 +68,7 @@ def selected_sources(work):
             "pipeline.py", "products.json", "ctest-matrix.json", "ci_signing.py", "github-actions.yml", "diagnose-group.yml",
             "README.md", "MAC-INSTALLATION.txt", "test_pipeline.py", "GILL-PLUGINS-UEBERSICHT.txt",
             "incremental_texture.py", "test_incremental_texture.py",
+            "incremental_finish.py", "test_incremental_finish.py",
             "individuals.py", "test_individuals.py", "publish20.py", "test_publish20.py"}))
             or relative.parts[0] == "resources")
         if path.is_file() and allowed and path.suffix.lower() in {".py", ".json", ".md", ".yml", ".yaml", ".sh", ".xml", ".html", ".txt"}:
@@ -114,6 +115,8 @@ def main():
         "# GILLPRODUCTION Plugins\n\n"
         "Mac20: 74 current vocal, creative, mixing and mastering VST3 plugins,\n"
         "all version 0.20.0, using the current Update19 DSP and approved interfaces.\n"
+        "Corrected Mac20.1 also repairs moving SILK resonances in PRO/LIVE while\n"
+        "preserving SPARK's REMOVE MOUTH CLICKS. Its release tag is mac-bundle-20.1.\n"
         "Universal macOS Apple Silicon/Intel; 73 GILL products plus separate MOBINA.\n"
         "Existing factory identities are preserved. LIVE reports zero additional PDC.\n"
         "The audio interface, host and pitch/effect analysis windows still have latency.\n\n"
