@@ -19,6 +19,11 @@ public:
  std::atomic<int>state{Idle};std::atomic<double>rateView{48000},capturedSeconds{0},previewSeconds{0};std::atomic<bool>previewing{false};
  std::atomic<std::uint64_t>completedRevision{0};std::atomic<bool>preserveFormants{true};
 private:
+#if GILL_NOTE_TESTING
+ // Integration-only worker synchronization; absent from the production plugin.
+ friend struct EngineTestAccess;
+ std::function<void(int, std::uint64_t)> renderCheckpoint;
+#endif
  struct Frame{float l=0,r=0;};static constexpr std::uint64_t capacity=1u<<20,previewCapacity=1u<<17;
  std::unique_ptr<Frame[]>captureRing,previewRing;
  std::atomic<std::uint64_t>captureWrite{0},captureRead{0},captureFrames{0},previewWrite{0},previewRead{0};

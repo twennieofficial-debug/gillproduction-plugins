@@ -66,6 +66,10 @@ void Engine::analyseFile(const juce::File&file,bool copy,double start,const std:
  state=Ready;renderRequested=true;
 }
 void Engine::renderFile(){
+#if GILL_NOTE_TESTING
+ std::function<void(int, std::uint64_t)> checkpoint;
+ {std::lock_guard<std::mutex>lock(mutex);checkpoint=renderCheckpoint;}
+#endif
  Plan p;juce::File input;std::uint64_t rev;{std::lock_guard<std::mutex>lock(mutex);if(source==juce::File()||visual.frames.empty())return;p=visual;input=source;rev=revision.load();}
  state=Rendering;setStatus("RENDER - Notenbearbeitung wird als WAV berechnet.");previewing=false;juce::WavAudioFormat wav;std::unique_ptr<juce::AudioFormatReader>reader;if(auto stream=input.createInputStream())reader.reset(wav.createReaderFor(stream.release(),true));
  auto output=input.getSiblingFile("GILLNOTE-"+juce::Uuid().toString().removeCharacters("-")+".wav");auto stream=output.createOutputStream();juce::StringPairArray meta;meta.set(juce::WavAudioFormat::bwavDescription,"GILLNOTE edited vocal; source start "+juce::String(p.start,6)+" seconds");if(p.start>=0)meta.set(juce::WavAudioFormat::bwavTimeReference,juce::String(juce::int64(p.start*sourceRate)));
@@ -75,8 +79,16 @@ void Engine::renderFile(){
  juce::int64 written=0;float smoothed=0;bool formants=preserveFormants.load();
  for(juce::int64 offset=0;offset<sourceFrames+latency&&!cancel;offset+=block){cancel=threadShouldExit()||resetRequested||revision.load()!=rev;if(cancel)break;in.clear();int take=int(std::min<juce::int64>(block,std::max<juce::int64>(0,sourceFrames-offset)));if(take)good=reader->read(&in,0,take,offset,true,sourceChannels==2)&&good;for(int c=0;c<sourceChannels;++c)for(int n=0;n<block;++n)if(!std::isfinite(in.getSample(c,n)))in.setSample(c,n,0);
   if(clean)rendered.makeCopyOf(in);else{double t=(offset-stretch.inputLatency()+block*.5)/sourceRate;float shift=shiftAt(p,t);smoothed+=(1.f-float(std::exp(-block/(sourceRate*.006))))*(shift-smoothed);stretch.setTransposeSemitones(smoothed);stretch.setFormantFactor(1.,formants);stretch.process(inputs.data(),block,outputs.data(),block);}
-  int skip=int(std::clamp<juce::int64>(latency-offset,0,block));int count=int(std::min<juce::int64>(block-skip,sourceFrames-written));if(count>0){for(int c=0;c<sourceChannels;++c)for(int n=skip;n<skip+count;++n){float v=rendered.getSample(c,n);if(!std::isfinite(v)){good=false;v=0;}rendered.setSample(c,n,v);}good=out->writeFromAudioSampleBuffer(rendered,skip,count)&&good;written+=count;}}
- out.reset();if(cancel){output.deleteFile();if(!resetRequested)state=Ready;return;}if(!good||written!=sourceFrames){output.deleteFile();state=Error;setStatus("WAV konnte nicht vollstaendig gerendert werden.");return;}
+  int skip=int(std::clamp<juce::int64>(latency-offset,0,block));int count=int(std::min<juce::int64>(block-skip,sourceFrames-written));if(count>0){for(int c=0;c<sourceChannels;++c)for(int n=skip;n<skip+count;++n){float v=rendered.getSample(c,n);if(!std::isfinite(v)){good=false;v=0;}rendered.setSample(c,n,v);}good=out->writeFromAudioSampleBuffer(rendered,skip,count)&&good;written+=count;}
+#if GILL_NOTE_TESTING
+  if(written>0&&written<=block&&checkpoint)checkpoint(0,rev);
+#endif
+ }
+ out.reset();if(cancel){
+#if GILL_NOTE_TESTING
+ if(checkpoint)checkpoint(1,rev);
+#endif
+ output.deleteFile();if(!resetRequested)state=Ready;return;}if(!good||written!=sourceFrames){output.deleteFile();state=Error;setStatus("WAV konnte nicht vollstaendig gerendert werden.");return;}
  {std::lock_guard<std::mutex>lock(mutex);if(revision.load()==rev&&!resetRequested){result=output;renderedRevision=rev;completedRevision=rev;message="BEREIT - WAV ziehen. Originalposition: "+juce::String(p.start,2)+" s / "+juce::String(p.duration,1)+" s.";}}
  state=Ready;
 }

@@ -5,6 +5,30 @@
 #include <random>
 #include <cstdlib>
 #include <new>
+#include <condition_variable>
+#include <chrono>
+namespace gill::note {
+struct EngineTestAccess {
+ static void observe(Engine& engine, std::function<void(int, std::uint64_t)> callback) {
+  std::lock_guard<std::mutex> lock(engine.mutex);engine.renderCheckpoint=std::move(callback);
+ }
+};
+}
+// Rendezvous after the real first output block: no transient-state polling.
+// Both waits are bounded and a failed assertion still releases the worker.
+struct RenderRendezvous {
+ std::mutex mutex;std::condition_variable changed;bool entered=false,released=false,timedOut=false;
+ std::uint64_t revision=0;std::atomic<unsigned> cancelled{0};
+ void event(int phase,std::uint64_t rev) {
+  if(phase==1){++cancelled;return;}
+  std::unique_lock<std::mutex> lock(mutex);
+  if(entered)return;entered=true;revision=rev;changed.notify_all();
+  if(!changed.wait_for(lock,std::chrono::seconds(10),[&]{return released;}))timedOut=true;
+ }
+ bool await() {std::unique_lock<std::mutex> lock(mutex);return changed.wait_for(lock,std::chrono::seconds(10),[&]{return entered;});}
+ void release(){std::lock_guard<std::mutex> lock(mutex);released=true;changed.notify_all();}
+ bool healthy(){std::lock_guard<std::mutex> lock(mutex);return !timedOut;}
+};
 static thread_local bool countAllocations=false;static thread_local int allocationCount=0;
 void*operator new(std::size_t n){if(countAllocations)++allocationCount;if(auto*p=std::malloc(n?n:1))return p;throw std::bad_alloc();}void*operator new[](std::size_t n){return ::operator new(n);}void operator delete(void*p)noexcept{std::free(p);}void operator delete[](void*p)noexcept{std::free(p);}void operator delete(void*p,std::size_t)noexcept{std::free(p);}void operator delete[](void*p,std::size_t)noexcept{std::free(p);}
 #if JUCE_MAC
@@ -48,8 +72,30 @@ if(!plan.notes.empty()){auto note=plan.notes[0];note.target+=3;auto old=p.engine
 }
 check(!Engine::validToken("../../source.wav")&&!Engine::validToken("C:/audio.wav"),"State cannot read arbitrary audio paths");
 {auto full=fixture(dir,"five-minutes.wav",300,8000,true);p.engine.importFile(full);check(waitFor([&]{return p.engine.state==Engine::Ready&&p.engine.exportFile().existsAsFile();},90000),"Full five-minute transfer analyses and exports");auto fullplan=p.engine.plan();check(fullplan.duration==300&&!fullplan.notes.empty()&&fullplan.notes.back().end>299.9,"Detected notes extend to end of five-minute source");auto r=read(p.engine.exportFile());check(r&&r->lengthInSamples==2400000,"Five-minute WAV exports all 2,400,000 source frames");
- auto n=fullplan.notes.back();n.target+=2;p.engine.edit(n);p.engine.render();check(waitFor([&]{return p.engine.state==Engine::Rendering;}),"Long offline render enters worker state");n.target+=3;p.engine.edit(n);p.engine.render();check(waitFor([&]{return p.engine.state==Engine::Ready&&p.engine.exportFile().existsAsFile();}),"Concurrent edit cancels obsolete render and publishes latest request");check(std::abs(p.engine.plan().notes.back().target-n.target)<.001f,"Concurrent render retains latest note target");
- n.target+=1;p.engine.edit(n);p.engine.render();check(waitFor([&]{return p.engine.state==Engine::Rendering;}),"Second render starts for reset-race regression");p.engine.clear();check(p.engine.exportFile()==juce::File{}&&p.engine.saved().token.isEmpty(),"Clear immediately detaches a rendering document");check(waitFor([&]{return p.engine.state==Engine::Idle&&p.engine.plan().frames.empty();}),"Worker cancels render before clearing document");
+ const auto renderDirectory=p.engine.exportFile().getParentDirectory();
+ auto renderCount=[&]{return renderDirectory.findChildFiles(juce::File::findFiles,false,"GILLNOTE-*.wav").size();};
+ const auto beforeEditCount=renderCount();
+ auto editRace=std::make_shared<RenderRendezvous>();
+ EngineTestAccess::observe(p.engine,[editRace](int event,std::uint64_t rev){editRace->event(event,rev);});
+ auto n=fullplan.notes.back();n.target+=2;p.engine.edit(n);p.engine.render();
+ check(editRace->await()&&p.engine.state==Engine::Rendering,"Long offline render enters worker state");
+ check(p.engine.exportFile()==juce::File{},"In-flight render cannot expose an obsolete export");
+ n.target+=3;p.engine.edit(n);p.engine.render();editRace->release();
+ check(waitFor([&]{return p.engine.state==Engine::Ready&&p.engine.exportFile().existsAsFile();}),"Concurrent edit cancels obsolete render and publishes latest request");
+ check(editRace->cancelled==1&&editRace->healthy()&&p.engine.completedRevision>editRace->revision,"Overlapping edit cancels exactly the observed revision before latest publication");
+ check(std::abs(p.engine.plan().notes.back().target-n.target)<.001f,"Concurrent render retains latest note target");
+ check(renderCount()==beforeEditCount+1,"Cancelled edit removes partial WAV and publishes only the latest file");
+ const auto beforeResetCount=renderCount();
+ auto resetRace=std::make_shared<RenderRendezvous>();
+ EngineTestAccess::observe(p.engine,[resetRace](int event,std::uint64_t rev){resetRace->event(event,rev);});
+ n.target+=1;p.engine.edit(n);p.engine.render();
+ check(resetRace->await()&&p.engine.state==Engine::Rendering,"Second render starts for reset-race regression");
+ p.engine.clear();check(p.engine.exportFile()==juce::File{}&&p.engine.saved().token.isEmpty(),"Clear immediately detaches a rendering document");resetRace->release();
+ check(waitFor([&]{return p.engine.state==Engine::Idle&&p.engine.plan().frames.empty();}),"Worker cancels render before clearing document");
+ check(resetRace->cancelled==1&&resetRace->healthy()&&p.engine.completedRevision<resetRace->revision,"Reset cancels the observed in-flight revision without publication");
+ check(renderCount()==beforeResetCount,"Cancelled reset removes partial WAV without publishing another file");
+ EngineTestAccess::observe(p.engine,{});
+
  p.engine.restore("11111111111111111111111111111111",0,{});check(waitFor([&]{return p.engine.state==Engine::Error;}),"Missing owned cache is explicitly reported");check(p.engine.exportFile()==juce::File{}&&p.engine.plan().notes.empty(),"Missing source cannot expose a previous render or notes");}
 {auto file=dir.getChildFile("vibrato.wav");auto stream=file.createOutputStream();stream->setPosition(0);stream->truncate();juce::WavAudioFormat wav;std::unique_ptr<juce::AudioFormatWriter>w(wav.createWriterFor(stream.release(),48000,2,24,{},0));juce::AudioBuffer<float>b(2,96000);double phase=0;for(int i=0;i<96000;++i){double midi=57+.45*std::sin(2*juce::MathConstants<double>::pi*2*i/48000);phase+=2*juce::MathConstants<double>::pi*frequencyFor(float(midi))/48000;float sample=float(.2*std::sin(phase));b.setSample(0,i,sample);b.setSample(1,i,sample);}w->writeFromAudioSampleBuffer(b,0,96000);w.reset();p.engine.importFile(file);check(waitFor([&]{return p.engine.state==Engine::Ready&&p.engine.exportFile().existsAsFile();}),"Vibrato source is captured as an editable take");auto notes=p.engine.plan().notes;check(notes.size()==1,"Natural half-semitone vibrato is retained inside one note");for(auto n:notes){n.strength=1;p.engine.edit(n);}p.engine.render();check(waitFor([&]{return p.engine.state==Engine::Ready&&p.engine.exportFile().existsAsFile();}),"Full pitch correction renders successfully");double originalSpread=pitchSpread(file),correctedSpread=pitchSpread(p.engine.exportFile());std::printf("pitch spread original %.5f corrected %.5f\n",originalSpread,correctedSpread);check(correctedSpread<originalSpread*.6,"Actual correction audio reduces within-note pitch variation");}
 

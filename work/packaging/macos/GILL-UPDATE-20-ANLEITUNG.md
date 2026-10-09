@@ -2,7 +2,9 @@
 
 Diese Ausgabe übernimmt die aktuellen Klangkorrekturen aus Update19 und die freigegebenen Oberflächen. 73 GILL-Plugins und das separat ausgelieferte MOBINA, je Universal VST3 für Apple Silicon/Intel. Das gemeinsame Paket und jedes einzelne Plugin haben eine DMG mit PKG-Installer.
 
-Zusätzlich wird die PRO-Verarbeitung des De-Reverb korrigiert: Raumanteile werden pro Frequenz beurteilt, damit ein neuer Laut nicht die Reduktion des Nachhalls eines vorherigen Lauts verhindert. Die Erkennung trennt außerdem ausklingende Raumresonanzen von gehaltenen Tönen. Parameter, Presets und LIVE-Verarbeitung bleiben erhalten. Die zugehörigen Tests prüfen trockene Sprache, mehrere Räume und überlappende Laute bei 44,1, 48, 96 und 192 kHz.
+Zusätzlich wird die PRO-Verarbeitung des De-Reverb korrigiert: Raumanteile werden pro Frequenz beurteilt, damit ein neuer Laut nicht die Reduktion des Nachhalls eines vorherigen Lauts verhindert. Die Erkennung trennt außerdem ausklingende Raumresonanzen von gehaltenen Tönen. Parameter und Presets bleiben erhalten. Die zugehörigen Tests prüfen trockene Sprache, mehrere Räume und überlappende Laute bei 44,1, 48, 96 und 192 kHz.
+
+Die LIVE-Raumerkennung greift früher bei fallenden Hüllkurven, damit gewöhnliche Raumfahnen tatsächlich reduziert werden. Die Prüfungen unterscheiden den unmittelbaren Direktanteil von absichtlich erzeugten Pitch-, Formant- und Harmoniestimmen. GILLNOTE bekommt deterministische Prüfungen seiner Render-Abbrüche; deren Synchronisationshilfen werden ausschließlich in das Testprogramm eingebaut.
 
 Vor der Installation die DAW schließen; danach den FL Studio Plugin Manager neu suchen lassen. GILL-Plugins liegen unter `/Library/Audio/Plug-Ins/VST3/GILLPRODUCTION`, MOBINA unter `/Library/Audio/Plug-Ins/VST3/MOBINA`.
 

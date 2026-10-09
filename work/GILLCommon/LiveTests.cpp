@@ -113,8 +113,20 @@ int main(){
  for(double hz:{100.,220.,1000.,5000.,12000.,18000.}){gill::live::ClickRepair d;d.prepare(48000,false);d.setAmount(1);d.reset();std::vector<float>b(48000),ref(48000);for(int i=0;i<48000;++i)b[i]=ref[i]=float(.15*std::sin(6.28318530718*hz*i/48000));float*ptr=b.data();d.process(&ptr,1,48000);double err=0,power=0;for(int i=12000;i<48000;++i){err+=(b[i]-ref[i])*(b[i]-ref[i]);power+=ref[i]*ref[i];}check(err<power*.0001,"causal click repair preserves steady tone at "+std::to_string(hz));}
  for(auto kind:{gill::live::Kind::Room,gill::live::Kind::Silk,gill::live::Kind::Spark,gill::live::Kind::Clean}){gill::live::CausalBands d;d.prepare(48000,2,kind);gill::live::Settings s;s.amount=s.noise=s.plosives=s.breaths=0;d.set(s);d.reset();std::array<float,2048>b{},ref{};for(int i=0;i<2048;++i)b[i]=ref[i]=float(.3*std::sin(i*.19));float*ptr=b.data();d.process(&ptr,1,2048);check(b==ref,"causal zero strength is sample-exact with zero delay");}
  // A declining room tail should be attenuated while the attack is retained.
- {gill::live::CausalBands d;d.prepare(48000,1,gill::live::Kind::Room);gill::live::Settings s;s.amount=1;s.preserve=.3;d.set(s);d.reset();std::vector<float>b(48000),ref(48000);for(int i=0;i<48000;++i)b[i]=ref[i]=float(.3*std::exp(-i/8000.)*std::sin(i*.04));float*ptr=b.data();d.process(&ptr,1,48000);double before=0,after=0;for(int i=10000;i<30000;++i){before+=ref[i]*ref[i];after+=b[i]*b[i];}check(after<before*.8,"causal room mode audibly reduces declining tails");}
+ {gill::live::CausalBands d;d.prepare(48000,1,gill::live::Kind::Room);gill::live::Settings s;s.amount=1;s.preserve=.3;d.set(s);d.reset();std::vector<float>b(48000),ref(48000);for(int i=0;i<48000;++i)b[i]=ref[i]=float(.3*std::exp(-i/8000.)*std::sin(i*.04));float*ptr=b.data();d.process(&ptr,1,48000);double before=0,after=0;for(int i=10000;i<30000;++i){before+=ref[i]*ref[i];after+=b[i]*b[i];}std::cout<<"METRIC Room original tail power ratio="<<after/before<<"\n";check(after<before*.8,"causal room mode audibly reduces declining tails");}
+ // A tail fix must retain attacks and steady voiced signals at every rate.
+ for(double fs:{8000.,44100.,48000.,96000.,192000.}){
+  gill::live::CausalBands d;d.prepare(fs,1,gill::live::Kind::Room);gill::live::Settings s;s.amount=1;s.preserve=.3;d.set(s);d.reset();
+  efficacy::Audio source(static_cast<size_t>(fs)),out;for(size_t n=0;n<source.size();++n)source[n]=float(.3*std::exp(-double(n)/(fs/6))*std::sin(6.283185307179586*300*n/fs));source[0]=.4f;out=source;
+  float* ptr=out.data();observe=true;d.process(&ptr,1,int(out.size()));observe=false;
+  const double ratio=efficacy::power(out,int(fs*.21),int(fs*.625))/efficacy::power(source,int(fs*.21),int(fs*.625));
+  std::cout<<"METRIC Room "<<fs<<" tailPowerRatio="<<ratio<<" attackError="<<efficacy::difference(out,source,0,int(fs*.01))<<'\n';
+  check(ratio<.8,"Room LIVE attenuates declining tail across sample rates");check(out[0]==source[0]&&efficacy::difference(out,source,0,int(fs*.01))<1e-7,"Room LIVE retains first impulse and attack without delay");
+  d.reset();for(size_t n=0;n<source.size();++n)source[n]=float(.3*std::sin(6.283185307179586*220*n/fs));out=source;ptr=out.data();observe=true;d.process(&ptr,1,int(out.size()));observe=false;
+  check(efficacy::difference(out,source,int(fs*.2),int(fs*.9))<.0005,"Room LIVE retains sustained voiced tone");
+ }
  efficacy::spectral();efficacy::clean();efficacy::colour();efficacy::finish();efficacy::stereoIntegrity();
  check(allocations==0,"LIVE processing and runtime mode switches allocate no C++ heap");
  std::cout<<"RESULT "<<checks<<" checks "<<failures<<" failures allocations="<<allocations<<'\n';return failures?1:0;
 }
+

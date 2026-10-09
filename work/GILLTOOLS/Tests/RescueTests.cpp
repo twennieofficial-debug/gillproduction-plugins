@@ -65,7 +65,14 @@ int main() {
                     const auto r = render(clipped,rate,p,live);
                     const double gain = improvement(original,clipped,r,rate); if(!live)gains.push_back(gain);
                     check(gain >= -1., "MILD known-original reconstruction does not regress >1dB", gain);
-                    if(live)check(r.repaired==0&&std::equal(clipped.begin(),clipped.end(),r.audio.begin()),"LIVE is unbuffered exact input; repair is PRO-only");
+                    if(live) {
+                        // Causal repair cannot rewrite the first clipped sample.
+                        bool firstClippedExact = true;
+                        for(size_t n=1;n<clipped.size();++n)
+                            if(std::abs(clipped[n]) >= limit-1e-7 && std::abs(clipped[n-1]) < limit-1e-7)
+                                firstClippedExact = firstClippedExact && r.audio[n] == clipped[n];
+                        check(firstClippedExact,"LIVE first clipped sample remains at its original time");
+                    }
                     check(r.latency == (live?0:static_cast<int>(std::ceil(rate*.012))), "Declared mode latency is the actual delay", r.latency);
                     double untouched = 0;
                     for (size_t n = 0; n < original.size(); ++n) if (std::abs(clipped[n]) < limit - 1e-7)
@@ -82,6 +89,24 @@ int main() {
             }
         }
     }
+    // A fixed short-crest corpus measures actual causal improvement against the
+    // known original, independently of the repair counter. No-op LIVE must fail.
+    for(double rate:{44100.,48000.,96000.,192000.}) for(bool asymmetric:{false,true}) {
+        p=RescueParameters{};p.outputDb=0;
+        const float positive=.89125094f,negative=asymmetric?.79432823f:positive;
+        const auto original=signal(rate,800,0);auto clipped=original;
+        for(auto&v:clipped)v=std::clamp(v,-negative,positive);
+        p.clipDb=float(20*std::log10(positive));p.negativeClipDb=float(20*std::log10(negative));
+        const auto one=render(clipped,rate,p,true,1),other=render(clipped,rate,p,true,2048);
+        const double gain=improvement(original,clipped,one,rate);
+        check(gain>=.5,"LIVE short-crest known-original improvement >=0.5dB",gain);
+        check(one.repaired>0,"LIVE confirmed short crests are repaired",one.repaired);
+        check(one.audio==other.audio,"LIVE symmetric/asymmetric repair independent of host block size");
+        bool intact=true;for(size_t n=0;n<clipped.size();++n)
+            if(clipped[n]<positive&&clipped[n]>-negative)intact=intact&&one.audio[n]==clipped[n];
+        check(one.latency==0&&intact,"LIVE intact samples have exact zero-delay alignment");
+    }
+    p=RescueParameters{};p.outputDb=0;
     std::sort(gains.begin(),gains.end());
     check(gains[gains.size()/2] >= 3., "Predetermined mild clipping corpus median improvement >=3dB", gains[gains.size()/2]);
     { const auto original = signal(48000,137,1,1.); auto clipped = original;

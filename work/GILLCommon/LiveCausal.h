@@ -87,7 +87,11 @@ private:
   std::sort(whitened.begin(),whitened.end());const double diffuse=whitened[2]*std::clamp(2*whitened[2]/(whitened[bands/2]+1e-20),0.,1.);
   noiseEstimate_+=(1-std::exp(-16/(fs_*.08)))*(diffuse-noiseEstimate_);
   roomPeak_=std::max(total,roomPeak_*std::exp(-16/(fs_*(.35*(p_.release/.45)))));
-  const double roomTail=std::clamp((.07-total/(roomPeak_+1e-12))/.06,0.,1.);
+  // A falling envelope is already a tail well before it loses 93% of its
+  // held power. With the release-scaled peak decay that old threshold missed
+  // ordinary room decays completely. Start below -1.55 dB, reaching full
+  // confidence below -7 dB; rising and sustained envelopes still stay open.
+  const double roomTail=std::clamp((.7-total/(roomPeak_+1e-12))/.5,0.,1.);
   const double plosive=std::clamp((low/(body+high+1e-9)-1.5)*.5,0.,1.)*std::clamp((low/(oldLow+1e-8)-1.2)*.5,0.,1.);
   const double breath=std::clamp(high/(body+1e-9)-1.,0.,1.)*std::clamp(1-body/(bodyHistory_*.7+1e-8),0.,1.);
   for(int k=0;k<bands;++k){const double hz=hz_[k];const double focus=std::clamp((hz-p_.low*.6)/(p_.low*.6),0.,1.)*std::clamp((p_.high*1.3-hz)/(p_.high*.3),0.,1.);double cut=0;
