@@ -69,6 +69,8 @@ def selected_sources(work):
             "README.md", "MAC-INSTALLATION.txt", "test_pipeline.py", "GILL-PLUGINS-UEBERSICHT.txt",
             "incremental_texture.py", "test_incremental_texture.py",
             "incremental_finish.py", "test_incremental_finish.py",
+            "incremental_mixhost.py", "test_incremental_mixhost.py",
+            "fetch_mixhost_baseline.py", "test_fetch_mixhost_baseline.py",
             "individuals.py", "test_individuals.py", "publish20.py", "test_publish20.py"}))
             or relative.parts[0] == "resources")
         if path.is_file() and allowed and path.suffix.lower() in {".py", ".json", ".md", ".yml", ".yaml", ".sh", ".xml", ".html", ".txt"}:

@@ -11,7 +11,7 @@ on:
         default: false
         required: true
       reuse_native_run:
-        description: 'Optional successful native base run for a TEXTURE-only rebuild'
+        description: 'Optional reviewed native base run'
         type: string
         default: ''
         required: false
@@ -22,6 +22,17 @@ on:
         required: false
       reuse_native_source_sha256:
         description: 'Exact source SHA256 from the optional base native-build.json'
+        type: string
+        default: ''
+        required: false
+      reuse_native_mode:
+        description: 'Strict reuse scope; ordinary build when no base run is supplied'
+        type: choice
+        options: [texture, mix-host]
+        default: texture
+        required: false
+      approved_host_sha256:
+        description: 'Parent-approved UI-only RealHost.cpp digest; required for mix-host reuse'
         type: string
         default: ''
         required: false
@@ -59,16 +70,30 @@ jobs:
           BASE_RUN: ${{ inputs.reuse_native_run }}
           BASE_COMMIT: ${{ inputs.reuse_native_commit }}
           BASE_SOURCE_SHA: ${{ inputs.reuse_native_source_sha256 }}
+          REUSE_MODE: ${{ inputs.reuse_native_mode }}
+          APPROVED_HOST_SHA: ${{ inputs.approved_host_sha256 }}
         run: |
           python3 - <<'PY'
-          import os, sys
+          import hashlib, os, pathlib, re, sys
           sys.path.insert(0, 'work/packaging/macos')
           from incremental_texture import validate_inputs
           values = [os.environ.get(name, '') for name in ('BASE_RUN', 'BASE_COMMIT', 'BASE_SOURCE_SHA')]
           if any(values):
               if not all(values) or not values[0].isascii() or not values[0].isdigit():
                   raise SystemExit('All three complete native reuse inputs are required together.')
-              validate_inputs(os.environ['GITHUB_REPOSITORY'], int(values[0]), values[1], values[2])
+              if os.environ.get('REUSE_MODE', 'texture') == 'mix-host':
+                  from fetch_mixhost_baseline import validate_inputs as mix_inputs
+                  mix_inputs(os.environ['GITHUB_REPOSITORY'], int(values[0]), values[1], values[2], 'arm64')
+                  approved = os.environ.get('APPROVED_HOST_SHA', '')
+                  actual = hashlib.sha256(pathlib.Path('work/GILLMIX/Tests/RealHost.cpp').read_bytes()).hexdigest()
+                  if not re.fullmatch('[0-9a-f]{64}', approved) or approved != actual:
+                      raise SystemExit('Reviewed MIX host source digest differs.')
+              else:
+                  validate_inputs(os.environ['GITHUB_REPOSITORY'], int(values[0]), values[1], values[2])
+                  if os.environ.get('APPROVED_HOST_SHA'):
+                      raise SystemExit('MIX host approval supplied for a different reuse scope.')
+          elif os.environ.get('APPROVED_HOST_SHA') or os.environ.get('REUSE_MODE') == 'mix-host':
+              raise SystemExit('MIX host reuse requires the complete reviewed donor identity.')
           PY
       - name: Check required signing secret names before native builds
         if: inputs.notarize
@@ -126,8 +151,24 @@ jobs:
           BASE_RUN: ${{ inputs.reuse_native_run }}
           BASE_COMMIT: ${{ inputs.reuse_native_commit }}
           BASE_SOURCE_SHA: ${{ inputs.reuse_native_source_sha256 }}
+          REUSE_MODE: ${{ inputs.reuse_native_mode }}
+          APPROVED_HOST_SHA: ${{ inputs.approved_host_sha256 }}
+          NATIVE_ARCH: ${{ matrix.architecture }}
         run: |
-          if [ -n "$BASE_RUN" ]; then
+          if [ -n "$BASE_RUN" ] && [ "$REUSE_MODE" = mix-host ]; then
+            git fetch --no-tags --depth=1 origin "$BASE_COMMIT"
+            python3 work/packaging/macos/fetch_mixhost_baseline.py \
+              --repository "$GITHUB_REPOSITORY" --base-run "$BASE_RUN" --base-commit "$BASE_COMMIT" \
+              --base-source-sha "$BASE_SOURCE_SHA" --architecture "$NATIVE_ARCH" \
+              --destination "$RUNNER_TEMP/mix-donor"
+            python3 work/packaging/macos/incremental_mixhost.py --source work \
+              --build-root "$RUNNER_TEMP/gill-build" --destination "$RUNNER_TEMP/native" --jobs 2 \
+              --provenance "$RUNNER_TEMP/mix-donor/provenance.json" \
+              --diagnostic-zip "$RUNNER_TEMP/mix-donor/failed-native-$NATIVE_ARCH.zip" \
+              --binary-zip "$RUNNER_TEMP/mix-donor/failed-native-binaries-$NATIVE_ARCH.zip" \
+              --original-host "$RUNNER_TEMP/mix-donor/original-RealHost.cpp" \
+              --approved-host-sha256 "$APPROVED_HOST_SHA"
+          elif [ -n "$BASE_RUN" ]; then
             python3 work/packaging/macos/incremental_texture.py --source work \
               --build-root "$RUNNER_TEMP/gill-build" --destination "$RUNNER_TEMP/native" \
               --base-run "$BASE_RUN" --base-commit "$BASE_COMMIT" \

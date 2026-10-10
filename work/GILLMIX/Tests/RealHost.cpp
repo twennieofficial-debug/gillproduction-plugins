@@ -90,14 +90,21 @@ public:
         master.tree.setProperty("program", 1, nullptr); check(master.restore(*items[0].processor), "controller selected UUIDs recalled without runtime connection");
         editor.reset(items[0].processor->createEditor()); check(editor != nullptr, "real hosted controller editor constructed"); if (!editor) return false;
         editor->setTopLeftPosition(-10000, -10000); editor->addToDesktop(0); editor->setVisible(true);
-        check(editor->getWidth() == 760 && editor->getHeight() == 480, "real hosted compact controller dimensions"); return true;
+        check(editor->getWidth() == 780 && editor->getHeight() == 540, "real hosted compact controller dimensions"); return true;
     }
     void press(const char* label, int x, int y) {
         bool accepted = false; std::cout << "UI " << label << '\n';
         if (editor && editor->getPeer()) {
 #if defined(_WIN32)
-            auto window = static_cast<HWND>(editor->getPeer()->getNativeHandle()); RECT r{}; GetClientRect(window, &r);
-            POINT p{LONG(x * (r.right - r.left) / 760), LONG(y * (r.bottom - r.top) / 480)};
+            auto window = static_cast<HWND>(editor->getPeer()->getNativeHandle()); RECT r{};
+            // Coordinates are editor-local logical pixels. Map to this host's
+            // own native client area so Windows display scaling is respected.
+            if (!GetClientRect(window, &r) || r.right <= r.left || r.bottom <= r.top
+                || !editor->getLocalBounds().contains(x, y)) {
+                check(false, "native editor client geometry: " + juce::String(label)); return;
+            }
+            POINT p{MulDiv(x, r.right - r.left, editor->getWidth()),
+                    MulDiv(y, r.bottom - r.top, editor->getHeight())};
             for (int depth = 0; depth < 16; ++depth) { auto child = ChildWindowFromPointEx(window, p, CWP_SKIPINVISIBLE | CWP_SKIPDISABLED | CWP_SKIPTRANSPARENT); if (!child || child == window) break; MapWindowPoints(window, child, &p, 1); window = child; }
             const auto point = MAKELPARAM(p.x, p.y); SendMessageW(window, WM_MOUSEMOVE, 0, point); SendMessageW(window, WM_LBUTTONDOWN, MK_LBUTTON, point); SendMessageW(window, WM_LBUTTONUP, 0, point); accepted = true;
 #elif defined(__APPLE__)
@@ -130,18 +137,18 @@ public:
     }
     void timerCallback() override {
         ++ticks;
-        if (stage == 2) { render(static_cast<int>(std::ceil(sampleRate * .10 / 256))); if (play.position < static_cast<int64_t>(sampleRate * 10.5)) return; press("LEARN / STOP", 501, 452); stage = 3; ticks = 0; return; }
+        if (stage == 2) { render(static_cast<int>(std::ceil(sampleRate * .10 / 256))); if (play.position < static_cast<int64_t>(sampleRate * 10.5)) return; press("LEARN / STOP", 390, 125); stage = 3; ticks = 0; return; }
         if (ticks < 20) return; ticks = 0;
         std::cout << "STAGE " << stage << '\n';
         switch (stage) {
-            case 0: for (int i = 1; i < 4; ++i) verifyGain(i, 0); press("CONNECT SELECTED", 650, 80); stage = 1; break;
+            case 0: for (int i = 1; i < 4; ++i) verifyGain(i, 0); press("CONNECT SELECTED", 390, 236); stage = 1; break;
             case 1: {
                 SavedState master(*items[0].processor);
                 for (int i = 1; i < 4; ++i) { SavedState link(*items[static_cast<size_t>(i)].processor); check(link.tree["controller"] == master.tree["uuid"], "CONNECT button bound this real LINK to this controller"); }
-                press("LEARN / STOP", 501, 452); stage = 2; break;
+                press("LEARN / STOP", 390, 125); stage = 2; break;
             }
-            case 3: press("APPLY", 598, 452); stage = 4; break;
-            case 4: verifyGain(1, 0); verifyGain(2, -3); verifyGain(3, -3); render(static_cast<int>(sampleRate / 256 * .1)); render(4, true); items[2].processor->getStateInformation(appliedState); press("UNDO", 694, 452); stage = 5; break;
+            case 3: press("APPLY", 335, 164); stage = 4; break;
+            case 4: verifyGain(1, 0); verifyGain(2, -3); verifyGain(3, -3); render(static_cast<int>(sampleRate / 256 * .1)); render(4, true); items[2].processor->getStateInformation(appliedState); press("UNDO", 446, 164); stage = 5; break;
             case 5: for (int i = 1; i < 4; ++i) verifyGain(i, 0); for (auto& item : items) item.quality->setValueNotifyingHost(0); render(24); stage = 6; break;
             case 6: for (auto& item : items) check(item.processor->getLatencySamples() == 0 && item.quality->getValue() == 0, "LIVE host automation preserves zero PDC"); render(4, true); for (auto& item : items) item.quality->setValueNotifyingHost(1); render(24); stage = 7; break;
             case 7: for (auto& item : items) check(item.processor->getLatencySamples() == 0 && item.quality->getValue() == 1, "PRO host automation preserves zero PDC"); items[2].processor->setStateInformation(appliedState.getData(), static_cast<int>(appliedState.getSize())); items[2].processor->releaseResources(); items[2].processor->prepareToPlay(sampleRate, 256); verifyGain(2, -3); render(1, true); editor.reset(); finish(); break;
