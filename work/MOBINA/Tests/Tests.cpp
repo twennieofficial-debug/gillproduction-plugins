@@ -1,6 +1,8 @@
 #include "MacTestSupport.h"
 #include "../Source/Processor.h"
 #include <iostream>
+#include <fstream>
+#include <cstring>
 #include <random>
 #include <stdexcept>
 thread_local bool counting = false;
@@ -51,11 +53,146 @@ std::vector<float> render(int block, int preset, int quality) {
   }
   return out;
 }
-int main() {
+
+// This exercises the native APVTS BYPASS through ordinary processBlock, using
+// an always-active twin to observe the same running wet engine during fades.
+int bypassRegressions() {
+  int checks = 0, failures = 0, configurations = 0, transitions = 0;
+  auto expect = [&](bool ok, const char* label) {
+    ++checks;
+    if (!ok) { ++failures; if (failures <= 24) std::cerr << "BYPASS_FAIL " << label << '\n'; }
+  };
+  for (double fs : {44100., 48000., 96000., 192000.})
+    for (int channels : {1, 2}) for (int quality : {0, 1}) {
+      ++configurations;
+      mobina::Processor p, active;
+      for (auto* processor : {&p, &active}) {
+        auto layout = processor->getBusesLayout();
+        layout.inputBuses.set(0, channels == 1 ? juce::AudioChannelSet::mono() : juce::AudioChannelSet::stereo());
+        layout.outputBuses.set(0, layout.inputBuses[0]);
+        check(processor->setBusesLayout(layout), "bypass layout");
+        processor->set("gillQuality", float(quality));
+        processor->prepareToPlay(fs, 128);
+      }
+      expect(p.getLatencySamples() == 0, "zero PDC");
+      juce::AudioBuffer<float> input(channels,128), tested(channels,128), wet(channels,128);
+      uint32_t rng = 0x731ab92u;
+      auto fill = [&](int n, bool silence = false) {
+        input.setSize(channels,n,false,false,true);
+        for (int c=0;c<channels;++c) for(int i=0;i<n;++i) {
+          rng = rng * 1664525u + 1013904223u;
+          input.setSample(c,i,silence ? 0.f : float(int32_t(rng >> 8) - 8388608) / 16777216.f);
+        }
+      };
+      auto process = [&] {
+        tested.makeCopyOf(input,true); wet.makeCopyOf(input,true);
+        run(p,tested); run(active,wet);
+      };
+      for(int k=0;k<4;++k) { fill(128); process(); }
+      const int ramp = int(std::ceil(fs * .025));
+      double maximumFadeError=0, maximumDryError=0, hostDryError=0;
+      auto fade = [&](double start, double target, int samples) {
+        p.set("bypass",float(target)); ++transitions;
+        for(int offset=0;offset<samples;offset+=128) {
+          const int n=std::min(128,samples-offset);fill(n);process();
+          for(int c=0;c<channels;++c) for(int i=0;i<n;++i) {
+            const double blend=start+(target-start)*std::min(1.,double(offset+i+1)/ramp);
+            const double expected=double(wet.getSample(c,i))+(double(input.getSample(c,i))-wet.getSample(c,i))*blend;
+            maximumFadeError=std::max(maximumFadeError,std::abs(double(tested.getSample(c,i))-expected));
+          }
+        }
+        return start+(target-start)*std::min(1.,double(samples)/ramp);
+      };
+      auto exactDry = [&](bool hostProbe = false) {
+        for(int c=0;c<channels;++c) for(int i=0;i<input.getNumSamples();++i)
+          {
+            const double error=std::abs(double(tested.getSample(c,i))-input.getSample(c,i));
+            maximumDryError=std::max(maximumDryError,error);
+            if(hostProbe)hostDryError=std::max(hostDryError,error);
+          }
+      };
+      for(int repeat=0;repeat<3;++repeat) {
+        fade(0,1,ramp);
+        fill(128);process();exactDry();
+        // Exactly the native host's existing flush duration, with no extension.
+        for(int k=0;k<std::max(64,int(std::ceil(fs*.25/128)));++k) {fill(128,true);process();}
+        for(int position:{0,37,127}) {
+          fill(128,true);
+          for(int c=0;c<channels;++c)input.setSample(c,position,c==0?.75f:-.625f);
+          process();exactDry(true);
+        }
+        uint32_t nativeRandom=0x137abc29u;
+        for(int k=0;k<32;++k) {
+          fill(128,true);
+          for(int c=0;c<channels;++c)for(int i=0;i<128;++i) {
+            nativeRandom^=nativeRandom<<13;nativeRandom^=nativeRandom>>17;nativeRandom^=nativeRandom<<5;
+            input.setSample(c,i,float((double(nativeRandom)/4294967295.-.5)*.40));
+          }
+          process();exactDry(true);
+        }
+        fade(1,0,ramp);
+        fill(128);process();
+        bool exact=true;
+        for(int c=0;c<channels;++c) exact=exact && std::memcmp(tested.getReadPointer(c),wet.getReadPointer(c),128*sizeof(float))==0;
+        expect(exact,"settled ACTIVE equals running wet twin bitwise");
+      }
+      // Reversing an unfinished fade must retain its current blend smoothly.
+      double blend=0;
+      for(int k=0;k<8;++k) blend=fade(blend,k%2==0?1:0,ramp/4);
+      // Complete the last ACTIVE fade without changing its target.
+      fill(ramp-ramp/4);process();
+      fade(0,1,ramp);
+      juce::MemoryBlock saved; p.getStateInformation(saved);
+      fade(1,0,ramp);
+      p.setStateInformation(saved.getData(),int(saved.getSize()));
+      expect(p.state.getRawParameterValue("bypass")->load()==1.f,"recall native BYPASS");
+      // The restored APVTS reaches the same dry endpoint through normal processing.
+      for(int k=0;k<ramp;k+=128) {fill(std::min(128,ramp-k));process();}
+      fill(128);process();exactDry();
+      p.reset();active.reset();fill(128);process();exactDry();
+      p.prepareToPlay(fs,128);active.prepareToPlay(fs,128);fill(128);process();exactDry();
+      expect(maximumFadeError<=3e-6,"smooth bounded 25ms fades including reversals");
+      expect(maximumDryError==0,"exact same-sample native dry; no leakage");
+      expect(hostDryError<=1e-7,"unchanged native-host impulse/random threshold");
+      std::cout<<"BYPASS_CASE "<<fs<<" "<<channels<<" "<<quality<<" FADE "<<maximumFadeError<<" DRY "<<maximumDryError<<" HOST_DRY "<<hostDryError<<'\n';
+    }
+  std::cout<<"BYPASS_CHECKS "<<checks<<" FAILURES "<<failures<<" CONFIGURATIONS "<<configurations<<" TRANSITIONS "<<transitions<<'\n';
+  return failures;
+}
+
+// Export actual active processor samples for independent original/fixed binary
+// comparison; the verifier rebuilds both processors from pinned source inputs.
+void activeFingerprint(const char* filename) {
+  std::ofstream out(filename,std::ios::binary);
+  check(bool(out),"active output file");
+  int configurations=0;
+  for(double fs:{44100.,48000.,96000.,192000.}) for(int channels:{1,2})
+    for(int q:{0,1}) for(int preset=0;preset<8;++preset) {
+      mobina::Processor p;
+      auto l=p.getBusesLayout();
+      l.inputBuses.set(0,channels==1?juce::AudioChannelSet::mono():juce::AudioChannelSet::stereo());l.outputBuses.set(0,l.inputBuses[0]);
+      check(p.setBusesLayout(l),"active layout");p.setCurrentProgram(preset);p.set("gillQuality",float(q));p.prepareToPlay(fs,128);
+      juce::AudioBuffer<float> b(channels,128);
+      uint32_t rng=0x536217ab;
+      for(int k=0;k<128;++k) {
+        if(k==64) {p.set("dream",float(17+preset*9));p.set("output",-3.f);}
+        for(int c=0;c<channels;++c)for(int i=0;i<128;++i) {rng=rng*1664525u+1013904223u;b.setSample(c,i,float(int32_t(rng>>8)-8388608)/16777216.f);}
+        run(p,b);
+        for(int c=0;c<channels;++c)out.write(reinterpret_cast<const char*>(b.getReadPointer(c)),128*sizeof(float));
+      }
+      ++configurations;
+    }
+  check(bool(out),"active output write");std::cout<<"ACTIVE_CONFIGURATIONS "<<configurations<<'\n';
+}
+int main(int argc, char** argv) {
   gillInitialiseTestApplication();
   juce::ScopedJuceInitialiser_GUI gui;
   std::cout << std::unitbuf;
   try {
+    if(argc==3 && juce::String(argv[1])=="--active-output") {activeFingerprint(argv[2]);return 0;}
+    const int bypassFailures=bypassRegressions();
+    if(argc==2 && juce::String(argv[1])=="--bypass-only") return bypassFailures?1:0;
+    check(bypassFailures==0,"native bypass regressions");
     for (int preset = 0; preset < 8; ++preset)
       for (int q = 0; q < 2; ++q) {
         auto a = render(31, preset, q), b = render(257, preset, q);

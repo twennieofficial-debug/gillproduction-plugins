@@ -17,6 +17,8 @@ class Dsp {
   std::array<std::vector<float>, 2> delay;
   std::array<float, 2> tone{}, low{}, dcX{}, dcY{};
   float envelope = 0, bypass = 0, qualityBlend = 1;
+  double bypassRamp = 0;
+  int bypassSamplesRemaining = 0;
   Settings current{}, target{};
   bool initial = true;
   bool qualityInitial = true;
@@ -57,14 +59,19 @@ public:
     dcY = {};
     envelope = 0;
     initial = true;
+    bypassSamplesRemaining = 0;
     qualityInitial = true;
     room.reset();
   }
   void set(Settings value) {
+    // A finite ramp reaches either endpoint even when a float one-pole would
+    // stall. Retarget from the current blend without a discontinuity.
+    if (!initial && value.bypass != target.bypass)
+      bypassSamplesRemaining = std::max(1, int(std::ceil(.025 * fs)));
     target = value;
     if (initial) {
       current = target;
-      bypass = target.bypass;
+      bypassRamp = bypass = target.bypass;
       initial = false;
     }
   }
@@ -96,7 +103,12 @@ public:
       smooth(current.duck, target.duck);
       smooth(current.mix, target.mix);
       smooth(current.output, target.output);
-      smooth(bypass, target.bypass);
+      if (bypassSamplesRemaining > 0) {
+        bypassRamp += (double(target.bypass) - bypassRamp) / bypassSamplesRemaining;
+        if (--bypassSamplesRemaining == 0)
+          bypassRamp = target.bypass;
+        bypass = float(bypassRamp);
+      }
       float x[2]{sane(data[0][i]), sane(data[channels - 1][i])}, coloured[2]{};
       const float amount = current.dream * .01f,
                   distance = current.distance * .01f,
@@ -164,7 +176,10 @@ public:
       for (int c = 0; c < channels; ++c) {
         const float effect = channels == 1 ? .5f * (y[0] + y[1]) : y[c];
         const float result = (x[c] + mix * (effect - x[c])) * gain;
-        data[c][i] = sane(result + (x[c] - result) * bypass);
+        // Assign dry directly: even a blend of exactly one can suffer
+        // cancellation in result + (dry - result).
+        data[c][i] = bypass == 1.f ? x[c]
+                                 : sane(result + (x[c] - result) * bypass);
       }
     }
   }

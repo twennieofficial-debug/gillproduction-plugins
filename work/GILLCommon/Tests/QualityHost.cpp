@@ -1,6 +1,7 @@
 // Real VST3 integration: every processor comes from its independently loaded
 // bundle. No product processor classes or QualityBus internals are linked here.
 #include <juce_audio_utils/juce_audio_utils.h>
+#include "ProcessorStateReader.h"
 #include <atomic>
 #include <cstring>
 #include <iostream>
@@ -161,39 +162,7 @@ public:
     }
     std::optional<float> savedParameter(Item& item,const juce::String& id) {
         juce::MemoryBlock state; item.processor->getStateInformation(state);
-        if (auto wrapper = juce::AudioProcessor::getXmlFromBinary(state.getData(), static_cast<int>(state.getSize()))) {
-            if (auto* component = wrapper->getChildByName("IComponent")) {
-                juce::MemoryBlock decoded;
-                if (!decoded.fromBase64Encoding(component->getAllSubText())) return std::nullopt;
-                state.swapWith(decoded);
-            }
-        }
-        const auto* bytes = static_cast<const std::uint8_t*>(state.getData());
-        // PREVIEW's versioned profile state is a raw ValueTree stream, inside
-        // the VST3 component chunk. Decode that actual stream, never host cache.
-        if(item.name=="GILLSPECTRA PREVIEW") {
-            constexpr char type[]="SpectraPreview";
-            for(std::size_t offset=0;offset+sizeof(type)<=state.getSize();++offset) {
-                if(std::memcmp(bytes+offset,type,sizeof(type))!=0)continue;
-                auto tree=juce::ValueTree::readFromData(bytes+offset,state.getSize()-offset);
-                if(!tree.isValid()||tree.getType()!=juce::Identifier(type)||int(tree.getProperty("stateSchema",-1))!=2)continue;
-                auto parameter=tree.getChildWithProperty("id",id);
-                if(parameter.isValid())return static_cast<float>(parameter.getProperty("value"));
-            }
-        }
-        // The VST3 host wraps component/controller chunks. Locate JUCE's actual
-        // processor-state XML block instead of assuming its hosted cache is right.
-        for (std::size_t offset = 0; offset + 9 <= state.getSize(); ++offset) {
-            if (juce::ByteOrder::littleEndianInt(bytes + offset) != 0x21324356u) continue;
-            const auto length = juce::ByteOrder::littleEndianInt(bytes + offset + 4);
-            if (length == 0 || length > state.getSize() - offset - 9) continue;
-            if (auto xml = juce::AudioProcessor::getXmlFromBinary(bytes + offset, static_cast<int>(length + 9))) {
-                auto tree = juce::ValueTree::fromXml(*xml);
-                auto parameter = tree.getChildWithProperty("id", id);
-                if (parameter.isValid()) return static_cast<float>(parameter.getProperty("value").toString().getDoubleValue());
-            }
-        }
-        return std::nullopt;
+        return gill::qualityTest::savedProcessorParameter(std::move(state), item.name, id);
     }
     std::optional<float> savedQuality(Item& item){return savedParameter(item,"gillQuality");}
     void measureLiveSignalTiming() {
