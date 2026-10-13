@@ -1,0 +1,7090 @@
+[
+  {
+    "id": "LIVE-1-48000-128-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 6 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 6 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 6 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 7 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 7 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 7 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 8 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 8 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "SLOT 8 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "SLOT 1 MODULE",
+        "text": "FAST COMP"
+      },
+      {
+        "name": "SLOT 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "SLOT 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  }
+]

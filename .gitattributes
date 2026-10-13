@@ -5,3 +5,6 @@
 *.png binary
 *.wav binary
 *.flac binary
+
+# Frozen regression controls retain original bytes across hosts.
+work/Mac22/regression/** -text

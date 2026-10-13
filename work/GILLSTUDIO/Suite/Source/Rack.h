@@ -30,6 +30,7 @@ class Rack {
   std::array<int, 8> order{0, 1, 2, 3, 4, 5, 6, 7};
   double fs = 48000;
   bool anySolo = false, live=true;
+  int channels = 2;
   static double interpolate(const std::vector<double> &buffer, size_t pos,
                             double delay) noexcept {
     const auto n = size_t(delay);
@@ -50,8 +51,8 @@ class Rack {
 
 public:
   std::array<float, 8> reduction{};
-  void prepare(double rate, bool liveMode=true) {
-    fs = rate; live=liveMode;
+  void prepare(double rate, bool liveMode=true, int mainChannels=2) {
+    fs = rate; live=liveMode; channels=mainChannels;
     for (auto &s : slots) {
       s.dynamics.prepare(fs, 512, 2);
       s.gate.prepare(fs, 512, 2);
@@ -100,10 +101,11 @@ public:
       s.wet = v("wet", g) * .01;
       s.polarity = v("polarity", g) > .5 ? -1 : 1;
       s.amount = v("amount", g) * .01;
-      s.external = v("external", g) > .5;
-      s.listen = v("listen", g) > .5;
+      // Retain host values in state; apply only this model's capabilities.
+      s.external = rackControlUsed(s.module, "external") && v("external", g) > .5;
+      s.listen = rackControlUsed(s.module, "listen") && v("listen", g) > .5;
       s.hfonly = v("hfonly", g) > .5;
-      s.feedback = v("feedback", g) > .5;
+      s.feedback = rackControlUsed(s.module, "feedback") && v("feedback", g) > .5;
       s.clip = v("clip", g) > .5;
       s.rate = v("rate", g);
       s.depth = v("depth", g) * .01;
@@ -149,9 +151,9 @@ public:
                                        : 0),
                    .6, fs);
         }
-        s.keyFilters[size_t(c)][0].set(gill::LowCut, v("keylow", g), 0, .707,
+        s.keyFilters[size_t(c)][0].set(gill::LowCut, rackControlUsed(s.module, "keylow") ? v("keylow", g) : 20, 0, .707,
                                        fs);
-        s.keyFilters[size_t(c)][1].set(gill::HighCut, v("keyhigh", g), 0, .707,
+        s.keyFilters[size_t(c)][1].set(gill::HighCut, rackControlUsed(s.module, "keyhigh") ? v("keyhigh", g) : 20000, 0, .707,
                                        fs);
       }
       dy::Parameters p;
@@ -169,7 +171,7 @@ public:
       p.envelope.adaptive = std::clamp(m.memory + v("memory", g) * .01, 0., 1.);
       p.detector = m.memory > .4 ? dy::Detector::RMS : dy::Detector::Peak;
       p.key = dy::KeySource::External;
-      p.stereoLink = v("link", g) * .01;
+      p.stereoLink = channels == 1 && s.external ? 1 : v("link", g) * .01;
       s.dynamics.setParameters(p);
       p.curve.law = dy::Law::DownwardExpansion;
       p.curve.thresholdDb = v("gatethreshold", g);
@@ -182,7 +184,7 @@ public:
       s.gateRange=standalone ? s.range : v("gaterange",g);
       s.gateRatio=standalone ? v("ratio",g) : 4;
       s.gateAttack=standalone ? v("attack",g) : 1;
-      s.gateLink=v("link",g)*.01;
+      s.gateLink=standalone || (channels == 1 && s.external) ? 1 : v("link",g)*.01;
       dy::EnvelopeParameters envelope;
       envelope.attackMs = v("attack", g);
       envelope.releaseFastMs = v("release", g);
@@ -362,8 +364,12 @@ public:
                 color(s, y[size_t(c)], c, 1 + s.amount * 4, m.colour);
         }
       }
-      if (s.listen && m.family != RackFamily::Deess)
-        y = trigger;
+      if (s.listen && m.family != RackFamily::Deess) {
+        // Audition remains signed audio, independent of magnitude detection.
+        y = channels == 1 ? std::array<double, 2>{.5 * (trigger[0] + trigger[1]),
+                                                 .5 * (trigger[0] + trigger[1])}
+                          : trigger;
+      }
       s.last = y;
       s.active += (1 - pole(5, fs)) *
                   ((s.enabled && (!anySolo || s.solo) ? 1. : 0.) - s.active);

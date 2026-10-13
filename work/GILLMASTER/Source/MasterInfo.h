@@ -5,10 +5,10 @@ enum class MasterKind { Ceiling,Low,Glue,Width,Punch,Weight,Delta,Deliver };
 struct MasterInfo {const char*name;const char*subtitle;int width,height;};
 inline MasterInfo masterInfo(MasterKind kind){
     static constexpr MasterInfo info[]{
-        {"GILLCEILING","TRUE PEAK LIMITER",500,650},{"GILLLOW","LOW END CONTROL",500,650},
-        {"GILLGLUE","MASTER BUS COMPRESSION",500,650},{"GILLWIDTH","STEREO FIELD",500,650},
-        {"GILLPUNCH","MULTIBAND TRANSIENTS",500,650},{"GILLWEIGHT","BASS HARMONICS",500,650},
-        {"GILLDELTA","LINKED MASTER COMPARISON",500,650},{"GILLDELIVER","MASTER DELIVERY CHECK",500,650}};
+        {"GILLCEILING","TRUE PEAK LIMITER",560,600},{"GILLLOW","LOW END CONTROL",660,450},
+        {"GILLGLUE","MASTER BUS COMPRESSION",620,470},{"GILLWIDTH","STEREO FIELD",740,440},
+        {"GILLPUNCH","MULTIBAND TRANSIENTS",700,460},{"GILLWEIGHT","BASS HARMONICS",500,430},
+        {"GILLDELTA","LINKED MASTER COMPARISON",660,440},{"GILLDELIVER","MASTER DELIVERY CHECK",700,500}};
     return info[std::clamp(int(kind),0,7)];
 }
 struct MasterParam {juce::String id,label;float lo=0,hi=100,step=.1f,initial=0;juce::String suffix;juce::StringArray choices;bool flag=false;};

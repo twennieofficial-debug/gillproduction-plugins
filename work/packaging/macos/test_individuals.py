@@ -136,7 +136,7 @@ class DeliveryTests(unittest.TestCase):
             if command[:2] == ['pkgutil', '--expand']:
                 target = Path(command[-1]) / 'payload.pkg'
                 target.mkdir(parents=True)
-                (target / 'PackageInfo').write_text('<pkg-info identifier="com.test" version="0.20.0" install-location="/"/>')
+                (target / 'PackageInfo').write_text('<pkg-info identifier="com.test" version="0.22.0" install-location="/"/>')
         with patch.object(delivery.core, 'run', side_effect=run):
             delivery.make_pkg(self.root / 'payload', selected, work, pkg, 'com.test')
         definitions = plistlib.loads((work / 'components.plist').read_bytes())

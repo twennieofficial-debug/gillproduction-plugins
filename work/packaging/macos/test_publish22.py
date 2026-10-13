@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
 
-import publish20 as pub
+import publish22 as pub
 
 COMMIT = 'a' * 40
 SOURCE = 'b' * 64
@@ -217,7 +217,7 @@ class DeliveryTests(unittest.TestCase):
         names = [p['name'] for p in pub.core.PRODUCTS]
         records = [{'name': n, 'bundle_sha256': hashlib.sha256(n.encode()).hexdigest()} for n in names]
         self.universal = {'source_sha256': SOURCE, 'signing': 'ad-hoc-local-test-only', 'plugins': records}
-        self.manifest = {'release': '20', 'product_count': 74, 'gill_bundle_count': 73,
+        self.manifest = {'release': '22', 'product_count': 74, 'gill_bundle_count': 73,
             'individual_dmg_count': 74, 'dmg_count': 75, 'architectures': ['arm64', 'x86_64'],
             'notarized': False, 'end_user_release_ready': False, 'fl_studio_tested': False,
             'signing': 'ad-hoc-local-test-only', 'installer_and_dmg_signing': 'unsigned',
@@ -225,7 +225,7 @@ class DeliveryTests(unittest.TestCase):
             'source_sha256': SOURCE, 'source_archive_sha256': pub.core.sha(self.archive), 'deliveries': [], 'files': {}}
         for label in names + ['GILL-73-BUNDLE']:
             selected = [n for n in names if n != 'MOBINA'] if label == 'GILL-73-BUNDLE' else [label]
-            base = label + '-20-MAC-UNSIGNIERT-TESTVERSION'
+            base = pub.individuals.asset_base(label)
             pkg, dmg = self.root / (base + '.pkg'), self.root / (base + '.dmg')
             pkg.write_bytes(b'xar!SYNTHETIC, NOT AN INSTALLER')
             dmg.write_bytes(b'SYNTHETIC, NOT A DISK IMAGE' + b'koly' + b'\0' * 508)
@@ -251,7 +251,7 @@ class DeliveryTests(unittest.TestCase):
         assets = self.validate()
         self.assertEqual(len(assets), 77)
         self.assertEqual(sum(p.suffix == '.dmg' for p in assets), 75)
-        self.assertEqual({p.name.split('-20-MAC')[0] for p in assets if p.suffix == '.pkg'}, {'MOBINA', 'GILL-73-BUNDLE'})
+        self.assertEqual({p.name.split('-22-MAC')[0] for p in assets if p.suffix == '.pkg'}, {'MOBINA', 'GILL-73-BUNDLE'})
 
     def test_changed_dmg_refused(self):
         next(self.root.glob('*.dmg')).write_bytes(b'corrupt')

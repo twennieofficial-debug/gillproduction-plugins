@@ -84,6 +84,7 @@ int main(){
         const auto info=masterInfo(static_cast<MasterKind>(kind));const int width=info.width,height=info.height;
         check(editor->getWidth()==width&&editor->getHeight()==height,"Compact default logical size");
         check(childBounds(*editor,*editor),"Every visible control lies within plugin bounds");check(peersClear(*editor),"Named native controls have nonempty nonoverlapping bounds");
+        for(const float scale:{1.25f,2.f}){editor->setSize(juce::roundToInt(width*scale),juce::roundToInt(height*scale));check(gillCurrentUi::visibleInside(*editor,*editor),"Resized master editor preserves reachable native controls without ancestor clipping");check(peersClear(*editor),"Resized master editor preserves nonoverlapping named controls");}editor->setSize(width,height);
         juce::MemoryBlock uiState;p.getStateInformation(uiState);int controlCount=0;exerciseControls(p,*editor,controlCount);
         check(controlCount==int(p.specs.size())+(kind<6?2:0)+(kind==0?1:0),"Every processing parameter has a tested native control");p.setStateInformation(uiState.getData(),int(uiState.getSize()));
         for(const auto name:{"LIVE","PRO","<",">"}){auto*b=buttonNamed(*editor,name);check(b&&bool(b->onClick),"Header actions wired");if(b)b->onClick();}

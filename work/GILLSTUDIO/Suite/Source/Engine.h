@@ -159,7 +159,7 @@ public:
     else if (kind == Kind::Room)
       room.prepare(fs, ch);
     else if (kind == Kind::Rack)
-      rack.prepare(coreRate, live);
+      rack.prepare(coreRate, live, ch);
     else {
       spectral.prepare(fs, 512, size_t(ch), 2048);
       spectralParams.mode = live ? gillstudio::spectral::Mode::Live
@@ -256,8 +256,6 @@ public:
                                                          : 0};
       for (auto &v : k)
         v = clean(v);
-      if (ch == 1 && keys > 1)
-        k = {.5 * (k[0] + k[1]), .5 * (k[0] + k[1])};
       std::array<double, 2> y;
       if (kind == Kind::Multi || kind == Kind::Precision || kind == Kind::Deess)
         y = bands.sample(x, k);

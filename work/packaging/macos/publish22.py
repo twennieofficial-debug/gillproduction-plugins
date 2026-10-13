@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Publish exact native-tested Mac20 bytes. No overwrite, deletion or credentials in logs."""
+"""Publish exact native-tested Mac22 bytes. No overwrite, deletion or credentials in logs."""
 from __future__ import annotations
 
 import argparse
@@ -14,9 +14,9 @@ import individuals
 import pipeline as core
 
 REPO = 'twennieofficial-debug/gillproduction-plugins'
-TAG = 'mac-bundle-20.2'
+TAG = 'mac-bundle-22'
 URL = f'https://github.com/{REPO}/releases/tag/{TAG}'
-ARCHIVE = 'GILL-QUELLCODE-20.zip'
+ARCHIVE = 'GILL-QUELLCODE-22.zip'
 require = core.require
 
 
@@ -41,7 +41,9 @@ def verify_local(args):
     core.verify_source_archive(archive, source_report)
     manifest = core.read(checked_file(delivery / 'MAC-RELEASE.json'))
     assets = validate_delivery(delivery, manifest, report, archive)
-    assets += [delivery / 'MAC-RELEASE.json', checked_file(universal / 'universal-build.json'), archive]
+    guide = checked_file(delivery / 'GILL-UPDATE-22-ANLEITUNG.md')
+    require(core.sha(guide) == core.sha(core.HERE / guide.name), 'Published instructions differ from reviewed source')
+    assets += [delivery / 'MAC-RELEASE.json', checked_file(universal / 'universal-build.json'), archive, guide]
     return assets, sha, manifest['source_sha256']
 
 
@@ -49,7 +51,7 @@ def validate_delivery(delivery, manifest, universal, archive):
     """Structural/byte checks complement, never replace, the native release gate."""
     names = {p['name'] for p in core.PRODUCTS}
     individuals.validate_catalog(core.PRODUCTS)
-    expected_flags = {'release': '20', 'product_count': 74, 'gill_bundle_count': 73,
+    expected_flags = {'release': '22', 'product_count': 74, 'gill_bundle_count': 73,
         'individual_dmg_count': 74, 'dmg_count': 75, 'architectures': ['arm64', 'x86_64'],
         'notarized': False, 'end_user_release_ready': False, 'fl_studio_tested': False,
         'signing': 'ad-hoc-local-test-only', 'installer_and_dmg_signing': 'unsigned',
@@ -69,7 +71,7 @@ def validate_delivery(delivery, manifest, universal, archive):
         selected = names - {'MOBINA'} if label == 'GILL-73-BUNDLE' else {label}
         require(len(item['products']) == len(selected) and set(item['products']) == selected, 'Wrong bundle membership')
         require(item['installer_execution_passed'] is True and item['mounted_dmg_passed'] is True, 'Untested delivery')
-        base = f'{label}-20-MAC-UNSIGNIERT-TESTVERSION'
+        base = individuals.asset_base(label)
         pkg, dmg = (delivery / (base + ext) for ext in ('.pkg', '.dmg'))
         require(set(item['files']) == {pkg.name, dmg.name}, 'Unexpected delivery filename')
         for path in (pkg, dmg):
@@ -124,6 +126,9 @@ class GitHub:
         result = subprocess.run(['gh', 'api', endpoint, '--method', 'POST', '-H', 'Content-Type: application/octet-stream',
                                  '--input', str(path)], capture_output=True, timeout=3600, check=False)
         require(result.returncode == 0, 'Asset upload failed; retry safely resumes the draft')
+        uploaded = json.loads(result.stdout)
+        require(uploaded.get('name') == path.name, 'GitHub altered the canonical asset name; draft preserved')
+        verify_remote([uploaded], {path.name: (core.sha(path), path.stat().st_size)}, complete=True)
 
 
 def tag_sha(api):
@@ -165,14 +170,15 @@ def verify_remote(assets, expected, complete):
 def publish(api, assets, commit, source_digest):
     require(re.fullmatch('[0-9a-f]{40}', commit) and re.fullmatch('[0-9a-f]{64}', source_digest), 'Invalid provenance')
     require(len({p.name for p in assets}) == len(assets), 'Duplicate local asset name')
+    require(all(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', p.name) for p in assets), 'Noncanonical asset name; spaces must be canonicalized before packaging')
     expected = {p.name: (core.sha(checked_file(p)), p.stat().st_size) for p in assets}
-    marker = f'Mac20 source commit: {commit}\nSource SHA256: {source_digest}'
+    marker = f'Mac22 source commit: {commit}\nSource SHA256: {source_digest}'
     target = tag_sha(api)
     require(target in (None, commit), 'Existing tag points to another commit')
     endpoint = f'repos/{REPO}/releases'
     release = api.api(f'{endpoint}/tags/{TAG}', missing=True)
     if release is None:
-        release = api.api(endpoint, 'POST', {'tag_name': TAG, 'target_commitish': commit, 'name': 'Mac20 – 74 Universal VST3 Plugins (unsignierte Testversion)',
+        release = api.api(endpoint, 'POST', {'tag_name': TAG, 'target_commitish': commit, 'name': 'Mac22 – 74 Universal VST3 Plugins (unsignierte Testversion)',
             'draft': True, 'prerelease': True, 'body': marker + '\n\n75 DMGs: 74 einzelne Plugins und ein GILL-Bundle mit 73 Plugins. MOBINA separat.\nApple Silicon + Intel, macOS 11+. VST3 nur ad-hoc signiert; PKG/DMG ohne Developer ID und ohne Notarisierung. Native automatisierte Tests bestanden; keine FL-Studio-Hörprüfung und keine Endkundenfreigabe. Quellcode und SHA256SUMS.txt beigefügt.'})
     require(release['tag_name'] == TAG and marker in (release.get('body') or '') and release.get('target_commitish') == commit, 'Existing release provenance differs')
     # GitHub may defer creating a draft's tag until publication. A present tag must always match.

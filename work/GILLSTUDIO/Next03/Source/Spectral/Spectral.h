@@ -221,19 +221,22 @@ public:
         if(!prepared_||!audio)return;for(std::size_t c=0;c<channels_;++c)if(!audio[c])return;
         if(frames==0)return;
         const bool active=p_.externalKey&&key&&(keyChannels==1||keyChannels==2)&&key[0]&&(keyChannels==1||key[1]);
-        if(active!=keyActive_){resetKey();keyActive_=active;}
+        // Mono L/R keys retain both detector lanes until their filtered powers
+        // are combined; summing waveforms here would erase anti-phase keys.
+        const auto detectorChannels=active&&channels_==1&&keyChannels==2&&p_.routing==Channels::Stereo?std::size_t(2):channels_;
+        if(active!=keyActive_||detectorChannels!=keyDetectorChannels_){resetKey();keyActive_=active;keyDetectorChannels_=detectorChannels;}
         for(std::size_t i=0;i<frames;++i){std::array<double,2>x{},wet{},dry{};
             std::array<double,2> detectorKey{};
             for(std::size_t c=0;c<channels_;++c)x[c]=bounded(audio[c][i],-1e6,1e6); // float host abuse guard, not a ceiling
             if(keyActive_){detectorKey[0]=bounded(key[0][i],-1e6,1e6);
                 detectorKey[1]=keyChannels==2?bounded(key[1][i],-1e6,1e6):detectorKey[0];
-                if(channels_==1&&keyChannels==2)detectorKey[0]=.5*(detectorKey[0]+detectorKey[1]);
+                if(channels_==1&&keyChannels==2&&p_.routing==Channels::MidSide)detectorKey[0]=.5*(detectorKey[0]+detectorKey[1]);
                 if(p_.routing==Channels::MidSide&&channels_==2)toMidSide(detectorKey);}
             if(p_.routing==Channels::MidSide&&channels_==2)toMidSide(x);
             if(p_.mode==Mode::Pro){
                 for(std::size_t c=0;c<channels_;++c){auto& s=pro_[c];s.input[inputPos_]=x[c];dry[c]=s.dry[dryPos_];s.dry[dryPos_]=x[c];
-                    s.keyInput[inputPos_]=detectorKey[c];
                     wet[c]=s.ola[outputPos_];s.ola[outputPos_]=0;}
+                if(keyActive_)for(std::size_t c=0;c<keyDetectorChannels_;++c)pro_[c].keyInput[inputPos_]=detectorKey[c];
                 inputPos_=(inputPos_+1)%n_;dryPos_=(dryPos_+1)%n_;
                 if(++hopClock_==hop_){hopClock_=0;processFrame();}
                 outputPos_=(outputPos_+1)%(2*n_);
@@ -311,14 +314,16 @@ private:
         if(liveWeightsDirty_){for(std::size_t b=0;b<liveBands;++b){liveWeights_[b]=nodeWeight(liveHz_[b]);liveFocus_[b]=bandFocus(liveHz_[b]);}liveWeightsDirty_=false;}
         if(liveLevelDirty_){for(std::size_t b=0;b<liveBands;++b)liveLevelThresholds_[b]=levelThresholdAt(liveHz_[b]);liveLevelDirty_=false;}
     }
-    double target(double power,double noise,double novelty,double prominence,double weight,double focus,bool learned,double denoisePower=-1,double denoiseNoise=-1) const noexcept {
+    double target(double power,double noise,double novelty,double prominence,double weight,double focus,bool learned,double denoisePower=-1,double denoiseNoise=-1,bool wienerAmplitude=false) const noexcept {
         const double transientProtection=1-p_.preserveTransient*std::clamp((novelty-1)/5.,0.,1.);
         double db=0;
         if(p_.denoise>0&&learned){const double fraction=(denoiseNoise>=0?denoiseNoise:noise)*amplitude(2*p_.noiseBiasDb)/std::max(denoisePower>=0?denoisePower:power,1e-30);
-            // Default subtraction is conservative; an explicit positive Noise Bias
-            // can still reach the full user-selected Max Reduction range.
+            // Retain a conservative 20% noise residual. PRO uses power-domain
+            // subtraction; LIVE uses the Wiener amplitude 1 - N/P, estimating
+            // clean amplitude rather than retaining the estimated clean power.
+            // An explicit positive Noise Bias can reach the full reduction range.
             const double gain=std::sqrt(std::max(amplitude(-2*p_.maxReductionDb),1-.8*std::clamp(fraction,0.,.98*std::max(1.,amplitude(2*p_.noiseBiasDb)))));
-            db+=std::max(-p_.maxReductionDb,20*std::log10(std::max(gain,1e-12)))*p_.denoise*transientProtection;}
+            db+=std::max(-p_.maxReductionDb,(wienerAmplitude?40:20)*std::log10(std::max(gain,1e-12)))*p_.denoise*transientProtection;}
         db-=std::clamp((prominence-p_.resonanceThresholdDb)*(1+3*p_.sharpness),0.,p_.maxReductionDb)*p_.resonance;
         const double onset=std::clamp((novelty-(1.2+3*(1-p_.sensitivity)))/4.,0.,1.);
         db+=(p_.boost?1:-1)*p_.transient*p_.maxReductionDb*onset;
@@ -329,13 +334,17 @@ private:
         const double rate=fs_/hop_,powerA=1-std::exp(-1/(rate*.035)),slowA=1-std::exp(-1/(rate*.15));
         const double normalization=2./(fs_*n_); // PSD using window energy N/2
         if(p_.learn)incrementProfile(profileFrames_);
+        if(keyActive_)for(std::size_t c=0;c<keyDetectorChannels_;++c){auto&s=pro_[c];
+            for(std::size_t j=0;j<n_;++j)s.keySpectrum[j]={s.keyInput[(inputPos_+j)%n_]*window_[j],0};
+            fft_.transform(s.keySpectrum.data(),false);
+            for(std::size_t b=0;b<bins_;++b)s.keyPower[b]+=powerA*(std::norm(s.keySpectrum[b])*normalization-s.keyPower[b]);}
         for(std::size_t c=0;c<channels_;++c){auto&s=pro_[c];
             for(std::size_t j=0;j<n_;++j)s.spectrum[j]={s.input[(inputPos_+j)%n_]*window_[j],0};
             fft_.transform(s.spectrum.data(),false);
-            if(keyActive_){for(std::size_t j=0;j<n_;++j)s.keySpectrum[j]={s.keyInput[(inputPos_+j)%n_]*window_[j],0};fft_.transform(s.keySpectrum.data(),false);}
+
             for(std::size_t b=0;b<bins_;++b){const double power=std::norm(s.spectrum[b])*normalization;
                 s.power[b]+=powerA*(power-s.power[b]);
-                if(keyActive_)s.keyPower[b]+=powerA*(std::norm(s.keySpectrum[b])*normalization-s.keyPower[b]);
+
                 if(p_.learn)s.noise[b]+=(power-s.noise[b])/double(profileFrames_);
                 else if(p_.trackNoise&&profileFrames_>0){const double a=power<s.noise[b]?1-std::exp(-1/(rate*.05)):1-std::exp(-1/(rate*8));s.noise[b]+=a*(power-s.noise[b]);}
                 const double novelty=power/std::max(s.baseline[b],1e-20);
@@ -349,10 +358,13 @@ private:
             const double diffuse=*percentile*1.7;
             for(std::size_t b=0;b<bins_;++b){double neighbors=0;int count=0;const auto radius=std::size_t(3+6*(1-p_.sharpness));
                 for(auto k=b>radius?b-radius:0;k<std::min(bins_,b+radius+1);++k)if(k+1<b||k>b+1){neighbors+=s.power[k];++count;}
-                const double prominenceDb=prominence(s.power[b],s.keyPower[b],neighbors/std::max(1,count));
+                const double keyPower=channels_==1&&keyDetectorChannels_==2?std::max(s.keyPower[b],pro_[1].keyPower[b]):s.keyPower[b];
+                const double prominenceDb=prominence(s.power[b],keyPower,neighbors/std::max(1,count));
                 const double event=processed_>n_?s.event[b]:1.;
                 s.target[b]=target(s.power[b],s.noise[b],event,prominenceDb,weights_[b],focus_[b],(profileFrames_>0||p_.trackNoise)&&!p_.learn,s.power[b],profileFrames_>0?std::min(s.noise[b],diffuse):diffuse);
-                const double levelPower=p_.levelStrength>0?std::norm(keyActive_?s.keySpectrum[b]:s.spectrum[b])*levelNormalization_*(keyActive_?keyPowerGain_:1)*((b==0||b==n_/2)?.5:1):0;
+                double detectorPower=std::norm(keyActive_?s.keySpectrum[b]:s.spectrum[b]);
+                if(keyActive_&&channels_==1&&keyDetectorChannels_==2)detectorPower=std::max(detectorPower,std::norm(pro_[1].keySpectrum[b]));
+                const double levelPower=p_.levelStrength>0?detectorPower*levelNormalization_*(keyActive_?keyPowerGain_:1)*((b==0||b==n_/2)?.5:1):0;
                 s.levelTarget[b]=levelTarget(levelPower,levelThresholds_[b],focus_[b]);
             }
         }
@@ -382,24 +394,37 @@ private:
         const bool update=(processed_&15)==0;
         if(update)refreshLiveCurves();
         if(p_.learn)incrementProfile(liveProfileSamples_);
+        if(keyActive_)for(std::size_t c=0;c<keyDetectorChannels_;++c){auto&s=live_[c];for(std::size_t b=0;b<liveBands;++b){
+            const double d=s.keyDetectors[b].tick(key[c]);s.keyFast[b]+=liveFast_*(d*d-s.keyFast[b]);s.keyLevelPower[b]+=liveLevelAverage_[b]*(d*d-s.keyLevelPower[b]);}}
         for(std::size_t c=0;c<channels_;++c){auto&s=live_[c];double previous=0;
             for(std::size_t b=0;b<liveBands-1;++b){const double low=s.filters[b].tick(x[c]);parts[c][b]=low-previous;previous=low;}parts[c].back()=x[c]-previous;
             for(std::size_t b=0;b<liveBands;++b){const double detector=s.detectors[b].tick(x[c]);const double power=detector*detector;s.fast[b]+=liveFast_*(power-s.fast[b]);s.partPower[b]+=partAverage_*(parts[c][b]*parts[c][b]-s.partPower[b]);
                 s.levelPower[b]+=liveLevelAverage_[b]*(power-s.levelPower[b]);
-                if(keyActive_){const double d=s.keyDetectors[b].tick(key[c]);s.keyFast[b]+=liveFast_*(d*d-s.keyFast[b]);s.keyLevelPower[b]+=liveLevelAverage_[b]*(d*d-s.keyLevelPower[b]);}
+
                 if(p_.learn)s.noise[b]+=(power-s.noise[b])/double(liveProfileSamples_);
                 else if(p_.trackNoise&&liveProfileSamples_>0){const double a=s.fast[b]<s.noise[b]?noiseFall_:noiseRise_;s.noise[b]+=a*(s.fast[b]-s.noise[b]);}
                 const double novelty=s.fast[b]/std::max(s.slow[b],1e-20);s.event[b]=std::max(std::min(novelty,20.),s.event[b]*liveDecay_);s.slow[b]+=liveSlow_*(s.fast[b]-s.slow[b]);
             }
-            if(update){std::array<double,32> whitened{};for(std::size_t b=0;b<liveBands;++b)whitened[b]=s.fast[b]/std::max(1e-8,liveDetectorBandwidth_[b]);std::sort(whitened.begin(),whitened.end());s.diffuse+=(1-std::exp(-16/(fs_*.08)))*(whitened[3]*std::clamp(2*whitened[3]/(whitened[liveBands/2]+1e-20),0.,1.)-s.diffuse);}
+            // Average detector power before taking a spectral median: a 4ms
+            // low order statistic is severely biased for narrow low-frequency
+            // bands. Normalize by the learned spectrum (or white-noise equivalent
+            // bandwidth without a profile), so a colored bed has unit expected
+            // density too. The median rejects a minority of tonal outliers and
+            // caps subtraction when the learned bed is no longer present.
+            if(update){std::array<double,32> whitened{};for(std::size_t b=0;b<liveBands;++b)whitened[b]=s.slow[b]/std::max(1e-30,liveProfileSamples_>0?s.noise[b]:liveDetectorBandwidth_[b]);std::sort(whitened.begin(),whitened.end());s.diffuse+=(1-std::exp(-16/(fs_*.08)))*(whitened[liveBands/2]-s.diffuse);}
             if(update)for(std::size_t b=0;b<liveBands;++b){double neighbors=0;int count=0;
                 // Adjacent detector bands overlap substantially. Excluding
                 // their immediate shoulders keeps a narrow tone from being
                 // mistaken for the surrounding spectral baseline.
                 for(auto k=b>4?b-4:0;k<std::min(liveBands,b+5);++k)if(k+1<b||k>b+1){neighbors+=s.fast[k];++count;}
-                const double prominenceDb=prominence(s.fast[b],s.keyFast[b],neighbors/std::max(1,count));
-                wanted[c][b]=target(s.fast[b],s.noise[b],processed_>fs_*.05?s.event[b]:1.,prominenceDb,liveWeights_[b],liveFocus_[b],(liveProfileSamples_>0||p_.trackNoise)&&!p_.learn,s.partPower[b],.85*liveBandwidth_[b]*(liveProfileSamples_>0?std::min(s.diffuse,s.noise[b]/std::max(1e-8,liveDetectorBandwidth_[b])):s.diffuse));
-                s.levelTarget[b]=levelTarget(keyActive_?s.keyLevelPower[b]*keyPowerGain_:s.levelPower[b],liveLevelThresholds_[b],liveFocus_[b]);}
+                const double keyFast=channels_==1&&keyDetectorChannels_==2?std::max(s.keyFast[b],live_[1].keyFast[b]):s.keyFast[b];
+                const double prominenceDb=prominence(s.fast[b],keyFast,neighbors/std::max(1,count));
+                // Noise and signal must use the same Q=3 detector transfer.
+                // One-pole reconstruction differences have broad remote-tone
+                // tails, which are not a valid denominator for this estimate.
+                wanted[c][b]=target(s.fast[b],s.noise[b],processed_>fs_*.05?s.event[b]:1.,prominenceDb,liveWeights_[b],liveFocus_[b],(liveProfileSamples_>0||p_.trackNoise)&&!p_.learn,s.slow[b],liveProfileSamples_>0?s.noise[b]*std::min(1.,s.diffuse):liveDetectorBandwidth_[b]*s.diffuse,true);
+                const double keyLevelPower=channels_==1&&keyDetectorChannels_==2?std::max(s.keyLevelPower[b],live_[1].keyLevelPower[b]):s.keyLevelPower[b];
+                s.levelTarget[b]=levelTarget(keyActive_?keyLevelPower*keyPowerGain_:s.levelPower[b],liveLevelThresholds_[b],liveFocus_[b]);}
         }
         if(update)reduction_=0;
         for(std::size_t b=0;b<liveBands;++b){double strongest=0,strongestLevel=0;
@@ -424,6 +449,7 @@ private:
     double mixSmooth_=0,outputTarget_=1,liveFast_=0,liveSlow_=0,noiseFall_=0,noiseRise_=0,denoiseOpen_=0,partAverage_=0;
     double keyPowerGain_=1;
     double levelNormalization_=1,minimumGain_=1,maximumGain_=1;
+    std::size_t keyDetectorChannels_=2;
     bool prepared_=false,weightsDirty_=true,keyActive_=false;
     bool proWeightsDirty_=true,liveWeightsDirty_=true,proLevelDirty_=true,liveLevelDirty_=true;
 };

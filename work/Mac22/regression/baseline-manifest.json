@@ -1,0 +1,20 @@
+{
+  "GILLSTUDIO/Suite/Source/Processor.cpp": "ad9ac18649909220312d6539615c21c27f0f90b587dca5a9b0b56b2bd3ace4d7",
+  "GILLSTUDIO/Suite/Source/Processor.h": "fdf1be9c9ce43dc8e2ceea333a5f6489a20ddd5395233f2ad644b0c1932ba27d",
+  "GILLCommon/QualityBus.h": "44d8f57fb4aebeac69255c56afec39343d3fdcbd824ba7095c6859a5ad4bb7e1",
+  "GILLSTUDIO/Suite/Source/Engine.h": "212e336d015fcab49348e686168da59f697a49a16eca15b32e9f3ed6ace74a88",
+  "GILLSTUDIO/Suite/Source/Dynamics.h": "4718f57de1314c0c1a18058dee61310f333ac544a7c3daed6821ed5461a9ca8d",
+  "GILLMASTER/Source/Foundation/FinishDSP.h": "757efdd2eae17e581f721c5f9adf625045d12e4286a5302436fb9ea4566f6fbf",
+  "GILLMASTER/Source/Foundation/NextDSPCommon.h": "d01db97544850bcbc124c7cfd73887d62b35483fd97aa2588cfc88ce064561cd",
+  "GILLMASTER/Source/Foundation/Loudness.h": "deefb542e40c82c53eaf52db42265d1182f3f337ab535a5fc3bbf05a2cd6ec68",
+  "GILLSTUDIO/Source/Dynamics/Dynamics.h": "14d7bcd30b7d632031c215d92e4764a655bc30ed4f43d187dff86e258731320d",
+  "GILLSTUDIO/Suite/Source/Tone.h": "2fa519f6e33d5d7825757d7225c0f49c3165ca8757a16400070c89dfcac6b220",
+  "GILLEQ/Source/EqDSP.h": "5dbd28486e2232ea2ad567d40acc1c733245d7d3e5f3e204b40feb128c97aac4",
+  "GILLSTUDIO/Suite/Source/Parameters.h": "7a234ed457564b5bdb36fee9e6ea7d91e1cd7e5cec42f516e77d4225a29e5657",
+  "GILLSTUDIO/Suite/Source/RackModel.h": "a76212675a4e695daa6b12d1410ef04b7861375a84b54aa50a1089cf7a994abb",
+  "GILLSTUDIO/Suite/Source/Antialias19.h": "b996358fbee3558e7f467f066bec5a0666808553aee6a9aebdc0af199148fc0a",
+  "GILLSTUDIO/Suite/Source/Rack.h": "81c9dd7dbd9069bce60cba769d83857d5dfe37351b8bfc60306b92c14e56e615",
+  "GILLSTUDIO/Suite/Source/RoomTank.h": "9ad5bba6e9fb28b0bc8d728c3c1e69863779f0ec7acb73a014fc873caee87301",
+  "GILLSTUDIO/Suite/Source/TransientKernel.h": "9c7bb9336fabda0884e7a6f68717fa5bf53ad272f8c7871a73e5492d4200125b",
+  "GILLSTUDIO/Next03/Source/Spectral/Spectral.h": "d73b8e6659c10efeebcbe1f854d3a56ae459e40c88a1a95d7c756fb2dc914e50"
+}

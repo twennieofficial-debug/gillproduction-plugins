@@ -1,0 +1,2338 @@
+[
+  {
+    "id": "LIVE-1-48000-128-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-48000-128-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-48000-128-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-48000-128-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-48000-128-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-48000-128-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-48000-128-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-44100-257-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-44100-257-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-44100-257-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-44100-257-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-44100-257-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-44100-257-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-44100-257-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-48000-128-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-48000-128-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-48000-128-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-48000-128-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-48000-128-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-48000-128-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-48000-128-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-44100-257-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-44100-257-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-44100-257-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-44100-257-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-44100-257-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-44100-257-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-44100-257-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-48000-128-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-48000-128-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-48000-128-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-48000-128-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-48000-128-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-48000-128-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-48000-128-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-44100-257-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-44100-257-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-44100-257-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-44100-257-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-44100-257-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-44100-257-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-44100-257-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-48000-128-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-48000-128-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-48000-128-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-48000-128-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-48000-128-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-48000-128-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-48000-128-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-44100-257-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-44100-257-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-44100-257-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-44100-257-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-44100-257-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-44100-257-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-44100-257-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 1
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-48000-128-internal",
+    "quality": "LIVE",
+    "mode": "internal",
+    "main": 1,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 0
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-1-44100-257-internal",
+    "quality": "LIVE",
+    "mode": "internal",
+    "main": 1,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 0
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-48000-128-internal",
+    "quality": "LIVE",
+    "mode": "internal",
+    "main": 2,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 0
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "LIVE-2-44100-257-internal",
+    "quality": "LIVE",
+    "mode": "internal",
+    "main": 2,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 0
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "LIVE"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-48000-128-internal",
+    "quality": "PRO",
+    "mode": "internal",
+    "main": 1,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 0
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-1-44100-257-internal",
+    "quality": "PRO",
+    "mode": "internal",
+    "main": 1,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 0
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-48000-128-internal",
+    "quality": "PRO",
+    "mode": "internal",
+    "main": 2,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 0
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  },
+  {
+    "id": "PRO-2-44100-257-internal",
+    "quality": "PRO",
+    "mode": "internal",
+    "main": 2,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "External sidechain",
+        "value": 0
+      },
+      {
+        "name": "Level strength",
+        "value": 1
+      },
+      {
+        "name": "Level threshold dBFS",
+        "text": "-60"
+      },
+      {
+        "name": "Maximum reduction dB",
+        "value": 1
+      },
+      {
+        "name": "Engine",
+        "text": "PRO"
+      }
+    ],
+    "keyFrequency1": 997,
+    "keyFrequency2": 7003
+  }
+]

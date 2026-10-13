@@ -32,7 +32,7 @@ GROUPS = sorted({p["group"] for p in PRODUCTS})
 PRODUCT_COUNT = len(PRODUCTS)
 JUCE_COMMIT = "29396c22c93392d6738e021b83196283d6e4d850"
 MIN_MACOS = "11.0"
-RELEASE = "20"
+RELEASE = "22"
 SUITE_VERSION = "0.20.0"
 QUALITY_SAMPLE_RATES = (44100, 48000, 96000, 192000)
 PLUGINVAL_URL = "https://github.com/Tracktion/pluginval/releases/download/v1.0.4/pluginval_macOS.zip"
@@ -188,10 +188,24 @@ def source_check(source):
             mix_host_cmake = (group == "GILLMIX" and path == root / "Tests/HostCMake/CMakeLists.txt") or (group in {"GILLMASTER", "GILLRISE"} and path.name == "CMakeLists.txt")
             if path.is_file() and (code or fixture or mix_host_cmake):
                 selected[path.relative_to(source).as_posix()] = sha(path)
+    if len(GROUPS) == 23:
+        regression = source / "Mac22/regression"
+        require((regression / "run.py").is_file(), "Missing Update22 regression runner")
+        for path in sorted(regression.rglob("*")):
+            parts = path.relative_to(regression).parts
+            if any(part in {"__pycache__", "selftest-output"} or part.startswith("build") for part in parts):
+                continue
+            if path.is_file() and path.suffix.lower() in {".py", ".cpp", ".h", ".hpp", ".mm", ".json", ".txt", ".md", ".mjs"}:
+                require(not path.is_symlink(), "Regression source symlink forbidden")
+                selected[path.relative_to(source).as_posix()] = sha(path)
+        for name in ("spectral_tests.cpp", "level_tests.cpp", "advanced_tests.cpp"):
+            path = source / "GILLSTUDIO/Next03/Tests/Spectral" / name
+            require(path.is_file(), "Missing standalone spectral regression sources: " + name)
+            selected[path.relative_to(source).as_posix()] = sha(path)
     juce = source / "dependencies" / "JUCE"
     # These existing sources are shared by the newer nested Studio groups.
     # Keep the transitive compilation inputs in the source fingerprint and ZIP.
-    for relative in ("GILLSTUDIO/Source/Dynamics/Dynamics.h",
+    for relative in ("GILLSTUDIO/Source/Dynamics/Dynamics.h", "GILLSTUDIO/Source/Spectral/Spectral.h",
                      "GILLSTUDIO/Next03/Source/Spectral/Spectral.h",
                      "Effects16/advanced-ui/AdvancedScalpel.h"):
         if any(group.startswith("GILLSTUDIO/") for group in GROUPS):
@@ -206,6 +220,9 @@ def source_check(source):
     if (juce / ".git").exists():
         require(run(["git", "-C", juce, "rev-parse", "HEAD"]) == JUCE_COMMIT, "JUCE commit differs")
         require(not run(["git", "-C", juce, "status", "--porcelain"]), "JUCE source has uncommitted changes")
+    for path in sorted(HERE.rglob("*")):
+        if "__pycache__" not in path.parts and path.is_file() and path.suffix in {".py", ".json", ".yml", ".txt", ".md", ".mjs"}:
+            selected["packaging/macos/" + path.relative_to(HERE).as_posix()] = sha(path)
     selected["JUCE_PIN"] = JUCE_COMMIT
     selected["PRODUCT_CATALOG"] = sha(HERE / "products.json")
     selected["CTEST_MATRIX"] = sha(HERE / "ctest-matrix.json")
@@ -659,6 +676,23 @@ def build(args):
           "fl_studio_tested": False, "visual_review_required": True})
 
 
+def verify_update22_gate(report, root=None):
+    gate = report.get("update22_regression", {})
+    require(gate.get("passed") is True and gate.get("architecture") == report.get("architecture")
+            and gate.get("report") == "test-evidence/UPDATE22/result.json"
+            and re.fullmatch("[0-9a-f]{64}", gate.get("report_sha256", ""))
+            and re.fullmatch("[0-9a-f]{64}", gate.get("native_report_before_sha256", "")),
+            "Missing or malformed Update22 native regression proof")
+    if root is not None:
+        root = Path(root)
+        require(sha(root / gate["report"]) == gate["report_sha256"], "Update22 report bytes changed")
+        require(sha(root / "native-build-before-update22.json") == gate["native_report_before_sha256"], "Update22 base native report changed")
+        runner = HERE.parents[1] / "Mac22/regression/run.py"
+        require(runner.is_file(), "Missing Update22 evidence verifier")
+        run([sys.executable, "-B", runner, "--verify", root])
+    return gate
+
+
 def merge(args):
     native_arch()
     roots = {arch: Path(getattr(args, arch)).resolve() for arch in ("arm64", "x86_64")}
@@ -667,8 +701,14 @@ def merge(args):
         require(report["passed"] and report["architecture"] == arch, f"Missing native {arch} build")
         verify_native_quality_gate(report, roots[arch])
         verify_native_mix_gate(report, roots[arch])
+        verify_update22_gate(report, roots[arch])
     require(reports["arm64"]["source"]["source_sha256"] == reports["x86_64"]["source"]["source_sha256"], "Architecture source mismatch")
     dest = new_destination(args.destination)
+    for arch, root in roots.items():
+        proof = dest / "native-proof" / arch
+        proof.mkdir(parents=True)
+        shutil.copytree(root / "test-evidence/UPDATE22", proof / "UPDATE22")
+        shutil.copy2(root / "native-build-before-update22.json", proof / "native-build-before-update22.json")
     identity = os.environ.get("GILL_APPLICATION_IDENTITY", "").strip()
     if identity:
         require(identity.startswith("Developer ID Application:"), "An Apple Developer ID Application identity is required")
@@ -750,6 +790,23 @@ def verify_release_gate(universal, validations):
                 "QualityHost native evidence belongs to another Universal source build")
         verify_native_quality_gate(native)
         verify_native_mix_gate(native)
+        gate = verify_update22_gate(native)
+        proof = Path(universal) / "native-proof" / arch
+        require(sha(proof / "UPDATE22/result.json") == gate["report_sha256"], "Universal Update22 proof changed")
+        require(sha(proof / "native-build-before-update22.json") == gate["native_report_before_sha256"], "Universal Update22 native base changed")
+        regression = read(proof / "UPDATE22/result.json")
+        require(regression.get("passed") is True and regression.get("domain") == "native-macos"
+                and regression.get("architecture") == arch
+                and regression.get("source_sha256") == report["source_sha256"]
+                and regression.get("native_report_sha256") == gate["native_report_before_sha256"],
+                "Universal Update22 provenance differs")
+        require(isinstance(regression.get("proof_files"), dict) and regression["proof_files"], "Missing Update22 proof files")
+        evidence_root = (proof / "UPDATE22").resolve()
+        for relative, digest in regression["proof_files"].items():
+            file = evidence_root / relative
+            require(not Path(relative).is_absolute() and ".." not in Path(relative).parts
+                    and file.resolve().is_relative_to(evidence_root) and not file.is_symlink(), "Unsafe Update22 proof path")
+            require(sha(file) == digest, "Universal Update22 evidence file changed: " + relative)
         result = read(Path(validations) / arch / f"validation-{arch}.json")
         require(result["passed"] and result["native_architecture"] == arch, f"Native {arch} validation is missing")
         require(result["universal_report_sha256"] == sha(Path(universal) / "universal-build.json"), "Validation report is for another build")

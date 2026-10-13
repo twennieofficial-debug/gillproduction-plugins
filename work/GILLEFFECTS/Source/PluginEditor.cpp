@@ -26,11 +26,28 @@ struct Binding {
 };
 
 class Display final:public juce::Component {
-public:explicit Display(GillEffectProcessor& processor):p(processor){}
+public:explicit Display(GillEffectProcessor& processor):p(processor){if(p.kind==GillKind::Balance){setName("BALANCE EQ GRAPH");setWantsKeyboardFocus(true);}}
+    ~Display() override {endDrag();}
+    void mouseDown(const juce::MouseEvent& e)override{
+        if(p.kind!=GillKind::Balance||!p.rateSupported.load())return;
+        endDrag();
+        const auto point=juce::Point<float>(e.position.x*696/getWidth(),e.position.y*270/getHeight());
+        float distance=18;selected=-1;
+        for(int i=0;i<8;++i)if(view.active[i]){const auto node=nodePosition(i);const auto d=node.getDistanceFrom(point);if(d<distance){distance=d;selected=i;}}
+        if(selected>=0){grabKeyboardFocus();startY=e.position.y;startGain=p.value("trim"+juce::String(selected));drag=p.apvts.getParameter("trim"+juce::String(selected));drag->beginChangeGesture();}repaint();
+    }
+    void mouseDrag(const juce::MouseEvent& e)override{if(drag){const float delta=(startY-e.position.y)*270/getHeight()*36/172;drag->setValueNotifyingHost(drag->convertTo0to1(juce::jlimit(-6.f,6.f,startGain+delta)));repaint();}}
+    void mouseUp(const juce::MouseEvent&)override{endDrag();}
+    void mouseDoubleClick(const juce::MouseEvent&)override{endDrag();if(selected>=0)p.setValue("trim"+juce::String(selected),0);}
+    bool keyPressed(const juce::KeyPress& key)override{
+        if(p.kind!=GillKind::Balance)return false;
+        if(key==juce::KeyPress::leftKey||key==juce::KeyPress::rightKey){const int step=key==juce::KeyPress::leftKey?-1:1;for(int next=juce::jlimit(0,7,selected+step);next>=0&&next<8;next+=step)if(view.active[next]){selected=next;break;}repaint();return true;}
+        if(selected>=0&&(key==juce::KeyPress::upKey||key==juce::KeyPress::downKey)){const auto id="trim"+juce::String(selected);p.setValue(id,juce::jlimit(-6.f,6.f,p.value(id)+(key==juce::KeyPress::upKey?.1f:-.1f)));repaint();return true;}return false;
+    }
     void tick(){std::move(pre.begin()+1,pre.end(),pre.begin());std::move(post.begin()+1,post.end(),post.begin());pre.back()=p.inputPeak.load();post.back()=p.outputPeak.load();if(p.kind==GillKind::Balance)view=p.balanceView();repaint();}
     void paint(juce::Graphics& g)override{
         const float sx=getWidth()/720.f,sy=getHeight()/270.f;
-        if(p.kind==GillKind::Balance){g.addTransform(juce::AffineTransform::scale(getWidth()/696.f,getHeight()/270.f));auto a=gill::twin::lens(g,{0,0,270,270},"BEFORE","8 MEASURED BANDS / DBFS");auto b=gill::twin::lens(g,{426,0,270,270},"AFTER","8 MEASURED BANDS / DBFS");if(std::any_of(view.active.begin(),view.active.end(),[](bool active){return active;})){gill::twin::trace(g,a,view.pre,-60,0);gill::twin::trace(g,b,view.post,-60,0);}else{g.setColour(gill::twin::purple);g.setFont(font(11));g.drawText("PLAY TO MEASURE",a,juce::Justification::centred);g.drawText("PLAY TO MEASURE",b,juce::Justification::centred);}return;}
+        if(p.kind==GillKind::Balance){g.addTransform(juce::AffineTransform::scale(getWidth()/696.f,getHeight()/270.f));paintBalance(g);return;}
         auto r=getLocalBounds().toFloat();background(g,r);
         if(!p.rateSupported.load()){g.setColour(cream);g.setFont(font(15,true));g.drawText("SAMPLE RATE UNSUPPORTED / BYPASS",getLocalBounds(),juce::Justification::centred);return;}
         g.setFont(font(11,true));g.setColour(cream.withAlpha(.78f));
@@ -44,22 +61,39 @@ public:explicit Display(GillEffectProcessor& processor):p(processor){}
     }
 private:
     static void background(juce::Graphics& g,juce::Rectangle<float> r){g.setGradientFill(juce::ColourGradient(dark,0,0,juce::Colour(0xff071727),0,r.getHeight(),false));g.fillRoundedRectangle(r,12);g.setColour(cream.withAlpha(.22f));g.drawRoundedRectangle(r.reduced(1),11,1);}
-    void paintBalance(juce::Graphics& g){
-        background(g,{0,0,720,270});g.setFont(font(15,true));g.setColour(cream.withAlpha(.78f));g.drawText("EQ / DB",17,10,120,17,juce::Justification::left);g.drawText(view.fine.enabled?juce::String(view.fine.count)+" RESONANCES  /  8 DYNAMIC BANDS":"LEGACY TONAL PROFILE",255,10,438,17,juce::Justification::right);g.drawText("IN / OUT BAND LEVEL",17,198,220,16,juce::Justification::left);
-        if(!p.rateSupported.load()){g.drawText("SAMPLE RATE UNSUPPORTED / BYPASS",100,70,530,50,juce::Justification::centred);return;}
-        const double rate=p.uiRate.load(),maximum=std::min(20000.,rate*.49),pi=3.14159265358979323846;
-        const juce::Rectangle<float> area(48,34,648,135);
-        auto xFor=[&](double hz){return area.getX()+static_cast<float>(std::log(hz/20)/std::log(maximum/20))*area.getWidth();};
-        auto yFor=[&](double db){return area.getCentreY()-static_cast<float>(db)*area.getHeight()/48;};
-        for(int db:{-18,-12,-6,0,6,12}){g.setColour(cream.withAlpha(db==0?.22f:.09f));g.drawHorizontalLine(static_cast<int>(yFor(db)),area.getX(),area.getRight());g.setColour(cream.withAlpha(.7f));g.drawText(juce::String(db),9,static_cast<int>(yFor(db))-7,29,15,juce::Justification::right);}
-        for(int hz:{50,100,200,500,1000,2000,5000,10000})if(hz<maximum){float x=xFor(hz);g.setColour(cream.withAlpha(.08f));g.drawVerticalLine(static_cast<int>(x),area.getY(),area.getBottom());g.setColour(cream.withAlpha(.6f));g.drawText(hz>=1000?juce::String(hz/1000)+"K":juce::String(hz),static_cast<int>(x)-22,175,44,16,juce::Justification::centred);}
-        auto response=[&](double frequency){const auto z=std::polar(1.,-2*pi*frequency/rate);double magnitude=1;for(size_t b=0;b<8;++b)if(view.active[b]){const double w=2*pi*gill::BalanceDSP::centersHz[b]/rate,a=std::pow(10.,view.gains[b]/40.),alpha=std::sin(w)/(2*gill::BalanceDSP::bellQ),cosine=std::cos(w);const auto numerator=(1+alpha*a)-2*cosine*z+(1-alpha*a)*z*z,denominator=(1+alpha/a)-2*cosine*z+(1-alpha/a)*z*z;magnitude*=std::abs(numerator/denominator);}if(view.fine.enabled){auto extra=[&](double hz,double gain,double q){if(hz<=0||hz>rate*.45||q<=0)return;const double w=2*pi*hz/rate,a=std::pow(10.,gain/40.),alpha=std::sin(w)/(2*q),co=std::cos(w);magnitude*=std::abs(((1+alpha*a)-2*co*z+(1-alpha*a)*z*z)/((1+alpha/a)-2*co*z+(1-alpha/a)*z*z));};for(size_t b=0;b<8;++b)extra(gill::BalanceDSP::centersHz[b],view.fine.dynamics[b],.9);for(int b=0;b<view.fine.count;++b)extra(view.fine.frequency[b],view.fine.gain[b],view.fine.q[b]);}return 20*std::log10(std::max(1e-12,magnitude));};
-        if(view.fine.enabled){juce::Path spectrum;bool started=false;for(int i=0;i<256;++i){const double hz=gill::FineBalanceProfile::frequency(i);if(hz>=maximum)break;const float x=xFor(hz),y=area.getBottom()-juce::jlimit(0.f,1.f,(view.fine.spectrum[i]+75)/75)*area.getHeight()*.85f;if(!started){spectrum.startNewSubPath(x,y);started=true;}else spectrum.lineTo(x,y);}g.setColour(cream.withAlpha(.25f));g.strokePath(spectrum,juce::PathStrokeType(1));g.setFont(font(15));g.drawText("LEARNED SPECTRUM",505,146,180,15,juce::Justification::right);}
-        juce::Path curve;for(int i=0;i<=400;++i){const double hz=20*std::pow(maximum/20,i/400.);const float x=area.getX()+i*area.getWidth()/400,y=yFor(response(hz));if(i==0)curve.startNewSubPath(x,y);else curve.lineTo(x,y);}g.setColour(sage.brighter(.75f));g.strokePath(curve,juce::PathStrokeType(2.2f));
-        for(size_t b=0;b<8;++b)if(view.active[b]&&gill::BalanceDSP::centersHz[b]<maximum){const float x=xFor(gill::BalanceDSP::centersHz[b]),y=yFor(response(gill::BalanceDSP::centersHz[b]));g.setColour(cream);g.fillEllipse(x-3,y-3,6,6);const float in=juce::jlimit(0.f,1.f,(view.pre[b]+60)/60),out=juce::jlimit(0.f,1.f,(view.post[b]+60)/60);g.setColour(cream.withAlpha(.4f));g.fillRoundedRectangle(x-8,253-in*35,6,in*35,1);g.setColour(sage.brighter(.7f));g.fillRoundedRectangle(x+2,253-out*35,6,out*35,1);}
-        if(view.fine.enabled)for(int b=0;b<view.fine.count;++b){const auto hz=view.fine.frequency[b];if(hz<20||hz>maximum)continue;const float x=xFor(hz),y=yFor(response(hz));g.setColour(juce::Colour(0xffe3b884));g.drawEllipse(x-4,y-4,8,8,1.2f);}
-        g.setFont(font(15));g.setColour(cream.withAlpha(.6f));g.drawText("0",9,213,29,14,juce::Justification::right);g.drawText("-60",9,242,29,14,juce::Justification::right);g.drawText("DBFS",658,199,40,15,juce::Justification::right);
+    void endDrag(){if(drag){drag->endChangeGesture();drag=nullptr;}}
+    double maximum()const{return std::min(20000.,p.uiRate.load()*.49);}
+    float xFor(double hz)const{return 46+float(std::log(hz/20)/std::log(maximum()/20))*600;}
+    float yFor(double db)const{return 134-float(db)*172/36;}
+    double response(double frequency)const{
+        if(!std::any_of(view.active.begin(),view.active.end(),[](bool b){return b;}))return 0;
+        const double rate=p.uiRate.load(),pi=juce::MathConstants<double>::pi;const auto z=std::polar(1.,-2*pi*frequency/rate);double magnitude=1;
+        auto cascade=[&](const auto& coefficients){std::complex<double> h=1;for(const auto& c:coefficients)h*=(c[0]+c[1]*z+c[2]*z*z)/(1.+c[3]*z+c[4]*z*z);return h;};
+        auto fine=cascade(view.fine.coefficients);if(view.fine.transitionBlend<1)fine=cascade(view.fine.previousCoefficients)*(1-view.fine.transitionBlend)+fine*view.fine.transitionBlend;
+        fine=1.+(fine-1.)*view.fine.wetBlend;
+        magnitude=std::abs(cascade(view.coefficients)*fine);
+        return 20*std::log10(std::max(1e-12,magnitude));
     }
+    juce::Point<float> nodePosition(int i)const{return {xFor(gill::BalanceDSP::centersHz[i]),juce::jlimit(48.f,220.f,yFor(response(gill::BalanceDSP::centersHz[i])))};}
+    void paintBalance(juce::Graphics& g){
+        const auto white=juce::Colour(0xffeee8f8),purple=gill::twin::purple;
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xffe9e2d8),0,0,juce::Colour(0xff68616c),696,270,false));g.fillRoundedRectangle(0,0,696,270,14);
+        g.setGradientFill(juce::ColourGradient(juce::Colour(0xff292733),0,0,gill::twin::glass,696,270,false));g.fillRoundedRectangle(3,3,690,264,12);
+        g.setColour(purple.withAlpha(.45f));g.drawRoundedRectangle(5,5,686,260,10,1);
+        g.setFont(font(12,true));g.setColour(white);g.drawText(p.value("bypass")>.5f?"EQ / BYPASSED":"EQ RESPONSE",16,12,180,20,juce::Justification::left);
+        g.setFont(font(12));g.setColour(purple);g.drawText("STATIC + FINE + DYNAMIC",316,12,330,20,juce::Justification::right);
+        if(!p.rateSupported.load()){g.drawText("SAMPLE RATE UNSUPPORTED / BYPASS",46,100,600,60,juce::Justification::centred);return;}
+        for(int db:{-18,-12,-6,0,6,12,18}){const float y=yFor(db);g.setColour(white.withAlpha(db==0?.30f:.09f));g.drawHorizontalLine(int(y),46,646);g.setColour(white.withAlpha(.72f));g.drawText((db>0?"+":"")+juce::String(db),7,int(y)-8,32,16,juce::Justification::right);}
+        for(int hz:{20,50,100,200,500,1000,2000,5000,10000,20000})if(hz<=maximum()){const float x=xFor(hz);g.setColour(white.withAlpha(.08f));g.drawVerticalLine(int(x),48,220);g.setColour(white.withAlpha(.7f));g.drawText(hz>=1000?juce::String(hz/1000)+"k":juce::String(hz),int(x)-21,222,42,16,juce::Justification::centred);}
+        g.setColour(white.withAlpha(.7f));g.drawText("dB",8,31,30,16,juce::Justification::right);g.drawText("Hz",669,222,22,16,juce::Justification::left);
+        {juce::Graphics::ScopedSaveState save(g);g.reduceClipRegion(46,48,601,173);
+        if(view.fine.enabled){juce::Path spectrum;bool first=true;for(int i=0;i<256;++i){const double hz=gill::FineBalanceProfile::frequency(i);if(hz>maximum())break;const float x=xFor(hz),y=220-juce::jlimit(0.f,1.f,(view.fine.spectrum[i]+90)/90)*172;if(first){spectrum.startNewSubPath(x,y);first=false;}else spectrum.lineTo(x,y);}g.setColour(white.withAlpha(.25f));g.strokePath(spectrum,juce::PathStrokeType(1.2f));}
+        juce::Path curve;for(int i=0;i<=600;++i){const float x=46.f+i,y=yFor(response(20*std::pow(maximum()/20,i/600.)));if(i==0)curve.startNewSubPath(x,y);else curve.lineTo(x,y);}g.setColour(purple.withAlpha(.10f));g.strokePath(curve,juce::PathStrokeType(8));g.setColour(purple);g.strokePath(curve,juce::PathStrokeType(2.2f));}
+        for(int i=0;i<8;++i)if(view.active[i]){const auto pt=nodePosition(i);g.setColour(gill::twin::glass);g.fillEllipse(pt.x-6,pt.y-6,12,12);g.setColour(i==selected?white:purple);g.drawEllipse(pt.x-6,pt.y-6,12,12,i==selected?2.5f:1.5f);}
+        g.setFont(font(12));g.setColour(white.withAlpha(.6f));g.drawText(view.fine.enabled?"LEARNED SPECTRUM / -90..0 dB (relative)":"NO LEARNED SPECTRUM",16,245,320,16,juce::Justification::left);
+        g.setColour(purple);g.drawText(selected>=0?juce::String(gill::BalanceDSP::centersHz[selected],0)+" Hz / TRIM "+juce::String(p.value("trim"+juce::String(selected)),1)+" dB":"DRAG A POINT / +/-6 dB TRIM",340,245,340,16,juce::Justification::right);
+    }
+    juce::RangedAudioParameter* drag=nullptr;int selected=-1;float startY=0,startGain=0;
     GillEffectProcessor& p;BalanceView view;std::array<float,100> pre{},post{};
 };
 }
@@ -79,7 +113,7 @@ struct GillEffectEditor::Impl:private juce::Timer {
         if(p.kind==GillKind::Air){baseWidth=440;baseHeight=300;add("midair","MID AIR"," %");add("highair","HIGH AIR"," %");add("mix","MIX"," %");add("output","OUTPUT"," DB");}
         else if(p.kind==GillKind::Space){baseWidth=660;baseHeight=410;add("decay","DECAY"," S");add("predelay","PREDELAY"," MS");add("size","SIZE"," %");add("tone","TONE"," %");add("width","WIDTH"," %");add("mix","MIX"," %");add("dry","DRY"," %");}
         else if(p.kind==GillKind::Echo){baseWidth=680;baseHeight=440;add("time","TIME"," MS");add("feedback","FEEDBACK"," %");add("color","COLOR"," %");add("width","WIDTH"," %");add("mix","MIX"," %");add("bpm","TEMPO"," BPM");add("dry","DRY"," %");sync.setName("SYNC");sync.setClickingTogglesState(true);owner.addAndMakeVisible(sync);syncAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"sync",sync);auto* dp=dynamic_cast<juce::AudioParameterChoice*>(p.apvts.getParameter("division"));division.addItemList(dp->choices,1);division.setName("DIVISION");owner.addAndMakeVisible(division);divisionAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.apvts,"division",division);division.setTooltip("D = DOTTED / T = TRIPLET; MAXIMAL 8 SEKUNDEN");sync.setTooltip("SONGTEMPO VERWENDEN; OHNE HOSTTEMPO GILT DER TEMPO-REGLER");}
-        else{baseWidth=740;baseHeight=450;add("amount","AMOUNT"," %");controls[0]->slider.setSliderStyle(juce::Slider::LinearVertical);auto* tp=dynamic_cast<juce::AudioParameterChoice*>(p.apvts.getParameter("target"));target.addItemList(tp->choices,1);target.setName("TARGET");owner.addAndMakeVisible(target);targetAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.apvts,"target",target);learn.setName("LEARN");owner.addAndMakeVisible(learn);owner.addAndMakeVisible(status);learn.onClick=[this]{const auto state=p.learnState.load();p.requestLearning(state!=1&&state!=4);};learn.setTooltip("LEARN, SONG ABSPIELEN, DANN STOP. BIS 5 MINUTEN. ERNEUTER KLICK SCHLIESST DIE ANALYSE AB.");status.setFont(font(12,true));status.setColour(juce::Label::textColourId,ink);}
+        else{baseWidth=740;baseHeight=450;add("amount","AMOUNT"," %");controls[0]->label.setText("LEARN AMOUNT",juce::dontSendNotification);controls[0]->slider.setSliderStyle(juce::Slider::LinearHorizontal);auto* tp=dynamic_cast<juce::AudioParameterChoice*>(p.apvts.getParameter("target"));target.addItemList(tp->choices,1);target.setName("TARGET");owner.addAndMakeVisible(target);targetAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ComboBoxAttachment>(p.apvts,"target",target);learn.setName("LEARN");owner.addAndMakeVisible(learn);owner.addAndMakeVisible(status);learn.onClick=[this]{const auto state=p.learnState.load();p.requestLearning(state!=1&&state!=4);};learn.setTooltip("LEARN, SONG ABSPIELEN, DANN STOP. BIS 5 MINUTEN. ERNEUTER KLICK SCHLIESST DIE ANALYSE AB.");status.setFont(font(12,true));status.setColour(juce::Label::textColourId,ink);}
         if(p.kind==GillKind::Space||p.kind==GillKind::Echo){
             const char* spaceNames[]{"ROOM","HALL","PLATE"};const char* echoNames[]{"CLEAN","TAPE","PINGPONG"};for(int i=0;i<3;++i){modes[i].setButtonText(p.kind==GillKind::Space?spaceNames[i]:echoNames[i]);modes[i].setName(modes[i].getButtonText());modes[i].onClick=[this,i]{p.setValue("style",static_cast<float>(i));};owner.addAndMakeVisible(modes[i]);}
             preset.setName("PRESET");for(int i=0;i<p.getNumPrograms();++i)preset.addItem(p.getProgramName(i),i+1);preset.setTextWhenNothingSelected("CUSTOM");preset.onChange=[this]{if(preset.getSelectedId()>0)p.selectPreset(preset.getSelectedId()-1);};owner.addAndMakeVisible(preset);mixlock.setName("MIX LOCK");mixlock.setClickingTogglesState(true);owner.addAndMakeVisible(mixlock);lockAttachment=std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment>(p.apvts,"mixlock",mixlock);mixlock.setTooltip("MIX BEIM PRESETWECHSEL BEIBEHALTEN. DRY BLEIBT IMMER ERHALTEN.");previous.setName("PREVIOUS PRESET");next.setName("NEXT PRESET");owner.addAndMakeVisible(previous);owner.addAndMakeVisible(next);previous.onClick=[this]{p.selectPreset((p.getCurrentProgram()+11)%12);};next.onClick=[this]{p.selectPreset((p.getCurrentProgram()+1)%12);};
@@ -96,7 +130,7 @@ struct GillEffectEditor::Impl:private juce::Timer {
     void control(int i,float x,float y,float w,float h){bounds(controls[i]->label,x,y,w,21);bounds(controls[i]->slider,x,y+24,w,h-24);}
     void resized(){bounds(bypass,baseWidth-105.f,19,84,29);bounds(quality,baseWidth-228.f,21,110,26);
         if(p.kind==GillKind::Air){bounds(display,20,65,400,75);control(0,22,151,106,133);control(1,133,151,106,133);control(2,250,169,80,112);control(3,337,169,80,112);}
-        else if(p.kind==GillKind::Balance){bounds(display,22,72,696,270);bounds(learn,325,99,90,40);bounds(target,220,391,300,32);bounds(status,90,347,560,26);control(0,320,155,100,171);}
+        else if(p.kind==GillKind::Balance){bounds(display,22,68,696,270);bounds(learn,24,363,98,36);bounds(target,141,365,238,32);bounds(status,22,411,696,25);control(0,402,345,308,64);}
         else{const bool echo=p.kind==GillKind::Echo;bounds(display,22,65,baseWidth-44.f,echo?121:115);
             const float modeY=echo?198:192;const float modeX=echo?297:169,modeW=echo?113:104;for(int i=0;i<3;++i)bounds(modes[i],modeX+i*(modeW+4),modeY,modeW,29);
             if(echo){bounds(sync,22,198,78,29);bounds(division,107,198,179,29);}
@@ -106,7 +140,7 @@ struct GillEffectEditor::Impl:private juce::Timer {
     }
     void paint(juce::Graphics& g){
 g.addTransform(juce::AffineTransform::scale(owner.getWidth()/static_cast<float>(baseWidth)));
- if(p.kind==GillKind::Balance){gill::twin::chassis(g,740,450,p.getName());return;}
+ if(p.kind==GillKind::Balance){gill::twin::chassis(g,740,450,p.getName());g.setFont(font(12,true));g.setColour(gill::twin::ink);g.drawText("TARGET",142,345,236,20,juce::Justification::centredLeft);return;}
  const float top=p.kind==GillKind::Air?140.f:p.kind==GillKind::Balance?255.f:202.f;
  gill::prism::chassis(g,float(baseWidth),float(baseHeight),top);
  gill::prism::title(g,p.getName(),{75,16,baseWidth-313.f,32},22);

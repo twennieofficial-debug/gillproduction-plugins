@@ -40,10 +40,12 @@ set(GILL_JUCE_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../dependencies/JUCE" CACH
 
 set(JUCE_BUILD_EXTRAS OFF CACHE BOOL "" FORCE)
 set(JUCE_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-if(GILL_JUCE_EXPORT)
-  include("${GILL_JUCE_EXPORT}")
-else()
-  add_subdirectory("${GILL_JUCE_SOURCE_DIR}" JUCE)
+if(NOT TARGET juce::juceaide)
+  if(GILL_JUCE_EXPORT)
+    include("${GILL_JUCE_EXPORT}")
+  else()
+    add_subdirectory("${GILL_JUCE_SOURCE_DIR}" JUCE)
+  endif()
 endif()
 set(runtime_defs JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_USE_WIN_WEBVIEW2=0 JUCE_REPORT_APP_USAGE=0 JUCE_GLOBAL_MODULE_SETTINGS_INCLUDED=1)
 foreach(m audio_basics audio_devices audio_formats audio_processors audio_processors_headless audio_utils core data_structures events graphics gui_basics gui_extra)
@@ -83,7 +85,11 @@ target_include_directories(GillEffectShared PUBLIC Source "$<TARGET_PROPERTY:Gil
 target_compile_definitions(GillEffectShared PUBLIC ${runtime_defs} "$<TARGET_PROPERTY:GillEffectRuntime,INTERFACE_COMPILE_DEFINITIONS>")
 function(add_gill product code kind category)
   string(TOLOWER "${product}" lower)
-  juce_add_plugin(${product} VERSION ${PROJECT_VERSION} COMPANY_NAME "GILLPRODUCTION"
+  set(product_version "${PROJECT_VERSION}")
+  if(product STREQUAL "GILLBALANCE")
+    set(product_version "0.21.0")
+  endif()
+  juce_add_plugin(${product} VERSION ${product_version} COMPANY_NAME "GILLPRODUCTION"
     BUNDLE_ID "com.gillproduction.${lower}" PLUGIN_MANUFACTURER_CODE Gill PLUGIN_CODE ${code}
     PRODUCT_NAME "${product}" DESCRIPTION "${product} Vocal Effects"
     FORMATS VST3 VST3_CATEGORIES Fx ${category} VST3_AUTO_MANIFEST FALSE
@@ -121,3 +127,5 @@ foreach(engine Air Space Echo Balance Update)
   set_tests_properties(${engine}_DSP PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/Tests")
   endif()
 endforeach()
+add_executable(GillBalanceUi21Tests Tests/BalanceUi21.cpp)
+target_link_libraries(GillBalanceUi21Tests PRIVATE GillEffectShared GillEffectAssets)

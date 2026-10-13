@@ -15,6 +15,7 @@ struct BalanceView {
     std::array<float,8> gains{},pre{},post{};
     std::array<bool,8> active{};
     gill::FineBalanceView fine;
+    std::array<std::array<double,5>,8> coefficients{};
 };
 class GillEffectProcessor final : public juce::AudioProcessor {
 public:

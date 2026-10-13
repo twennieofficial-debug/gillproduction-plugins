@@ -71,6 +71,20 @@ class ReleaseGateTests(unittest.TestCase):
             self.records.append({"name": product["name"], "bundle_sha256": p.bundle_digest(bundle), "passed": True, "strictness": 10})
         p.write(self.universal / "universal-build.json", {"passed": True, "plugins": self.records, "source_sha256": "fixture",
             "native_builds": {arch: native_quality_fixture(self.records, arch) for arch in ("arm64", "x86_64")}})
+        report = p.read(self.universal / "universal-build.json")
+        for arch in ("arm64", "x86_64"):
+            proof = self.universal / "native-proof" / arch
+            p.write(proof / "native-build-before-update22.json", {"synthetic_fixture_only": True})
+            p.write(proof / "UPDATE22/unit-fixture.json", {"synthetic_fixture_only": True})
+            p.write(proof / "UPDATE22/result.json", {"synthetic_fixture_only": True,
+                "passed": True, "domain": "native-macos", "architecture": arch, "source_sha256": "fixture",
+                "native_report_sha256": p.sha(proof / "native-build-before-update22.json"),
+                "proof_files": {"unit-fixture.json": p.sha(proof / "UPDATE22/unit-fixture.json")}})
+            report["native_builds"][arch]["update22_regression"] = {
+                "passed": True, "architecture": arch, "report": "test-evidence/UPDATE22/result.json",
+                "report_sha256": p.sha(proof / "UPDATE22/result.json"),
+                "native_report_before_sha256": p.sha(proof / "native-build-before-update22.json")}
+        p.write(self.universal / "universal-build.json", report)
         for arch in ("arm64", "x86_64"):
             p.write(self.validation / arch / f"validation-{arch}.json", {
                 "passed": True, "native_architecture": arch,
@@ -246,7 +260,7 @@ class SourceArchiveTests(unittest.TestCase):
     def test_catalog_preserves_products_and_compact_sizes(self):
         self.assertEqual(len(p.PRODUCTS), 74)
         self.assertEqual(len({x["code"] for x in p.PRODUCTS}), 74)
-        self.assertTrue(all(x["version"] == "0.20.0" for x in p.PRODUCTS))
+        self.assertTrue(all(x["version"] in {"0.20.0", "0.21.0"} for x in p.PRODUCTS))
         baseline = p.read(p.HERE / "resources/compatibility/update13-products.json")
         current = {x["name"]: x for x in p.PRODUCTS}
         self.assertEqual(len(baseline), 57)
@@ -471,7 +485,7 @@ class NativeQualityGateTests(unittest.TestCase):
                 p.verify_quality_result(result, 48000)
 
     def test_release20_requires_exact_updated_product_versions(self):
-        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("20", "0.20.0"))
+        self.assertEqual((p.RELEASE, p.SUITE_VERSION), ("22", "0.20.0"))
         for rate in p.QUALITY_SAMPLE_RATES:
             p.verify_quality_result(quality_result_fixture(rate), rate)
         for name, wrong in (("GILLEQ", "0.7.0"), ("GILLHARMONY", "0.6.0"),
@@ -664,7 +678,7 @@ class SigningPreflightTests(unittest.TestCase):
 
 class RepositoryStagingTests(unittest.TestCase):
     def test_shared_art_and_release_guides_are_staged_without_generated_test_outputs(self):
-        spec = importlib.util.spec_from_file_location("gill_staging_test", p.HERE.parent / "prepare_repository.py")
+        spec = importlib.util.spec_from_file_location("gill_staging_test", p.HERE / "stage_inputs.py")
         staging = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(staging)
         with tempfile.TemporaryDirectory() as temp:

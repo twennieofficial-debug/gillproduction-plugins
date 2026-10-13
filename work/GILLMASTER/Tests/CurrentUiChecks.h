@@ -43,14 +43,14 @@ template<class Check> void boundsOracleControls(Check check) {
 template<class Check> void verify(juce::AudioProcessorEditor* editor, const juce::String& name, Check check) {
     boundsOracleControls(check);
     static constexpr Geometry products[] = {
-        {"GILLCEILING", 500, 650},
-        {"GILLLOW", 500, 650},
-        {"GILLGLUE", 500, 650},
-        {"GILLWIDTH", 500, 650},
-        {"GILLPUNCH", 500, 650},
-        {"GILLWEIGHT", 500, 650},
-        {"GILLDELTA", 500, 650},
-        {"GILLDELIVER", 500, 650}
+        {"GILLCEILING", 560, 600},
+        {"GILLLOW", 660, 450},
+        {"GILLGLUE", 620, 470},
+        {"GILLWIDTH", 740, 440},
+        {"GILLPUNCH", 700, 460},
+        {"GILLWEIGHT", 500, 430},
+        {"GILLDELTA", 660, 440},
+        {"GILLDELIVER", 700, 500}
     };
     const Geometry* expected = nullptr;
     for (const auto& product : products) if (name == product.name) expected = &product;

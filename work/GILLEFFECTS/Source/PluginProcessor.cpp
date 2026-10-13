@@ -18,6 +18,7 @@ GillEffectProcessor::GillEffectProcessor(GillKind k)
     const char** ids=k==GillKind::Air?a:k==GillKind::Space?s:k==GillKind::Echo?e:b;
     bypassIndex=k==GillKind::Air?4:k==GillKind::Space?8:k==GillKind::Echo?10:2;
     for(int i=0;i<=bypassIndex;++i)parameterValues[static_cast<size_t>(i)]=apvts.getRawParameterValue(ids[i]);
+    if(k==GillKind::Balance)for(size_t i=0;i<8;++i)parameterValues[i+3]=apvts.getRawParameterValue("trim"+juce::String(i));
     if(k==GillKind::Space||k==GillKind::Echo)parameterValues[static_cast<size_t>(bypassIndex+1)]=apvts.getRawParameterValue("dry");
 }
 juce::AudioProcessorValueTreeState::ParameterLayout GillEffectProcessor::layout(GillKind k){
@@ -32,7 +33,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout GillEffectProcessor::layout(
     b("bypass","BYPASS",false);
     // Append new parameters: keep every pre-existing host parameter index.
     if(k==GillKind::Space||k==GillKind::Echo)f("dry","DRY",0,100,.1f,100);
-    l.add(gill::qualityParameter()); return l;
+    l.add(gill::qualityParameter());
+    if(k==GillKind::Balance)for(int i=0;i<8;++i){const auto id="trim"+juce::String(i);const auto name="EQ TRIM "+juce::String(gill::BalanceDSP::centersHz[i],0)+" HZ";f(id.toRawUTF8(),name.toRawUTF8(),-6,6,.01f,0);}
+    return l;
 }
 const juce::String GillEffectProcessor::getName()const{return names[static_cast<int>(kind)];}
 bool GillEffectProcessor::isBusesLayoutSupported(const BusesLayout& l)const{auto o=l.getMainOutputChannelSet();return(o==juce::AudioChannelSet::mono()||o==juce::AudioChannelSet::stereo())&&o==l.getMainInputChannelSet();}
@@ -51,7 +54,7 @@ void GillEffectProcessor::updateParameters(bool queryHost){
         const float actual=static_cast<float>(juce::jlimit(1.,8000.,time));
         hostTempoAvailable=validHost;tempoBpm=static_cast<float>(bpm);delayMs=actual;delayLimited=time>8000||time<1;
         echo.setParameters(actual,parameter(1),parameter(2),parameter(3),parameter(4),juce::roundToInt(parameter(5)),parameter(11));
-    }else balance.setParameters(parameter(0),juce::roundToInt(parameter(1)));
+    }else {balance.setParameters(parameter(0),juce::roundToInt(parameter(1)));std::array<float,8> trims{};for(size_t i=0;i<8;++i)trims[i]=parameter(i+3);balance.setManualTrims(trims);}
 }
 void GillEffectProcessor::prepareToPlay(double fs,int block){songLearn.reset();
     const bool supported=std::isfinite(fs)&&fs>=8000&&fs<=384000;rateSupported=supported;
@@ -71,7 +74,7 @@ qualityTransition.prepare(actualFs,qualityClient.mode());    inputPeak=0;outputP
 void GillEffectProcessor::releaseResources(){songLearn.reset();air.reset();space.reset();echo.reset();balance.reset();inputPeak=0;outputPeak=0;learnCommand=0;if(kind==GillKind::Balance)exchangeProfile();}
 void GillEffectProcessor::exchangeProfile(){const juce::SpinLock::ScopedTryLockType lock(profileLock);if(!lock.isLocked())return;
     if(profilePending){balance.setLearnedProfile(profile);profilePending=false;}profile=balance.learnedProfile();
-    view={balance.currentGainsDb(),balance.preBandLevelsDb(),balance.postBandLevelsDb(),balance.activeBands(),balance.fineView()};
+    view={balance.currentGainsDb(),balance.preBandLevelsDb(),balance.postBandLevelsDb(),balance.activeBands(),balance.fineView(),balance.currentCoefficients()};
     learnState=songLearn.state(balance);learnProgress=balance.learningProgress();
 }
 gill::LearnBalanceProfile GillEffectProcessor::savedProfile()const{const juce::SpinLock::ScopedLockType lock(profileLock);return profile;}
@@ -115,6 +118,7 @@ void GillEffectProcessor::setStateInformation(const void* data,int bytes){if(!da
     if(auto xml=getXmlFromBinary(data,bytes))if(xml->hasTagName(apvts.state.getType())){auto incoming=juce::ValueTree::fromXml(*xml);auto clean=apvts.copyState();
     if (!incoming.getChildWithProperty("id","gillQuality").isValid()) { auto oldQuality=clean.getChildWithProperty("id","gillQuality"); if(oldQuality.isValid()) oldQuality.setProperty("value",apvts.getParameter("gillQuality")->convertFrom0to1(apvts.getParameter("gillQuality")->getDefaultValue()),nullptr); }
 bool changed=false;
+        if(kind==GillKind::Balance)for(int i=0;i<8;++i){const auto id="trim"+juce::String(i);if(!incoming.getChildWithProperty("id",id).isValid()){clean.getChildWithProperty("id",id).setProperty("value",0.f,nullptr);changed=true;}}
         if((kind==GillKind::Space||kind==GillKind::Echo)&&!incoming.getChildWithProperty("id","dry").isValid()){clean.getChildWithProperty("id","dry").setProperty("value",100.f,nullptr);changed=true;}
         for(auto child:incoming){auto id=child.getProperty("id").toString();auto* p=apvts.getParameter(id);double v=0;if(!p||!child.hasProperty("value")||!number(child.getProperty("value"),v))continue;auto target=clean.getChildWithProperty("id",id);if(target.isValid()){const auto& range=p->getNormalisableRange();target.setProperty("value",range.snapToLegalValue(static_cast<float>(juce::jlimit(static_cast<double>(range.start),static_cast<double>(range.end),v))),nullptr);changed=true;}}
         if(changed)gill::replaceStateAndReconcile(apvts,clean);double v=0;if(incoming.hasProperty("program")&&number(incoming.getProperty("program"),v))currentProgram=static_cast<int>(juce::jlimit(0.,static_cast<double>(getNumPrograms()-1),v));

@@ -1,0 +1,32 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import assert from 'node:assert/strict';
+import {createHash} from 'node:crypto';
+import {spawnSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+const here=path.dirname(fileURLToPath(import.meta.url));
+const root=path.resolve(here,'../../..');
+const hash=f=>createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+const read=f=>JSON.parse(fs.readFileSync(f));
+const mode=process.argv[2];assert(['tests','recipe'].includes(mode));
+const python=process.env.MAC22_PYTHON||(process.platform==='win32'?path.join(process.env.USERPROFILE,'.cache/codex-runtimes/codex-primary-runtime/dependencies/python/python.exe'):'python3');
+const test=spawnSync(python,[path.join(here,'test_runner.py')],{cwd:here,encoding:'utf8',windowsHide:true});
+assert.equal(test.status,0,test.stdout+test.stderr);
+const manifest=read(path.join(here,'baseline-manifest.json'));
+for(const [file,digest]of Object.entries(manifest))assert.equal(hash(path.join(here,'baseline',file)),digest);
+for(const [local,original]of [['SuiteNative.cpp','suite-repair/Native.cpp'],['SpectralMonoTests.cpp','root/SpectralMonoTests.cpp'],['NoiseControls.cpp','spectral-noise/NoiseControls.cpp']])assert.equal(hash(path.join(here,local)),hash(path.join(root,'work/Sidechain22',original)),local+' thresholds/source drift');
+const resultPath=path.join(here,'selftest-output/selected.json');
+assert(fs.existsSync(resultPath),'Local harness self-test evidence missing');
+const selection=read(resultPath),result=read(path.join(here,selection.result));
+assert.equal(hash(path.join(here,selection.result)),selection.sha256);
+assert(result.passed&&result.domain==='windows-self-test');
+const expected=['spectral-baseline','spectral-current','noise-controls','level','advanced','mono-current','mono-baseline','frozen-regression','SuiteCore','SuiteMechanisms','suite-current','suite-baseline','internal-Current','internal-Baseline'];
+for(const label of expected){const c=result.commands.find(x=>x.label===label);assert(c,label);assert.equal(c.exit,c.expected_exit);const log=path.join(path.dirname(path.join(here,selection.result)),c.log);assert.equal(hash(log),c.log_sha256);assert(fs.readFileSync(log,'utf8').includes(c.token));}
+for(const [relative,digest]of Object.entries(result.proof_files))assert.equal(hash(path.join(path.dirname(path.join(here,selection.result)),relative)),digest);
+assert.equal(hash(path.join(path.dirname(path.join(here,selection.result)),'internal-Current.bin')),hash(path.join(path.dirname(path.join(here,selection.result)),'internal-Baseline.bin')));
+if(mode==='recipe'){
+ const runner=fs.readFileSync(path.join(here,'run.py'),'utf8');
+ for(const item of ['native-build-before-update22.json','def verify_result','Rosetta does not prove native execution','lipo','source_inputs_sha256','executable_sha256','proof_files','parameterRecallMaxError','physical_fl_studio_tested'])assert(runner.includes(item),item);
+ assert(fs.readFileSync(path.join(here,'REVIEW.md'),'utf8').includes('Pass 4'));
+ console.log('MAC22_REGRESSION_RECIPE_VERIFIED');
+}else console.log('MAC22_REGRESSION_TESTS_VERIFIED');

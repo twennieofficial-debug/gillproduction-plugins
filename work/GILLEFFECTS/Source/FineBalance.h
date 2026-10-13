@@ -76,6 +76,8 @@ struct FineBalanceView {
     std::array<float,8> dynamics{};
     std::array<float,256> spectrum{};
     int count=0;bool enabled=false;
+    std::array<std::array<double,5>,20> coefficients{},previousCoefficients{};
+    double wetBlend=1,transitionBlend=1;
 };
 
 // Up to twelve learned narrow resonance cuts plus eight independent dynamic
@@ -114,7 +116,7 @@ public:
         const double destination=amount>0?1.:0.;
         if(destination!=wetDestination){wetDestination=destination;wetRemaining=std::max(1,static_cast<int>(fs*.080));wetStep=(destination-wetBlend)/wetRemaining;}
     }
-    FineBalanceView snapshot() const noexcept {return view;}
+    FineBalanceView snapshot() const noexcept {auto result=view;result.coefficients=coefficients;result.previousCoefficients=previousCoefficients;result.wetBlend=wetBlend;result.transitionBlend=transitionRemaining>0?transitionBlend:1;return result;}
     bool active() const noexcept {return enabled;}
     void update(const std::array<double,8>& powers,double fullPower,const std::array<bool,8>& available) noexcept {
         if(wetRemaining>0){wetBlend+=wetStep;if(--wetRemaining==0)wetBlend=wetDestination;}

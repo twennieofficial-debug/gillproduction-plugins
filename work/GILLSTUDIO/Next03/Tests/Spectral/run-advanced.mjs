@@ -1,0 +1,21 @@
+import {mkdirSync,writeFileSync,readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
+import {dirname,resolve,join,delimiter} from 'node:path';
+import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+const here=dirname(fileURLToPath(import.meta.url)),root=resolve(here,'../../../..');
+const bin=join(root,'toolchain/llvm-mingw-20260922-ucrt-x86_64/bin');
+const compiler=process.env.CXX||(process.platform==='win32'?join(bin,'x86_64-w64-mingw32-clang++.exe'):'c++');
+const output=join(here,'build');mkdirSync(output,{recursive:true});
+const exe=join(output,process.platform==='win32'?'spectra-advanced.exe':'spectra-advanced');
+const env={...process.env,PATH:bin+delimiter+process.env.PATH};
+const cpp=join(here,'advanced_tests.cpp'),header=resolve(here,'../../Source/Spectral/Spectral.h');
+const compile=spawnSync(compiler,['-std=c++17','-O2','-Wall','-Wextra','-Werror','-static',cpp,'-o',exe],{env,encoding:'utf8',timeout:120000});
+if(compile.status!==0){process.stderr.write(compile.stdout??'');process.stderr.write(compile.stderr??'');throw Error('Advanced test compilation failed: '+(compile.error?.message??compile.status));}
+const run=spawnSync(exe,[],{env,encoding:'utf8',timeout:120000});
+process.stdout.write(run.stdout??'');process.stderr.write(run.stderr??'');
+const success=run.status===0&&/^SPECTRA_ADVANCED_AUDIO_OK$/m.test(run.stdout??'');
+const hash=path=>createHash('sha256').update(readFileSync(path)).digest('hex');
+writeFileSync(join(output,'advanced-result.json'),JSON.stringify({success,exitCode:run.status,error:run.error?.message,signal:run.signal,sourceSHA256:hash(header),testSHA256:hash(cpp),stdout:run.stdout,stderr:run.stderr},null,2));
+if(!success)throw Error('Advanced spectral fixtures failed: '+(run.error?.message??run.status));
+console.log('SPECTRA_ADVANCED_PASS');

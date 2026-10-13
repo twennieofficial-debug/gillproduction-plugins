@@ -83,7 +83,7 @@ void metadataAndState(GillKind kind) {
     GillEffectProcessor p(kind);
     product = p.getName().toStdString();
     const auto parameterIds = ids(kind);
-    check(p.getParameters().size() == static_cast<int>(parameterIds.size()) + 1 &&
+    check(p.getParameters().size() == static_cast<int>(parameterIds.size()) + 1 + (kind==GillKind::Balance?8:0) &&
           p.getBypassParameter() == p.apvts.getParameter("bypass") && p.hasEditor() &&
           !p.acceptsMidi() && !p.producesMidi(), "parameter count, host bypass and effect metadata");
     auto layout = p.getBusesLayout();

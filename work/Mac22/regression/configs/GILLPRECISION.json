@@ -1,0 +1,5522 @@
+[
+  {
+    "id": "LIVE-1-48000-128-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-48000-128-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-1-44100-257-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-48000-128-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-disabled",
+    "quality": "LIVE",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-silent",
+    "quality": "LIVE",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-mono",
+    "quality": "LIVE",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-stereo",
+    "quality": "LIVE",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-anti",
+    "quality": "LIVE",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-leak",
+    "quality": "LIVE",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      }
+    ]
+  },
+  {
+    "id": "LIVE-2-44100-257-bypass",
+    "quality": "LIVE",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "LIVE"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-48000-128-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 1,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 1,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-1-44100-257-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 1,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-48000-128-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 48000,
+    "block": 128,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-disabled",
+    "quality": "PRO",
+    "mode": "disabled",
+    "main": 2,
+    "key": 0,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-silent",
+    "quality": "PRO",
+    "mode": "silent",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-mono",
+    "quality": "PRO",
+    "mode": "mono",
+    "main": 2,
+    "key": 1,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-stereo",
+    "quality": "PRO",
+    "mode": "stereo",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-anti",
+    "quality": "PRO",
+    "mode": "anti",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": true,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-leak",
+    "quality": "PRO",
+    "mode": "leak",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      }
+    ]
+  },
+  {
+    "id": "PRO-2-44100-257-bypass",
+    "quality": "PRO",
+    "mode": "bypass",
+    "main": 2,
+    "key": 2,
+    "rate": 44100,
+    "block": 257,
+    "mainAmp": 0.13,
+    "keyAmp": 0.7,
+    "anti": false,
+    "settings": [
+      {
+        "name": "BAND 1 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 1 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 1 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 1 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 2 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 2 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 2 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 2 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 3 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 3 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 3 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 3 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 4 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 4 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 4 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 4 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "BAND 5 THRESHOLD",
+        "text": "-35"
+      },
+      {
+        "name": "BAND 5 RATIO",
+        "text": "10"
+      },
+      {
+        "name": "BAND 5 ATTACK",
+        "text": "1"
+      },
+      {
+        "name": "BAND 5 EXTERNAL KEY",
+        "value": 1
+      },
+      {
+        "name": "QUALITY",
+        "text": "PRO"
+      },
+      {
+        "name": "BYPASS",
+        "value": 1
+      }
+    ]
+  }
+]

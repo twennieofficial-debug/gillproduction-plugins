@@ -4,38 +4,6 @@ name: GILL Mac Universal Installer
 # explicitly authorized repository. No automatic push or scheduled runs.
 on:
   workflow_dispatch:
-    inputs:
-      notarize:
-        description: 'Developer-ID-signierte und Apple-notarisierte Endkundenversion'
-        type: boolean
-        default: false
-        required: true
-      reuse_native_run:
-        description: 'Optional reviewed native base run'
-        type: string
-        default: ''
-        required: false
-      reuse_native_commit:
-        description: 'Full 40-character commit of the optional native base run'
-        type: string
-        default: ''
-        required: false
-      reuse_native_source_sha256:
-        description: 'Exact source SHA256 from the optional base native-build.json'
-        type: string
-        default: ''
-        required: false
-      reuse_native_mode:
-        description: 'Strict reuse scope; ordinary build when no base run is supplied'
-        type: choice
-        options: [texture, mix-host]
-        default: texture
-        required: false
-      approved_host_sha256:
-        description: 'Parent-approved UI-only RealHost.cpp digest; required for mix-host reuse'
-        type: string
-        default: ''
-        required: false
 
 permissions:
   contents: read
@@ -65,49 +33,6 @@ jobs:
           python-version: '3.11'
       - name: Verify packaging release gates
         run: python3 -B -m unittest discover -s work/packaging/macos -p 'test_*.py'
-      - name: Validate optional native reuse identity
-        env:
-          BASE_RUN: ${{ inputs.reuse_native_run }}
-          BASE_COMMIT: ${{ inputs.reuse_native_commit }}
-          BASE_SOURCE_SHA: ${{ inputs.reuse_native_source_sha256 }}
-          REUSE_MODE: ${{ inputs.reuse_native_mode }}
-          APPROVED_HOST_SHA: ${{ inputs.approved_host_sha256 }}
-        run: |
-          python3 - <<'PY'
-          import hashlib, os, pathlib, re, sys
-          sys.path.insert(0, 'work/packaging/macos')
-          from incremental_texture import validate_inputs
-          values = [os.environ.get(name, '') for name in ('BASE_RUN', 'BASE_COMMIT', 'BASE_SOURCE_SHA')]
-          if any(values):
-              if not all(values) or not values[0].isascii() or not values[0].isdigit():
-                  raise SystemExit('All three complete native reuse inputs are required together.')
-              if os.environ.get('REUSE_MODE', 'texture') == 'mix-host':
-                  from fetch_mixhost_baseline import validate_inputs as mix_inputs
-                  mix_inputs(os.environ['GITHUB_REPOSITORY'], int(values[0]), values[1], values[2], 'arm64')
-                  approved = os.environ.get('APPROVED_HOST_SHA', '')
-                  actual = hashlib.sha256(pathlib.Path('work/GILLMIX/Tests/RealHost.cpp').read_bytes()).hexdigest()
-                  if not re.fullmatch('[0-9a-f]{64}', approved) or approved != actual:
-                      raise SystemExit('Reviewed MIX host source digest differs.')
-              else:
-                  validate_inputs(os.environ['GITHUB_REPOSITORY'], int(values[0]), values[1], values[2])
-                  if os.environ.get('APPROVED_HOST_SHA'):
-                      raise SystemExit('MIX host approval supplied for a different reuse scope.')
-          elif os.environ.get('APPROVED_HOST_SHA') or os.environ.get('REUSE_MODE') == 'mix-host':
-              raise SystemExit('MIX host reuse requires the complete reviewed donor identity.')
-          PY
-      - name: Check required signing secret names before native builds
-        if: inputs.notarize
-        env:
-          GILL_APPLICATION_IDENTITY: ${{ secrets.GILL_APPLICATION_IDENTITY }}
-          GILL_APP_CERT_P12_BASE64: ${{ secrets.GILL_APP_CERT_P12_BASE64 }}
-          GILL_APP_CERT_PASSWORD: ${{ secrets.GILL_APP_CERT_PASSWORD }}
-          GILL_INSTALLER_IDENTITY: ${{ secrets.GILL_INSTALLER_IDENTITY }}
-          GILL_INSTALLER_CERT_P12_BASE64: ${{ secrets.GILL_INSTALLER_CERT_P12_BASE64 }}
-          GILL_INSTALLER_CERT_PASSWORD: ${{ secrets.GILL_INSTALLER_CERT_PASSWORD }}
-          GILL_NOTARY_KEY_P8_BASE64: ${{ secrets.GILL_NOTARY_KEY_P8_BASE64 }}
-          GILL_NOTARY_KEY_ID: ${{ secrets.GILL_NOTARY_KEY_ID }}
-          GILL_NOTARY_ISSUER: ${{ secrets.GILL_NOTARY_ISSUER }}
-        run: python3 "$PIPELINE" signing-preflight
 
   native-build:
     needs: preflight
@@ -130,14 +55,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - uses: actions/cache/restore@v4
-        id: compiler-cache
-        with:
-          path: .cache/ccache
-          key: macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/GILLCommon/**', 'work/**/Source/**', 'work/**/Tests/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-${{ github.run_id }}-${{ github.run_attempt }}
-          restore-keys: |
-            macos15-${{ matrix.architecture }}-xcode164-juce8012-${{ hashFiles('work/GILLCommon/**', 'work/**/Source/**', 'work/**/Tests/**', 'work/**/CMakeLists.txt', 'work/packaging/macos/**') }}-
-            macos15-${{ matrix.architecture }}-xcode164-juce8012-
       - name: Build tools
         run: |
           brew install ninja ccache
@@ -145,45 +62,17 @@ jobs:
           xcrun --sdk macosx --show-sdk-version
           cmake --version
           python3 "$PIPELINE" check-source --source work
-      - name: Native build, DSP, UI and cross-plugin LIVE/PRO tests
-        env:
-          GH_TOKEN: ${{ github.token }}
-          BASE_RUN: ${{ inputs.reuse_native_run }}
-          BASE_COMMIT: ${{ inputs.reuse_native_commit }}
-          BASE_SOURCE_SHA: ${{ inputs.reuse_native_source_sha256 }}
-          REUSE_MODE: ${{ inputs.reuse_native_mode }}
-          APPROVED_HOST_SHA: ${{ inputs.approved_host_sha256 }}
-          NATIVE_ARCH: ${{ matrix.architecture }}
-        run: |
-          if [ -n "$BASE_RUN" ] && [ "$REUSE_MODE" = mix-host ]; then
-            git fetch --no-tags --depth=1 origin "$BASE_COMMIT"
-            python3 work/packaging/macos/fetch_mixhost_baseline.py \
-              --repository "$GITHUB_REPOSITORY" --base-run "$BASE_RUN" --base-commit "$BASE_COMMIT" \
-              --base-source-sha "$BASE_SOURCE_SHA" --architecture "$NATIVE_ARCH" \
-              --destination "$RUNNER_TEMP/mix-donor"
-            python3 work/packaging/macos/incremental_mixhost.py --source work \
-              --build-root "$RUNNER_TEMP/gill-build" --destination "$RUNNER_TEMP/native" --jobs 2 \
-              --provenance "$RUNNER_TEMP/mix-donor/provenance.json" \
-              --diagnostic-zip "$RUNNER_TEMP/mix-donor/failed-native-$NATIVE_ARCH.zip" \
-              --binary-zip "$RUNNER_TEMP/mix-donor/failed-native-binaries-$NATIVE_ARCH.zip" \
-              --original-host "$RUNNER_TEMP/mix-donor/original-RealHost.cpp" \
-              --approved-host-sha256 "$APPROVED_HOST_SHA"
-          elif [ -n "$BASE_RUN" ]; then
-            python3 work/packaging/macos/incremental_texture.py --source work \
-              --build-root "$RUNNER_TEMP/gill-build" --destination "$RUNNER_TEMP/native" \
-              --base-run "$BASE_RUN" --base-commit "$BASE_COMMIT" \
-              --base-source-sha "$BASE_SOURCE_SHA" --jobs 2
-          else
-            python3 "$PIPELINE" build --source work \
-              --build-root "$RUNNER_TEMP/gill-build" --destination "$RUNNER_TEMP/native" --jobs 2
-          fi
-      - name: Retain compiler cache after successful or failed tests
-        if: always() && steps.compiler-cache.outputs.cache-hit != 'true' && steps.compiler-cache.outputs.cache-primary-key != ''
-        continue-on-error: true
-        uses: actions/cache/save@v4
-        with:
-          path: .cache/ccache
-          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
+      - name: Fresh native build, DSP, UI and cross-plugin LIVE/PRO tests
+        run: >-
+          python3 "$PIPELINE" build --source work
+          --build-root "$RUNNER_TEMP/gill-build" --destination "$RUNNER_TEMP/native" --jobs 2
+      - name: Update22 portable audio state sidechain regressions
+        run: >-
+          python3 -B work/Mac22/regression/run.py --source work
+          --native "$RUNNER_TEMP/native" --destination "$RUNNER_TEMP/native/test-evidence/UPDATE22"
+          --build-root "$RUNNER_TEMP/gill-build" --jobs 2
+      - name: Reverify Update22 regression evidence
+        run: python3 -B work/Mac22/regression/run.py --verify "$RUNNER_TEMP/native"
       - name: Archive native results with executable permissions
         run: tar -C "$RUNNER_TEMP/native" -czf "$RUNNER_TEMP/native-${{ matrix.architecture }}.tar.gz" .
       - name: Retain compact UI and native test reports separately
@@ -261,8 +150,6 @@ jobs:
     needs: native-build
     runs-on: macos-15
     timeout-minutes: 30
-    env:
-      GILL_APPLICATION_IDENTITY: ${{ inputs.notarize && secrets.GILL_APPLICATION_IDENTITY || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -280,12 +167,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/arm64" "$RUNNER_TEMP/x86_64"
           tar -xzf "$RUNNER_TEMP/downloads/native-arm64.tar.gz" -C "$RUNNER_TEMP/arm64"
           tar -xzf "$RUNNER_TEMP/downloads/native-x86_64.tar.gz" -C "$RUNNER_TEMP/x86_64"
-      - name: Prepare optional release identity
-        if: inputs.notarize
-        env:
-          GILL_APP_CERT_P12_BASE64: ${{ secrets.GILL_APP_CERT_P12_BASE64 }}
-          GILL_APP_CERT_PASSWORD: ${{ secrets.GILL_APP_CERT_PASSWORD }}
-        run: python3 work/packaging/macos/ci_signing.py merge
+
       - name: Assemble and sign Universal bundles
         run: >-
           python3 "$PIPELINE" merge --arm64 "$RUNNER_TEMP/arm64"
@@ -297,12 +179,6 @@ jobs:
           path: ${{ runner.temp }}/universal.tar.gz
           retention-days: 14
           compression-level: 0
-      - name: Remove ephemeral signing keychain
-        if: always() && inputs.notarize
-        run: |
-          if [ -n "${GILL_TEMP_KEYCHAIN:-}" ]; then
-            security delete-keychain "$GILL_TEMP_KEYCHAIN"
-          fi
 
   universal-validation:
     needs: merge
@@ -354,9 +230,6 @@ jobs:
     permissions:
       contents: write
       actions: read
-    env:
-      GILL_APPLICATION_IDENTITY: ${{ inputs.notarize && secrets.GILL_APPLICATION_IDENTITY || '' }}
-      GILL_INSTALLER_IDENTITY: ${{ inputs.notarize && secrets.GILL_INSTALLER_IDENTITY || '' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -381,33 +254,22 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/universal"
           tar -xzf "$RUNNER_TEMP/downloads/universal.tar.gz" -C "$RUNNER_TEMP/universal"
-          python3 "$PIPELINE" source-archive --source work --destination "$RUNNER_TEMP/GILL-QUELLCODE-20.zip"
-      - name: Prepare optional Installer and notarization credentials
-        if: inputs.notarize
-        env:
-          GILL_APP_CERT_P12_BASE64: ${{ secrets.GILL_APP_CERT_P12_BASE64 }}
-          GILL_APP_CERT_PASSWORD: ${{ secrets.GILL_APP_CERT_PASSWORD }}
-          GILL_INSTALLER_CERT_P12_BASE64: ${{ secrets.GILL_INSTALLER_CERT_P12_BASE64 }}
-          GILL_INSTALLER_CERT_PASSWORD: ${{ secrets.GILL_INSTALLER_CERT_PASSWORD }}
-          GILL_NOTARY_KEY_P8_BASE64: ${{ secrets.GILL_NOTARY_KEY_P8_BASE64 }}
-          GILL_NOTARY_KEY_ID: ${{ secrets.GILL_NOTARY_KEY_ID }}
-          GILL_NOTARY_ISSUER: ${{ secrets.GILL_NOTARY_ISSUER }}
-        run: python3 work/packaging/macos/ci_signing.py package
-      - name: Produce 74 individual DMGs and separate 73-plugin bundle
-        env:
-          NOTARIZE: ${{ inputs.notarize }}
-        run: |
-          options=()
-          if [ "$NOTARIZE" = true ]; then options+=(--notarize); fi
-          python3 "$PIPELINE" package --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE-20.zip" --staging "$RUNNER_TEMP/package-staging" --destination "$RUNNER_TEMP/delivery" --test-install "${options[@]}"
+          python3 "$PIPELINE" source-archive --source work --destination "$RUNNER_TEMP/GILL-QUELLCODE-22.zip"
+
+      - name: Produce and actually install all 75 DMG packages
+        run: >-
+          python3 "$PIPELINE" package --universal "$RUNNER_TEMP/universal"
+          --validations "$RUNNER_TEMP/validation" --source work
+          --source-archive "$RUNNER_TEMP/GILL-QUELLCODE-22.zip"
+          --staging "$RUNNER_TEMP/package-staging" --destination "$RUNNER_TEMP/delivery" --test-install
       - name: Retain exact corresponding source ZIP
         if: success()
-        run: cp "$RUNNER_TEMP/GILL-QUELLCODE-20.zip" "$RUNNER_TEMP/delivery/GILL-QUELLCODE-20.zip"
-      - name: Publish only verified Mac20 downloads
+        run: cp "$RUNNER_TEMP/GILL-QUELLCODE-22.zip" "$RUNNER_TEMP/delivery/GILL-QUELLCODE-22.zip"
+      - name: Publish only verified Mac22 downloads
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          python3 -B work/packaging/macos/publish20.py --delivery "$RUNNER_TEMP/delivery" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE-20.zip" --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation"
+          python3 -B work/packaging/macos/publish22.py --delivery "$RUNNER_TEMP/delivery" --source work --source-archive "$RUNNER_TEMP/GILL-QUELLCODE-22.zip" --universal "$RUNNER_TEMP/universal" --validations "$RUNNER_TEMP/validation"
       - name: Retain installer failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
@@ -421,13 +283,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: GILL-MAC-INSTALLER-${{ inputs.notarize && 'NOTARISIERT' || 'UNSIGNIERT-TESTVERSION' }}
+          name: GILL-MAC-INSTALLER-UNSIGNIERT-TESTVERSION
           path: ${{ runner.temp }}/delivery
           retention-days: 14
           compression-level: 0
-      - name: Remove ephemeral signing keychain
-        if: always() && inputs.notarize
-        run: |
-          if [ -n "${GILL_TEMP_KEYCHAIN:-}" ]; then
-            security delete-keychain "$GILL_TEMP_KEYCHAIN"
-          fi

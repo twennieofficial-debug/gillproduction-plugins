@@ -86,7 +86,6 @@ public:
                                std::array<double, 2> external) noexcept {
     if (ch == 1) {
       x[1] = x[0];
-      external[1] = external[0];
     }
     auto y = anySolo ? std::array<double, 2>{} : x;
     bool listening = false;
@@ -112,6 +111,13 @@ public:
             float(b.key[size_t(c) * 2 + 1].tick(key[size_t(c)], b.kh) -
                   b.key[size_t(c) * 2].tick(key[size_t(c)], b.kl));
       }
+      const auto audition = trigger;
+      if (ch == 1 && b.external && !basis) {
+        // Filter both lanes before the phase-insensitive mono detector.
+        const float loudest = std::abs(trigger[0]) >= std::abs(trigger[1])
+                                  ? trigger[0] : trigger[1];
+        trigger = {loudest, loudest};
+      }
       float *ap[]{&audio[0], &audio[1]};
       const float *kp[]{&trigger[0], &trigger[1]};
       b.dynamics.process(ap, 1, kp, 2);
@@ -127,7 +133,7 @@ public:
                       b.morph
                 : 0;
         change[size_t(c)] = dry[size_t(c)] * (gain(db) - (anySolo ? 0 : 1));
-        heard[size_t(c)] = selected ? trigger[size_t(c)] : 0;
+        heard[size_t(c)] = selected ? audition[size_t(c)] : 0;
       }
       reduction[size_t(i)] = float(std::max(b.dynamics.gainReductionDb(0),
                                             b.dynamics.gainReductionDb(1)) *
@@ -147,6 +153,8 @@ public:
           listen[size_t(c)] += heard[size_t(c)];
       }
     }
+    if (listening && ch == 1)
+      listen = {.5 * (listen[0] + listen[1]), .5 * (listen[0] + listen[1])};
     return listening ? listen : y;
   }
 };
@@ -162,11 +170,12 @@ class Alpha {
   std::array<bool, 2> autoAttack{};
   std::array<double, 2> makeup{};
   uint32_t clock = 0;
+  int ch = 2;
 
 public:
   float reduction = 0;
-  void prepare(double rate, int) {
-    fs = rate;
+  void prepare(double rate, int channels) {
+    fs = rate; ch = channels;
     for (auto &d : dyn)
       d.prepare(fs, 512, 1);
     reset();
@@ -235,13 +244,17 @@ public:
     for (int c = 0; c < 2; ++c) {
       float a = float(x[size_t(c)]),
             k = float(std::sqrt(power[size_t(c)]) +
-                      link * (loudest - std::sqrt(power[size_t(c)])));
+                      (ch == 1 && external && !ms ? 1 : link) *
+                          (loudest - std::sqrt(power[size_t(c)])));
       if ((clock & 31) == 0) {
         auto p = params[size_t(c)];
         if (autoAttack[size_t(c)])
           p.envelope.attackMs /=
-              1 + std::clamp(std::abs(key[size_t(c)]) /
-                                     (std::sqrt(power[size_t(c)]) + 1e-9) -
+              1 + std::clamp((ch == 1 && external && !ms
+                                 ? std::max(std::abs(key[0]), std::abs(key[1]))
+                                 : std::abs(key[size_t(c)])) /
+                                     ((ch == 1 && external && !ms
+                                           ? loudest : std::sqrt(power[size_t(c)])) + 1e-9) -
                                  1,
                              0., 4.);
         dyn[size_t(c)].setParameters(p);

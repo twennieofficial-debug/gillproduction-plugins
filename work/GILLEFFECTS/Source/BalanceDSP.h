@@ -56,6 +56,10 @@ public:
         requestedTarget=std::clamp(target0to4,0,4);setGainTargets(!hasAudio);
         fineStage.setAmount(requestedAmount);
     }
+    void setManualTrims(const std::array<float,8>& values) noexcept {
+        for(size_t b=0;b<8;++b) manual[b]=std::isfinite(values[b])?std::clamp(values[b],-6.f,6.f):0.f;
+        setGainTargets(!hasAudio);
+    }
     void startLearning(bool entireSong=false) noexcept {fullSong=entireSong;clearLearning();learnState=1;}
     void finishLearning() noexcept {if(learnState!=1)return;if(activeSamples<fs*2.){learnState=3;return;}completeProfile();}
     void cancelLearning() noexcept {clearLearning();learnState=profile.valid?2:0;}
@@ -77,6 +81,7 @@ public:
         profile=p;fineStage.configure(profile.fine,p.version==2,profile.activeRmsDb,profile.bandDb);fineStage.setAmount(requestedAmount);cancelLearning();rebuildTargets();setGainTargets(!hasAudio);return true;
     }
     std::array<float,8> currentGainsDb() const noexcept {std::array<float,8> g{};for(std::size_t b=0;b<bandCount;++b)g[b]=static_cast<float>(gain[b]);return g;}
+    std::array<std::array<double,5>,8> currentCoefficients()const noexcept {std::array<std::array<double,5>,8> out{};for(size_t b=0;b<8;++b){const auto& c=coefficients[b];out[b]={c.b0,c.b1,c.b2,c.a1,c.a2};}return out;}
     std::array<float,8> preBandLevelsDb() const noexcept {return preDb;}
     std::array<float,8> postBandLevelsDb() const noexcept {return postDb;}
     // Nominal centers never move. An unavailable high band stays unavailable.
@@ -146,7 +151,7 @@ private:
         }
     }
     void setGainTargets(bool immediate)noexcept{
-        for(std::size_t b=0;b<bandCount;++b){const double desired=targets[requestedTarget][b]*requestedAmount*.01;
+        for(std::size_t b=0;b<bandCount;++b){const double desired=available[b] ? targets[requestedTarget][b]*requestedAmount*.01+manual[b] : 0.;
             if(immediate){gain[b]=gainTarget[b]=desired;gainStep[b]=0;gainLeft[b]=0;coefficients[b]=bell(b,desired);}
             else if(desired!=gainTarget[b]){gainTarget[b]=desired;gainLeft[b]=rampLength;gainStep[b]=(desired-gain[b])/rampLength;}
         }
@@ -207,6 +212,7 @@ private:
         if(learnState==1&&wallSamples>=fs*(fullSong?300.:30.)){if(fullSong)finishLearning();if(!fullSong||learnState!=2)learnState=3;}
     }
     double fs=48000,meterDecay=std::exp(-1/(48000*.2));int frameLength=960,rampLength=3840,frameSamples=0,learnState=0,quantumLeft=0;
+    std::array<float,8> manual{};
     float requestedAmount=60;int requestedTarget=2;bool hasAudio=false,fullSong=false;
     LearnBalanceProfile profile;
     FineBalanceAnalyzer fineAnalyzer;

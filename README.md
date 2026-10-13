@@ -1,21 +1,8 @@
-# GILLPRODUCTION Plugins
+# GILLPRODUCTION – Mac Update22
 
-Mac20: 74 current vocal, creative, mixing and mastering VST3 plugins,
-all version 0.20.0, using the current Update19 DSP and approved interfaces.
-Corrected Mac20.2 repairs moving SILK resonances in PRO/LIVE with bounded vocal attenuation while
-preserving SPARK's REMOVE MOUTH CLICKS. PREVIEW also joins the common LIVE/PRO and native BYPASS protocol.
-Affected processors reconcile saved switches with native host parameter values after project recall.
-Its release tag is mac-bundle-20.2.
-Universal macOS Apple Silicon/Intel; 73 GILL products plus separate MOBINA.
-Existing factory identities are preserved. LIVE reports zero additional PDC.
-The audio interface, host and pitch/effect analysis windows still have latency.
+74 Universal VST3 products for Apple Silicon and Intel (macOS11+), including current Windows Update22 sidechain, state recall and spectral LIVE noise repairs.
+73 GILL products in bundle; MOBINA distributed separately.
+Actual product versions remain 0.20/0.21 per products.json; Update22 denotes this delivery.
+Unsigned/ad-hoc test distribution, without Developer ID/notarization. Native automated tests and installer tests are required. No physical FL Studio on Mac listening claim.
 
-This source revision is not a download or a completed installer. Platform
-installers are published only after the corresponding native verification gates.
-The most recent completed public release remains available from [Releases](https://github.com/twennieofficial-debug/gillproduction-plugins/releases).
-
-Build recipes and the product catalog are under work/packaging/macos. Initialize
-the pinned JUCE 8.0.12 submodule before compiling. Source groups and their
-third-party notices are under work/GILL*. The initial Mac test distribution is ad-hoc
-signed, not Apple-notarized. Native CI validation does not assert FL Studio
-listening tests on Mac. Read MAC-INSTALLATION.txt and GILL-UPDATE-20-ANLEITUNG.md.
+Build by dispatching .github/workflows/build-macos.yml with notarize=false. Current release: mac-bundle-22; previous mac-bundle-20.2 preserved.

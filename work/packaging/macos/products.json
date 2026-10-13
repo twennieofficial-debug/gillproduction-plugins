@@ -147,7 +147,7 @@
     "group": "GILLEFFECTS",
     "target": "GILLBALANCE",
     "name": "GILLBALANCE",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "code": "Gba1",
     "bundle_id": "com.gillproduction.gillbalance",
     "default_size": [
@@ -472,11 +472,11 @@
     "name": "GILLCEILING",
     "code": "Gce1",
     "group": "GILLMASTER",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "bundle_id": "com.gillproduction.gillceiling",
     "default_size": [
-      500,
-      650
+      560,
+      600
     ]
   },
   {
@@ -484,11 +484,11 @@
     "name": "GILLLOW",
     "code": "Glo1",
     "group": "GILLMASTER",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "bundle_id": "com.gillproduction.gilllow",
     "default_size": [
-      500,
-      650
+      660,
+      450
     ]
   },
   {
@@ -496,11 +496,11 @@
     "name": "GILLGLUE",
     "code": "Ggl1",
     "group": "GILLMASTER",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "bundle_id": "com.gillproduction.gillglue",
     "default_size": [
-      500,
-      650
+      620,
+      470
     ]
   },
   {
@@ -508,11 +508,11 @@
     "name": "GILLWIDTH",
     "code": "Gwi1",
     "group": "GILLMASTER",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "bundle_id": "com.gillproduction.gillwidth",
     "default_size": [
-      500,
-      650
+      740,
+      440
     ]
   },
   {
@@ -520,11 +520,11 @@
     "name": "GILLPUNCH",
     "code": "Gpu1",
     "group": "GILLMASTER",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "bundle_id": "com.gillproduction.gillpunch",
     "default_size": [
-      500,
-      650
+      700,
+      460
     ]
   },
   {
@@ -532,11 +532,11 @@
     "name": "GILLWEIGHT",
     "code": "Gwe1",
     "group": "GILLMASTER",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "bundle_id": "com.gillproduction.gillweight",
     "default_size": [
       500,
-      650
+      430
     ]
   },
   {
@@ -544,11 +544,11 @@
     "name": "GILLDELTA",
     "code": "Gdt1",
     "group": "GILLMASTER",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "bundle_id": "com.gillproduction.gilldelta",
     "default_size": [
-      500,
-      650
+      660,
+      440
     ]
   },
   {
@@ -556,11 +556,11 @@
     "name": "GILLDELIVER",
     "code": "Gdl1",
     "group": "GILLMASTER",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "bundle_id": "com.gillproduction.gilldeliver",
     "default_size": [
-      500,
-      650
+      700,
+      500
     ]
   },
   {
@@ -795,7 +795,7 @@
     "group": "GILLSTUDIO/Suite",
     "target": "GILLALPHA",
     "name": "GILLALPHA",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "code": "Zal1",
     "bundle_id": "com.gillproduction.studio.gillalpha",
     "default_size": [
@@ -807,7 +807,7 @@
     "group": "GILLSTUDIO/Suite",
     "target": "GILLMAX",
     "name": "GILLMAX",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "code": "Zmx1",
     "bundle_id": "com.gillproduction.studio.gillmax",
     "default_size": [
@@ -819,7 +819,7 @@
     "group": "GILLSTUDIO/Suite",
     "target": "GILLDEESSPRO",
     "name": "GILLDEESSPRO",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "code": "Zde1",
     "bundle_id": "com.gillproduction.studio.gilldeesspro",
     "default_size": [
@@ -843,7 +843,7 @@
     "group": "GILLSTUDIO/Suite",
     "target": "GILLPRECISION",
     "name": "GILLPRECISION",
-    "version": "0.20.0",
+    "version": "0.21.0",
     "code": "Zpr1",
     "bundle_id": "com.gillproduction.studio.gillprecision",
     "default_size": [

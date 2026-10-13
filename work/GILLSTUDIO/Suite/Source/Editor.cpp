@@ -5,6 +5,7 @@
 #include "../../../Effects16/advanced-ui/AdvancedScalpel.h"
 #include "IrFit.h"
 #include "Processor.h"
+#include "MasterViews21.h"
 #include <future>
 namespace studio {
 juce::AudioProcessorEditor* createRackEditor(Processor&);
@@ -121,6 +122,68 @@ class Editor final : public juce::AudioProcessorEditor, private juce::Timer {
   int draggedNode = 0;
   juce::RangedAudioParameter *drag = nullptr, *dragGain = nullptr;
   juce::Rectangle<float> graph{25, 110, 710, 78};
+  std::array<juce::TextButton, 2> deessBands;
+  int deessSelected = 1, deessMode = 0;
+  float deessStartX = 0, deessStartY = 0, deessLow = 0, deessHigh = 0, deessThreshold = 0;
+  juce::Rectangle<float> deessLane(int band) const { return {graph.getX(), 205.f + (band - 1) * 76.f, graph.getWidth(), 59.f}; }
+  void endDeessGesture() {
+    if (p.kind != Kind::Deess) return;
+    if (drag) { drag->endChangeGesture(); drag = nullptr; }
+    if (dragGain) { dragGain->endChangeGesture(); dragGain = nullptr; }
+    deessMode = 0;
+  }
+  void chooseDeessBand(int band) {
+    endDeessGesture();
+    deessSelected = band;
+    for (size_t i = 0; i < pageDefs.size(); ++i)
+      if (pageDefs[i].group == band) { pages.setSelectedId(int(i + 1), juce::dontSendNotification); selectPage(); break; }
+  }
+  // Retain inverted legacy/automated values until an explicit edge edit. Equality
+  // is allowed at the endpoint, where there is no room for a positive-width band.
+  double boundDeess(int band, bool low, double value) const {
+    return low ? juce::jlimit(20., double(v("high", band)), value)
+               : juce::jlimit(double(v("low", band)), 20000., value);
+  }
+  void paintDeess(juce::Graphics& g) {
+    using namespace gill::scalpel;
+    chassis(g, 620, 660, p.getName());
+    panel(g, {22, 145, 576, 222});
+    text(g, "FREQUENCY BANDS", {37, 154, 208, 21}, 12, silver);
+    for (double hz : {20., 100., 500., 2000., 10000., 20000.}) {
+      float x = hzX(hz);
+      g.setColour(silver.withAlpha(.13f)); g.drawVerticalLine(int(x), 197, 341);
+      text(g, hz >= 1000 ? juce::String(hz / 1000., 0) + "k" : juce::String(hz, 0), {x-18, 344, 36, 15}, 10, silver);
+    }
+    for (int band = 1; band <= 2; ++band) {
+      const auto lane = deessLane(band);
+      const auto colour = band == 1 ? cyan : juce::Colour(0xffffba73);
+      const bool selected = deessSelected == band, enabled = v("enable", band) > .5f;
+      const float lo = v("low", band), hi = v("high", band), left = hzX(lo), right = hzX(hi);
+      auto range = juce::Rectangle<float>(std::min(left, right), lane.getY(), std::max(2.f, std::abs(right-left)), lane.getHeight());
+      g.setColour(colour.withAlpha(enabled ? .12f : .035f)); g.fillRoundedRectangle(range, 3);
+      g.setColour(colour.withAlpha(selected ? .9f : .45f)); g.drawRoundedRectangle(range, 3, selected ? 1.5f : 1.f);
+      for (float x : {left, right}) { g.setColour(colour); g.fillRoundedRectangle(x-3, lane.getY()+10, 6, lane.getHeight()-20, 2); }
+      const float y = lane.getBottom() - (v("threshold",band)+80.f)/92.f*lane.getHeight();
+      g.setColour(colour.withAlpha(.8f)); g.drawHorizontalLine(int(y), range.getX()+4, std::max(range.getX()+4, range.getRight()-4));
+      text(g, juce::String(band), {28, lane.getY()+18, 25, 21}, 13, colour);
+      const juce::String status = lo > hi ? "REVERSED SAVED EDGES" : lo == hi ? "COINCIDENT EDGES" : !enabled ? "OFF" : "";
+      text(g, status, {64, lane.getY()+4, 235, 16}, 10, colour);
+      text(g, "THR " + juce::String(v("threshold", band),1) + " dB", {64, lane.getY()+23, 145, 19}, 12, ink);
+      const float reduction = p.reduction[size_t(band-1)].load();
+      text(g, "GR " + juce::String(reduction,1) + " dB", {64, lane.getY()+42, 145, 16}, 11, colour);
+      g.setColour(colour.withAlpha(.15f)); g.fillRoundedRectangle(220,lane.getY()+47,80,4,2);
+      g.setColour(colour); g.fillRoundedRectangle(220,lane.getY()+47,80*juce::jlimit(0.f,1.f,reduction/24.f),4,2);
+    }
+    text(g, "DRAG EDGES: FREQUENCY   /   INSIDE: THRESHOLD   /   ALT: MOVE BAND", {25, 374, 570, 18}, 11, silver);
+    panel(g,{22,397,576,125});
+    panel(g,{22,535,576,99});
+    text(g,"DEPTH",{29,539,110,16},10,silver);
+    auto frequency = [](float hz) { return hz >= 1000 ? juce::String(hz/1000.f,2)+" kHz" : juce::String(hz,0)+" Hz"; };
+    text(g, "BAND " + juce::String(deessSelected) + "   LOW " + frequency(v("low",deessSelected)) + "   /   HIGH " + frequency(v("high",deessSelected)), {29,178,560,18}, 12, deessSelected == 1 ? cyan : juce::Colour(0xffffba73));
+    juce::String status = juce::String(p.appliedQuality()?"PRO":"LIVE")+" / "+juce::String(p.getLatencySamples())+" SAMPLES";
+    if(p.pending()) status += " / STOP PLAYBACK TO APPLY";
+    text(g,status,{23,640,574,13},9,silver);
+  }
   void clear(Control &c) {
     c.slider.userBound = {};
     c.sa.reset();
@@ -151,6 +214,10 @@ class Editor final : public juce::AudioProcessorEditor, private juce::Timer {
         c.slider.userBound = [this, slot = s.group](double value) { return boundVital(slot, value); };
         c.slider.valueFromTextFunction = [this, slot = s.group](const juce::String& text) { return boundVital(slot, text.getDoubleValue()); };
       }
+      if (p.kind == Kind::Deess && s.group > 0 && (s.key == "low" || s.key == "high")) {
+        c.slider.userBound = [this, band=s.group, low=s.key=="low"](double value) { return boundDeess(band,low,value); };
+        c.slider.valueFromTextFunction = [this, band=s.group, low=s.key=="low"](const juce::String& text) { return boundDeess(band,low,text.getDoubleValue()); };
+      }
     } else {
       c.choice.clear(juce::dontSendNotification);
       for (size_t i = 0; i < s.choices.size(); ++i)
@@ -160,6 +227,7 @@ class Editor final : public juce::AudioProcessorEditor, private juce::Timer {
     }
   }
   void selectPage() {
+    endDeessGesture();
     if (dragGain) {
       dragGain->endChangeGesture();
       dragGain = nullptr;
@@ -171,6 +239,10 @@ class Editor final : public juce::AudioProcessorEditor, private juce::Timer {
     const int which =
         juce::jlimit(0, int(pageDefs.size()) - 1, pages.getSelectedId() - 1);
     const auto &pg = pageDefs[size_t(which)];
+    if (p.kind == Kind::Deess) {
+      if (pg.group > 0) deessSelected = pg.group;
+      for (int i=0; i<2; ++i) deessBands[size_t(i)].setToggleState(deessSelected==i+1,juce::dontSendNotification);
+    }
     for (size_t i = 0; i < controls.size(); ++i) {
       if (i < pg.indices.size())
         bind(controls[i], p.definition.params[size_t(pg.indices[i])]);
@@ -200,7 +272,8 @@ class Editor final : public juce::AudioProcessorEditor, private juce::Timer {
         for (size_t i = offset; i < std::min(offset + pageSize(), indices.size()); ++i)
           pg.indices.push_back(indices[i]);
         pageDefs.push_back(pg);
-        pages.addItem(p.definition.groups[group] +
+        const std::array<const char*,4> deessPageNames{"RANGE", "TIMING", "DYNAMICS", "DETECTOR"};
+        pages.addItem(p.kind==Kind::Deess && group>0 ? p.definition.groups[group]+" / "+deessPageNames[offset/pageSize()] : p.definition.groups[group] +
                           (indices.size() > size_t(pageSize())
                                ? " / " + std::to_string(offset / pageSize() + 1)
                                : ""),
@@ -300,7 +373,15 @@ public:
       vitalStatus.setFont(gill::prism::font(10)); vitalStatus.setColour(juce::Label::textColourId, gill::prism::cyan);
       vitalStatus.setBounds(30, 170, 702, 17);
     }
-    rebuildPages();
+    rebuildPages(p.kind==Kind::Alpha || p.kind==Kind::Precision ? 1 : 0);
+    if (p.kind == Kind::Deess) {
+      for (int i=0; i<2; ++i) {
+        auto& button=deessBands[size_t(i)]; addAndMakeVisible(button);
+        button.setComponentID("deess_band_"+juce::String(i+1)); button.setButtonText("BAND "+juce::String(i+1));
+        button.setBounds(359+i*112,155,104,27); button.onClick=[this,i]{chooseDeessBand(i+1);};
+        button.setTooltip("Select band "+juce::String(i+1)+". More controls are available in the page menu.");
+      }
+    }
     if (p.kind == Kind::Room) {
       addAndMakeVisible(importIr);
       importIr.setBounds(645, 112, 82, 21);
@@ -373,14 +454,15 @@ public:
       };
     }
     pages.setComponentID("pages");
-    pages.setSelectedId(1);
     pages.onChange = [this] { selectPage(); };
     selectPage();
+    if (p.kind == Kind::Deess) chooseDeessBand(1);
     for (int i = 0; i < p.getNumPrograms(); ++i)
       preset.addItem(p.getProgramName(i), i + 1);
     preset.setComponentID("preset"); quality.setComponentID("quality"); bypass.setComponentID("bypass"); delta.setComponentID("delta");
     preset.setSelectedId(p.getCurrentProgram() + 1, juce::dontSendNotification);
     preset.onChange = [this] {
+      endDeessGesture();
       p.setCurrentProgram(preset.getSelectedId() - 1);
     };
     quality.addItemList({"LIVE", "PRO"}, 1);
@@ -391,9 +473,10 @@ public:
     delta.addItemList({"OUTPUT", "DIFFERENCE"}, 1);
     bypassA = std::make_unique<CA>(p.state, "bypass", bypass);
     deltaA = std::make_unique<CA>(p.state, "delta", delta);
-    undo.onClick = [this] { p.undo.undo(); };
-    redo.onClick = [this] { p.undo.redo(); };
+    undo.onClick = [this] { endDeessGesture(); p.undo.undo(); };
+    redo.onClick = [this] { endDeessGesture(); p.undo.redo(); };
     ab.onClick = [this] {
+      endDeessGesture();
       p.getStateInformation(memories[bank]);
       bank = 1 - bank;
       if (memories[bank].getSize())
@@ -441,6 +524,24 @@ public:
     return found;
   }
   void mouseDown(const juce::MouseEvent &e) override {
+    if (p.kind == Kind::Deess) {
+      endDeessGesture();
+      for (int band=1;band<=2;++band) if(deessLane(band).expanded(6,0).contains(e.position)) {
+        chooseDeessBand(band); deessStartX=e.position.x; deessStartY=e.position.y;
+        deessLow=v("low",band); deessHigh=v("high",band); deessThreshold=v("threshold",band);
+        const float dl=std::abs(e.position.x-hzX(deessLow)), dh=std::abs(e.position.x-hzX(deessHigh));
+        if (std::min(dl,dh)<=9) {
+          deessMode=std::abs(hzX(deessLow)-hzX(deessHigh))<9 ? (e.position.y<deessLane(band).getCentreY()?1:2) : dl<=dh?1:2;
+          drag=nodeParameter(deessMode==1?"low":"high",band);
+        }
+        else if (e.mods.isAltDown() && deessLow<deessHigh) { deessMode=4;drag=nodeParameter("low",band);dragGain=nodeParameter("high",band); }
+        else { deessMode=3;drag=nodeParameter("threshold",band); }
+        p.undo.beginNewTransaction("Edit de-esser band");
+        if(drag)drag->beginChangeGesture();if(dragGain)dragGain->beginChangeGesture();
+        repaint(); return;
+      }
+      return;
+    }
     draggedNode = hitNode(e.position);
     if (!draggedNode)
       return;
@@ -455,6 +556,22 @@ public:
       dragGain->beginChangeGesture();
   }
   void mouseDrag(const juce::MouseEvent &e) override {
+    if (p.kind == Kind::Deess) {
+      if(!drag || !deessMode) return;
+      if(deessMode<=2) {
+        const double hz=20*std::pow(1000.,juce::jlimit(0.,1.,double(e.position.x-graph.getX())/graph.getWidth()));
+        drag->setValueNotifyingHost(drag->convertTo0to1(float(boundDeess(deessSelected,deessMode==1,hz))));
+      } else if(deessMode==3) {
+        drag->setValueNotifyingHost(drag->convertTo0to1(juce::jlimit(-80.f,12.f,deessThreshold+(deessStartY-e.position.y)*92.f/deessLane(deessSelected).getHeight())));
+      } else {
+        const double ratio=juce::jlimit(20./deessLow,20000./deessHigh,std::pow(1000.,double(e.position.x-deessStartX)/graph.getWidth()));
+        // Order writes to avoid a crossed intermediate range in host automation.
+        auto put=[](juce::RangedAudioParameter* param,double value){param->setValueNotifyingHost(param->convertTo0to1(float(value)));};
+        const double low=deessLow*ratio,high=deessHigh*ratio;
+        if(low>v("high",deessSelected)){put(dragGain,high);put(drag,low);}else{put(drag,low);put(dragGain,high);}
+      }
+      repaint(); return;
+    }
     if (!drag)
       return;
     const double hz =
@@ -468,6 +585,7 @@ public:
     repaint();
   }
   void mouseUp(const juce::MouseEvent &) override {
+    endDeessGesture();
     if (drag) {
       drag->endChangeGesture();
       drag = nullptr;
@@ -477,6 +595,20 @@ public:
       dragGain = nullptr;
     }
     draggedNode = 0;
+  }
+  bool keyPressed(const juce::KeyPress& key) override {
+    if(p.kind==Kind::Deess && key==juce::KeyPress::escapeKey && deessMode){endDeessGesture();return true;}
+    return juce::AudioProcessorEditor::keyPressed(key);
+  }
+  void visibilityChanged() override { if(!isVisible())endDeessGesture(); }
+  void mouseMove(const juce::MouseEvent& e) override {
+    if(p.kind!=Kind::Deess)return;
+    auto cursor=juce::MouseCursor::NormalCursor;
+    for(int band=1;band<=2;++band)if(deessLane(band).expanded(6,0).contains(e.position)) {
+      cursor=std::min(std::abs(e.position.x-hzX(v("low",band))),std::abs(e.position.x-hzX(v("high",band))))<=9
+        ?juce::MouseCursor::LeftRightResizeCursor: e.mods.isAltDown()?juce::MouseCursor::DraggingHandCursor:juce::MouseCursor::UpDownResizeCursor;
+    }
+    setMouseCursor(cursor);
   }
   void mouseDoubleClick(const juce::MouseEvent &e) override {
     if (!graph.contains(e.position) ||
@@ -528,30 +660,36 @@ public:
   }
 
   void layoutAdvanced(){
+    if(p.kind==Kind::Deess){
+      preset.setBounds(92,76,273,24);quality.setBounds(477,76,120,24);
+      undo.setBounds(23,110,55,23);redo.setBounds(82,110,55,23);ab.setBounds(141,110,61,23);bypass.setBounds(386,110,97,23);delta.setBounds(488,110,109,23);pages.setBounds(210,110,170,23);
+      graph={59,197,510,144};
+      for(int i=0;i<12;++i){auto&c=controls[size_t(i)];int x=32+(i%6)*94;c.label.setBounds(x,410,88,23);c.label.setFont(gill::prism::font(10));c.slider.setSliderStyle(juce::Slider::LinearHorizontal);c.slider.setBounds(x,437,88,69);c.choice.setBounds(x,450,88,28);}
+      strength.setSliderStyle(juce::Slider::LinearHorizontal);strength.setBounds(30,563,111,58);
+      for(int i=0;i<3;++i){auto&c=global[size_t(i)];int x=156+i*145;c.label.setBounds(x,539,132,20);c.slider.setSliderStyle(juce::Slider::LinearHorizontal);c.slider.setBounds(x,563,132,58);}
+      return;
+    }
     preset.setBounds(92,76,273,24);quality.setBounds(477,76,120,24);
     undo.setBounds(23,110,55,23);redo.setBounds(82,110,55,23);ab.setBounds(141,110,61,23);bypass.setBounds(386,110,97,23);delta.setBounds(488,110,109,23);pages.setBounds(210,110,170,23);
-    const bool clean=p.kind==Kind::Deess;
-    const bool single=!clean&&!pageDefs.empty()&&pageDefs[size_t(std::max(0,pages.getSelectedId()-1))].indices.size()<=3;
-    for(int i=0;i<12;++i){auto&c=controls[size_t(i)];int x=clean?185+(i%3)*135:38+(i%2)*180,y=clean?359+(i/3)*79:154+(i/2)*114;
-      c.slider.setSliderStyle(clean?juce::Slider::LinearHorizontal:juce::Slider::RotaryHorizontalVerticalDrag);c.label.setBounds(x,y,clean?125:155,18);c.slider.setBounds(x,y+19,clean?125:155,clean?59:84);c.choice.setBounds(x+4,y+43,clean?117:147,25);if(single){const int sy=154+i*114;c.label.setBounds(37,sy+31,145,21);c.slider.setBounds(198,sy+1,173,98);c.choice.setBounds(193,sy+35,182,28);}}
-    strength.setBounds(45,185,101,302);
-    graph=clean?juce::Rectangle<float>(186,161,399,158):juce::Rectangle<float>(424,395,155,76);
-    for(int i=0;i<3;++i){auto&c=global[size_t(i)];const int x=i==0?33:i==1?220:412;c.label.setBounds(x,535,i==1?174:172,20);c.slider.setSliderStyle(i==1&&!clean?juce::Slider::RotaryHorizontalVerticalDrag:juce::Slider::LinearHorizontal);c.slider.setBounds(x,554,i==1?174:172,i==1&&!clean?77:62);}
-    learnDrive.setBounds(425,451,165,24);
+    const int firstRow=p.kind==Kind::Alpha?351:320;
+    for(int i=0;i<12;++i){auto&c=controls[size_t(i)];const int x=35+(i%3)*193,y=firstRow+(i/3)*88;
+      c.label.setBounds(x,y,168,18);c.slider.setSliderStyle(p.kind==Kind::Max?juce::Slider::LinearHorizontal:juce::Slider::RotaryHorizontalVerticalDrag);
+      c.slider.setBounds(x,y+19,168,65);c.choice.setBounds(x+5,y+39,158,25);}
+    graph={47,188,526,83};
+    for(int i=0;i<3;++i){auto&c=global[size_t(i)];const int x=35+i*193;c.label.setBounds(x,535,168,20);c.slider.setSliderStyle(juce::Slider::LinearHorizontal);c.slider.setBounds(x,560,168,62);}
+    learnDrive.setBounds(421,496,165,23);
   }
   void paintAdvanced(juce::Graphics&g){
-    using namespace gill::monolith;const bool clean=p.kind==Kind::Deess;
-    if(clean){gill::scalpel::chassis(g,620,660,p.getName());gill::scalpel::panel(g,{22,147,141,365});gill::scalpel::text(g,"DYNAMICS",{29,157,128,21},13);gill::scalpel::text(g,"DEPTH",{30,488,126,18},10);gill::scalpel::panel(g,{175,147,423,192});gill::scalpel::panel(g,{175,349,423,163});gill::scalpel::panel(g,{22,525,576,109});}
-    else {chassis(g,620,660,p.getName());frame(g,620,660,145,375,515);for(int row=0;row<3;++row){surface(g,{22,145.f+row*114,375,108},22);g.setColour(gold);g.fillEllipse(27,153.f+row*114,5,5);}meterWell(g,{414,145,184,370},p.inPeak.load(),p.outPeak.load(),p.reduction[0].load(),p.kind==Kind::Alpha?0.f:110.f);surface(g,{22,525,576,109},24);}
-    if(p.kind==Kind::Precision || clean){
-      if(!clean){g.setColour(ink);g.fillRoundedRectangle(graph.expanded(2),4);}const int count=clean?2:5;
-      text(g,"BAND RANGES / GR",{graph.getX(),graph.getY(),graph.getWidth(),17},9,cream);
-      for(int i=0;i<count;++i){const float left=hzX(v("low",i+1)),right=hzX(v("high",i+1));auto r=juce::Rectangle<float>(std::min(left,right),graph.getY()+24,std::max(2.f,std::abs(right-left)),graph.getHeight()-46);g.setColour(gold.withAlpha(.09f));g.fillRect(r);g.setColour(gold.withAlpha(.6f));g.drawRect(r,1);text(g,juce::String(i+1),{r.getX(),r.getY()+1,r.getWidth(),14},9);text(g,juce::String(p.reduction[size_t(i)].load(),1),{r.getX(),r.getBottom()-18,r.getWidth(),16},10,gold);}
-      text(g,"20 Hz",{graph.getX(),graph.getBottom()-17,36,16},8,cream.withAlpha(.6f));text(g,"20 kHz",{graph.getRight()-44,graph.getBottom()-17,44,16},8,cream.withAlpha(.6f));
-      if(clean) text(g,"MEASURED GAIN REDUCTION",{183,321,405,13},9,gold);
-    }
-    if(p.kind==Kind::Max){text(g,"IN "+juce::String(p.inputLufs.load(),1)+" LUFS",{426,402,160,20},11,gold);text(g,"OUT "+juce::String(p.outputLufs.load(),1)+" LUFS",{426,425,160,20},11,gold);}
-    juce::String status=juce::String(p.appliedQuality()?"PRO":"LIVE")+" / "+juce::String(p.getLatencySamples())+" SAMPLES";if(p.pending())status+=" / STOP PLAYBACK TO APPLY";text(g,status,{23,640,574,13},9,cream.withAlpha(.65f));
+    if(p.kind==Kind::Deess){paintDeess(g);return;}
+    using namespace gill::monolith;
+    chassis(g,620,660,p.getName());
+    const float top=p.kind==Kind::Alpha?343.f:312.f;
+    surface(g,{22,top,576,p.kind==Kind::Alpha?180.f:176.f},22);surface(g,{22,525,576,109},24);
+    auto value=[this](const char* key,int band){return v(key,band);};
+    if(p.kind==Kind::Alpha)masterui21::alpha(g,p,value);
+    if(p.kind==Kind::Max)masterui21::maximizer(g,p);
+    if(p.kind==Kind::Precision)masterui21::precision(g,p,value);
+    juce::String status=juce::String(p.appliedQuality()?"PRO":"LIVE")+" / "+juce::String(p.getLatencySamples())+" SAMPLES";if(p.pending())status+=" / STOP PLAYBACK TO APPLY";text(g,status,{112,57,340,14},8.5f,cream.withAlpha(.65f),juce::Justification::left);
   }
 
   void resized() override {
