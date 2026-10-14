@@ -66,7 +66,7 @@ jobs:
            }else if(operation==='open'){
             const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=path.join(root,'input.archive');try{await decrypt(path.join(root,'input.gillenc'),archive,key,expected);await extract(archive,path.join(root,'input'));}finally{key.fill(0);fs.rmSync(archive,{force:true});fs.rmSync(path.join(root,'input.gillenc'),{force:true});}
            }else if(operation==='seal'){
-            const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=path.join(root,'result.archive'),evidence=path.join(root,'output/evidence');fs.mkdirSync(evidence,{recursive:true});if(fs.existsSync(path.join(root,'private.log')))fs.copyFileSync(path.join(root,'private.log'),path.join(evidence,'workflow-private.log'));
+            const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=path.join(root,'result.archive'),evidence=path.join(root,'output/evidence');fs.mkdirSync(evidence,{recursive:true});if(fs.existsSync(path.join(root,'private.log')))fs.copyFileSync(path.join(root,'private.log'),path.join(evidence,'workflow-private.log'));if(fs.existsSync(path.join(root,'overlay-open.log')))fs.copyFileSync(path.join(root,'overlay-open.log'),path.join(evidence,'overlay-open.log'));
             // Refresh only the file inventory: never promote an interrupted stage to accepted.
             const checkpoint=path.join(evidence,'checkpoint.json');if(fs.existsSync(checkpoint)){const m=JSON.parse(fs.readFileSync(checkpoint));m.files=[];for(const r of walk(evidence).filter(r=>r.path!=='checkpoint.json'))m.files.push({path:r.path,sha256:await hash(r.file)});fs.writeFileSync(checkpoint,JSON.stringify(m,null,2));}
             try{await pack(walk(evidence),archive);await encrypt(archive,path.join(root,'result.gillenc'),key);}finally{key.fill(0);fs.rmSync(archive,{force:true});}
@@ -78,125 +78,92 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GILL_INPUT_URL: ${{ secrets.GILL_MAC14_INPUT_URL }}
         shell: bash
-        run: node "$RUNNER_TEMP/sealed-native/bootstrap.mjs" download "$RUNNER_TEMP/sealed-native" 67025a9f7569bc8dbc0a3b9f77a75a54480b33eb5615ae4139c4f7ac34b927b7 640295598
+        run: node "$RUNNER_TEMP/sealed-native/bootstrap.mjs" download "$RUNNER_TEMP/sealed-native" 9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534 641754142
       - name: Authenticate and open input
         env:
           GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
         shell: bash
-        run: node "$RUNNER_TEMP/sealed-native/bootstrap.mjs" open "$RUNNER_TEMP/sealed-native" 67025a9f7569bc8dbc0a3b9f77a75a54480b33eb5615ae4139c4f7ac34b927b7
-      - name: Bind reviewed generic evidence driver
+        run: node "$RUNNER_TEMP/sealed-native/bootstrap.mjs" open "$RUNNER_TEMP/sealed-native" 9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534
+      - name: Bind authenticated Apple compiler compatibility
+        env:
+          GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
         shell: bash
         run: |
-          set -eu
-          cat > "$RUNNER_TEMP/sealed-native/root-rebind.mjs" <<'GILL_ROOT_REBIND_EOF'
-          // Generic public CI housekeeping only; no plugin source, credentials or network.
-          import fs from 'node:fs';
-          import path from 'node:path';
-          import crypto from 'node:crypto';
-          import assert from 'node:assert/strict';
-          import {fileURLToPath} from 'node:url';
-          const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
-          export function rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches=[],compatSha=null){
-           for(const s of [baseSeal,oldDriver,newDriver,finalSeal])assert.match(s,/^[a-f0-9]{64}$/);
-           assert.equal(manifest.sourceSeal,baseSeal);
-           assert.equal(sha(JSON.stringify(manifest.sourceRecords)),baseSeal);
-           assert.equal(manifest.driverSeal,oldDriver);
-           const records=manifest.sourceRecords.filter(r=>r.path==='encrypted-ci/driver.mjs');
-           assert.equal(records.length,1);assert.equal(records[0].sha256,oldDriver);
-           const updated=structuredClone(manifest);
-           updated.sourceRecords.find(r=>r.path==='encrypted-ci/driver.mjs').sha256=newDriver;
-           const allowed=['protected-mac-manager/native/manager_tests.cpp','protected-mac-manager/native/generate_manager_vectors.mjs','protected-mac-manager/native/macos/manager_cache_macos.cpp','protected-mac-manager/native/macos/manager_main.mm','protected-mac-manager/native-run.mjs','protected-mac-manager/source-manifest.json'];
-           assert.equal(new Set(patches.map(p=>p.path)).size,patches.length);
-           for(const p of patches){assert(allowed.includes(p.path));assert.match(p.sha256,/^[a-f0-9]{64}$/);const entries=updated.sourceRecords.filter(r=>r.path===p.path);assert.equal(entries.length,1);assert.equal(entries[0].sha256,p.oldSha256);entries[0].sha256=p.sha256;if(p.path.endsWith('/source-manifest.json')){assert.equal(updated.managerSourceSeal,p.oldSha256);updated.managerSourceSeal=p.sha256;}}
-           if(compatSha){assert.match(compatSha,/^[a-f0-9]{64}$/);const compat='root-generic/macos-key-attributes-compat.h';assert(!updated.sourceRecords.some(r=>r.path===compat));updated.sourceRecords.push({path:compat,sha256:compatSha});}
-           updated.driverSeal=newDriver;updated.sourceSeal=sha(JSON.stringify(updated.sourceRecords));
-           assert.equal(updated.sourceSeal,finalSeal);
-           return updated;
-          }
-          if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-           const [mode,root,baseSeal,oldDriver,newDriver,finalSeal,patchFile,compatSha]=process.argv.slice(2);
-           const patches=patchFile?JSON.parse(fs.readFileSync(patchFile)):[];
-           const file=path.join(root,'input-manifest.json'),driver=path.join(root,'encrypted-ci/driver.mjs');
-           const manifest=JSON.parse(fs.readFileSync(file));
-           if(mode==='before'){
-            assert.equal(sha(fs.readFileSync(driver)),oldDriver);
-            rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches,compatSha);
-            for(const p of patches)assert.equal(sha(fs.readFileSync(path.join(root,p.path))),p.oldSha256);
-           }else{
-            assert.equal(mode,'after');assert.equal(sha(fs.readFileSync(driver)),newDriver);
-            for(const p of patches){const target=path.join(root,p.path);if(p.path.endsWith('/source-manifest.json')){const m=JSON.parse(fs.readFileSync(target));for(const q of patches.filter(q=>q.path.startsWith('protected-mac-manager/')&&!q.path.endsWith('/source-manifest.json')))m.sha256[q.path.split('protected-mac-manager/')[1]]=q.sha256;fs.writeFileSync(target,JSON.stringify(m,null,2)+'\n');}else{let text=fs.readFileSync(target,'utf8');for(const edit of p.edits||[p]){const count=edit.count||1;assert([1,2].includes(count));assert.equal(text.split(edit.before).length,count+1);text=text.replaceAll(edit.before,edit.after);}fs.writeFileSync(target,text);}assert.equal(sha(fs.readFileSync(target)),p.sha256);}
-            if(compatSha)assert.equal(sha(fs.readFileSync(path.join(root,'root-generic/macos-key-attributes-compat.h'))),compatSha);
-            fs.writeFileSync(file,JSON.stringify(rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches,compatSha),null,2));
-           }
-          }
-          GILL_ROOT_REBIND_EOF
-          cat > "$RUNNER_TEMP/sealed-native/reviewed-patches.json" <<'GILL_ROOT_PATCHES_EOF'
-          [{"path":"protected-mac-manager/native/macos/manager_cache_macos.cpp","oldSha256":"378785e94f256e0a0178bd554e8bb153710c0ccc8460e8057ff8b5784f912a93","sha256":"c953a3d70cbc8df84f22901cbdc1ec8b6b7da2021181843dd136ce5de55b6981","before":"acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);\r\n    if (acl == nullptr) return false;","after":"errno = 0;\r\n    acl_t acl = acl_get_fd_np(fd, ACL_TYPE_EXTENDED);\r\n    if (acl == nullptr) return errno == ENOENT;","count":2},{"path":"protected-mac-manager/native/macos/manager_main.mm","oldSha256":"e39a4760130fb617bbe67954312553fda97f1735906e1a06bd95f313c376019a","sha256":"eae515dd5ddf50327acc9bfc4b42d1845ee2815ffa0c10e42a631e7369736e53","edits":[{"before":"#include <cstdlib>","after":"#include <cstdlib>\n#include <cstdio>\nstatic void smokeProgress(const char* stage){if([[NSProcessInfo processInfo].arguments containsObject:@\"--smoke-test\"]){std::fprintf(stderr,\"GILL_MANAGER_UI_SMOKE %s\\n\",stage);std::fflush(stderr);}}"},{"before":"(void)notification;instanceLock=-1;","after":"(void)notification;smokeProgress(\"launch-finished\");instanceLock=-1;"},{"before":"std::string code,url,id;","after":"std::string code,url,id;smokeProgress(\"worker-start\");"},{"before":"engine=std::make_unique<gill::manager::Engine>","after":"smokeProgress(\"engine-create\");engine=std::make_unique<gill::manager::Engine>"},{"before":"id=engine->deviceId();","after":"id=engine->deviceId();smokeProgress(\"device-ready\");"},{"before":"}catch(const std::exception& error){code=error.what();}","after":"}catch(const std::exception& error){code=error.what();smokeProgress(\"worker-error\");}smokeProgress(\"worker-finished\");"},{"before":"if(id.empty())std::exit(2);[NSApp terminate:nil];","after":"if(id.empty())std::exit(2);smokeProgress(\"terminate-request\");[NSApp terminate:nil];"},{"before":"(void)sender;[timer invalidate];","after":"(void)sender;smokeProgress(\"terminate-delegate\");[timer invalidate];"},{"before":"[NSApp replyToApplicationShouldTerminate:YES];","after":"smokeProgress(\"terminate-reply\");[NSApp replyToApplicationShouldTerminate:YES];"},{"before":"int main(){@autoreleasepool {NSApplication* app=","after":"int main(){@autoreleasepool {smokeProgress(\"main-start\");NSApplication* app="},{"before":"dispatch_async(worker, ^{dispatch_async(dispatch_get_main_queue(), ^{smokeProgress(\"terminate-reply\");[NSApp replyToApplicationShouldTerminate:YES];});});","after":"dispatch_async(worker, ^{CFRunLoopPerformBlock(CFRunLoopGetMain(), (__bridge CFStringRef)NSModalPanelRunLoopMode, ^{smokeProgress(\"terminate-reply\");[NSApp replyToApplicationShouldTerminate:YES];});CFRunLoopWakeUp(CFRunLoopGetMain());});"}]},{"path":"protected-mac-manager/native-run.mjs","oldSha256":"df11d214085475fa3a29f5e0e8ec8b6cdd4b840c69fc23b5cdeacfeec0b94bdc","sha256":"87ec842f513e6be57c8fe9e5b9bdb864717e36c985c3358584ce0b9012aab5e1","edits":[{"before":"run('lipo',['-verify_arch',arch,join(build,'GillProductionLicenseManager.app/Contents/MacOS/GillProductionLicenseManager')]);","after":"run('lipo',[join(build,'GillProductionLicenseManager.app/Contents/MacOS/GillProductionLicenseManager'),'-verify_arch',arch]);"}]},{"path":"protected-mac-manager/native/manager_tests.cpp","oldSha256":"c98a2a8380481807f96cd93a747c1f548c46950354d29f4af7ba97e500f93ded","sha256":"99d5efba319f4da45e7acd7376fef7ec0aafd11304645121c463a18db5d29226","before":"std::runtime_error(\"test_device_unavailable\")","after":"std::runtime_error(\"test_device_unavailable:\"+device.error)"},{"path":"protected-mac-manager/native/generate_manager_vectors.mjs","oldSha256":"c7235deb3a9725fa7bff26875f1b6f4741aa149dd0b2995dd262080f26d93336","sha256":"830db881806256b53d5079c8d89d907b64a80afbe1429ab81b4ac851a232be26","before":"throw new Error('Native test identity unavailable')","after":"throw new Error('Native test identity unavailable: '+(probe.stderr||probe.error?.message||'unknown').trim())"},{"path":"protected-mac-manager/source-manifest.json","oldSha256":"d39aad85d4bbc7c296026732a8549f0fb0021e415943591ae7ecfe020e56d47f","sha256":"5ddfb1f83f3bc43ecb436b78bc23b1169194a034fe71bdf3da3abb8aabec0f60","before":null,"after":null}]
-          GILL_ROOT_PATCHES_EOF
-          node "$RUNNER_TEMP/sealed-native/root-rebind.mjs" before "$RUNNER_TEMP/sealed-native/input" 6716d56e6f615385b7d3cdafef0235fd52c252915200056ed1297997678e2309 b32c36e9e9f3a05a4c9c1811855c96f915dc9cb03f8bef70b7c1cd1322827e68 2a4a1a1f912ed682fdc1168958ba003450bcfafb45efb3dbd5a0ccf2f27229a4 dfb57c272c2aa3ec6985265f4a8a0f91cefa7a48c30c0ba4124f6acadb2d374f "$RUNNER_TEMP/sealed-native/reviewed-patches.json" 3955a1fefeb162891c9fe28975f818e832d2b3f3120decf0631923feafc1b4dc
-          cat > "$RUNNER_TEMP/sealed-native/input/encrypted-ci/driver.mjs" <<'GILL_ROOT_DRIVER_EOF'
-          // Runs only inside authenticated, sealed encrypted input; stdout is private workflow file.
-          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';import {hash,sha,walk} from './transport.mjs';import {verifyResult,writeCheckpoint} from './result.mjs';
-          const root=path.dirname(path.dirname(fileURLToPath(import.meta.url))),arch=process.argv[2],output=path.resolve(process.argv[3]);
-          assert.equal(process.platform,'darwin');assert.equal(process.env.CI,'true');assert.equal(process.arch,arch==='arm64'?'arm64':'x64');assert(['arm64','x86_64'].includes(arch));assert(Number(process.versions.node.split('.')[0])>=24);
-          const manifest=JSON.parse(fs.readFileSync(path.join(root,'input-manifest.json')));assert.equal(sha(Buffer.from(JSON.stringify(manifest.sourceRecords))),manifest.sourceSeal);for(const r of manifest.sourceRecords)assert.equal(await hash(path.join(root,r.path)),r.sha256,'input changed');assert.equal(await hash(path.join(root,'encrypted-ci/driver.mjs')),manifest.driverSeal);
-          fs.mkdirSync(output,{recursive:true,mode:0o700});const work=path.join(output,'work');fs.mkdirSync(work);const evidence=path.join(output,'evidence');fs.mkdirSync(evidence);const env={...process.env,CI:'true',CMAKE_BUILD_PARALLEL_LEVEL:'1',CTEST_PARALLEL_LEVEL:'1',GILL_NATIVE_RUNTIME_DIR:path.join(root,'protected-mac-plugins/runtime')};for(const k of Object.keys(env))if(/TOKEN|SECRET|GILL_MAC14_CI_KEY|GILL_KEY|ACTIONS_RUNTIME/i.test(k))delete env[k];
-          const meta={sourceSeal:manifest.sourceSeal,pluginCandidateSeal:manifest.pluginCandidateSeal,managerSourceSeal:manifest.managerSourceSeal,managerRunnerSeal:await hash(path.join(root,'protected-mac-manager/native-run.mjs')),managerProfileSeal:await hash(path.join(root,'protected-mac-manager/public-profile/descriptor.json')),driverSeal:manifest.driverSeal,arch,completed:[],stageExit:{},nativeAcceptance:'incomplete'};
-          const resume=path.join(root,'resume');if(fs.existsSync(resume)){const prior=await verifyResult(resume,manifest.sourceSeal);assert.equal(prior.arch,arch,'resume must match target architecture');for(const stage of prior.completed){fs.cpSync(path.join(resume,stage),path.join(evidence,stage),{recursive:true});meta.completed.push(stage);meta.stageExit[stage]=0;}}
-          function retain(stage,build){if(!fs.existsSync(build))return;for(const r of walk(build)){// Keep receipts, bounded private diagnostics and actual bundles; never object intermediates.
-           if(!(/\.app\//.test(r.path)||/\.vst3\//.test(r.path)||/\.(json|log)$/.test(r.path)||r.path==='identity/gill_factory_identity'))continue;
-           if(fs.statSync(r.file).size>256*1024*1024)throw Error('Evidence file bound');const dest=path.join(evidence,stage,r.path);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(r.file,dest);fs.chmodSync(dest,fs.statSync(r.file).mode&0o111?0o700:0o600);
-          }}
-          await writeCheckpoint(evidence,meta);
-          let failed=false;for(const stage of ['manager','plugins']){if(meta.completed.includes(stage))continue;const build=path.join(work,stage);const args=stage==='manager'?[path.join(root,'mac-packaging/accept-manager.mjs'),arch,build]:[path.join(root,'protected-mac-plugins/run-native.mjs'),'--arch',arch,'--juce',path.join(root,'JUCE'),'--original',path.join(root,'original'),'--output',build];const log=fs.openSync(path.join(evidence,stage+'-driver.log'),'w',0o600);let r;try{r=spawnSync(process.execPath,args,{cwd:root,env,stdio:['ignore',log,log],timeout:stage==='plugins'?300*60*1000:undefined});}finally{fs.closeSync(log);}meta.stageExit[stage]=r.status;retain(stage,build);if(r.status===0)meta.completed.push(stage);else failed=true;meta.nativeAcceptance=meta.completed.length===2?'targeted native stages passed; root acceptance outstanding':'incomplete';await writeCheckpoint(evidence,meta);await verifyResult(evidence,manifest.sourceSeal);fs.rmSync(build,{recursive:true,force:true});if(failed)break;}
-          if(failed)process.exitCode=1;else{await verifyResult(evidence,manifest.sourceSeal,{requireComplete:true});console.log('TARGETED_NATIVE_STAGES_PASSED_NOT_RELEASE_ACCEPTED');}
-          GILL_ROOT_DRIVER_EOF
-          mkdir -p "$RUNNER_TEMP/sealed-native/input/root-generic"
-          cat > "$RUNNER_TEMP/sealed-native/input/root-generic/macos-key-attributes-compat.h" <<'GILL_ROOT_COMPAT_EOF'
-          #pragma once
-          // Generic macOS Keychain option normalization. The actual Apple API remains
-          // authoritative and the existing non-extractability checks remain unchanged.
-          #if defined(__APPLE__)
-          #include <Security/Security.h>
-          #include <CoreFoundation/CoreFoundation.h>
-          #include <sys/acl.h>
-          #include <cerrno>
-          inline SecKeyRef gillMacKeyAttributesCompat(CFDictionaryRef parameters,CFErrorRef* error){
-           if(!parameters)return SecKeyCreateRandomKey(parameters,error);
-           auto flattened=CFDictionaryCreateMutableCopy(kCFAllocatorDefault,0,parameters);
-           if(!flattened)return SecKeyCreateRandomKey(parameters,error);
-           const auto nested=CFDictionaryGetValue(parameters,kSecPrivateKeyAttrs);
-           if(nested&&CFGetTypeID(nested)==CFDictionaryGetTypeID()){
-            CFDictionaryApplyFunction(static_cast<CFDictionaryRef>(nested),[](const void* key,const void* value,void* context){CFDictionarySetValue(static_cast<CFMutableDictionaryRef>(context),key,value);},flattened);
-            CFDictionaryRemoveValue(flattened,kSecPrivateKeyAttrs);
-           }
-           const auto result=SecKeyCreateRandomKey(flattened,error);
-           CFRelease(flattened);return result;
-          }
-          #define SecKeyCreateRandomKey gillMacKeyAttributesCompat
-          // A missing Darwin extended ACL is NULL/ENOENT, whereas the reviewed callers
-          // require a valid empty ACL object. Preserve every other result and error.
-          inline acl_t gillMacExtendedAclCompat(int fd,acl_type_t type){
-           errno=0;
-           acl_t value=acl_get_fd_np(fd,type);
-           if(value||type!=ACL_TYPE_EXTENDED||errno!=ENOENT)return value;
-           return acl_init(0);
-          }
-          #define acl_get_fd_np gillMacExtendedAclCompat
-          #endif
-          GILL_ROOT_COMPAT_EOF
-          node "$RUNNER_TEMP/sealed-native/root-rebind.mjs" after "$RUNNER_TEMP/sealed-native/input" 6716d56e6f615385b7d3cdafef0235fd52c252915200056ed1297997678e2309 b32c36e9e9f3a05a4c9c1811855c96f915dc9cb03f8bef70b7c1cd1322827e68 2a4a1a1f912ed682fdc1168958ba003450bcfafb45efb3dbd5a0ccf2f27229a4 dfb57c272c2aa3ec6985265f4a8a0f91cefa7a48c30c0ba4124f6acadb2d374f "$RUNNER_TEMP/sealed-native/reviewed-patches.json" 3955a1fefeb162891c9fe28975f818e832d2b3f3120decf0631923feafc1b4dc
+          node -e 'require("fs").writeFileSync(process.env.RUNNER_TEMP+"/sealed-native/overlay.gillenc",Buffer.from("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","base64"))'
+          cat > "$RUNNER_TEMP/sealed-native/overlay.mjs" <<'GILL_HELPER_OVERLAY_EOF'
+          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {decrypt,extract,hash,sha,walk} from './transport.mjs';
+          const root=process.argv[2],key=Buffer.from(process.env.GILL_KEY||'','base64');delete process.env.GILL_KEY;
+          try{await decrypt(path.join(root,'overlay.gillenc'),path.join(root,'overlay.archive'),key,'fed1b94b33f9231cbda1398a9730a587890607f15cf7293bd6b8fbfc5a2c00b4');await extract(path.join(root,'overlay.archive'),path.join(root,'overlay'));const b=JSON.parse(fs.readFileSync(path.join(root,'overlay/binding.json')));assert.deepEqual(walk(path.join(root,'overlay')).map(r=>r.path).sort(),['binding.json','integration/macos-key-attributes-compat.h'].sort());assert.equal(b.name,'integration/macos-key-attributes-compat.h');assert.equal(b.baseSourceSeal,'b72929135dee460b70bf6cb0c576ee6355dd6002173f83de3244c30288a066d3');assert.equal(b.effectiveSourceSeal,'e0a587a355813c2f96a22f4fe47452da6f18854148071e6da3ae2c45d926b691');assert.equal(b.headerSha256,'3955a1fefeb162891c9fe28975f818e832d2b3f3120decf0631923feafc1b4dc');assert.equal(await hash(path.join(root,'overlay',b.name)),b.headerSha256);const p=path.join(root,'input/input-manifest.json'),m=JSON.parse(fs.readFileSync(p));assert.equal(m.sourceSeal,b.baseSourceSeal);assert.equal(sha(Buffer.from(JSON.stringify(m.sourceRecords))),b.baseSourceSeal);assert(!m.sourceRecords.some(r=>r.path===b.name));assert(!fs.existsSync(path.join(root,'input',b.name)));fs.copyFileSync(path.join(root,'overlay',b.name),path.join(root,'input',b.name));m.sourceRecords.push({path:b.name,sha256:b.headerSha256});m.sourceSeal=sha(Buffer.from(JSON.stringify(m.sourceRecords)));assert.equal(m.sourceSeal,b.effectiveSourceSeal);fs.writeFileSync(p,JSON.stringify(m,null,2));}finally{key.fill(0);fs.rmSync(path.join(root,'overlay.archive'),{force:true});}
+          GILL_HELPER_OVERLAY_EOF
+          node "$RUNNER_TEMP/sealed-native/overlay.mjs" "$RUNNER_TEMP/sealed-native" > "$RUNNER_TEMP/sealed-native/overlay-open.log" 2>&1
       - name: Run sealed targeted native checks
         timeout-minutes: 330
         env:
           CI: 'true'
-          CXXFLAGS: '-include ${{ runner.temp }}/sealed-native/input/root-generic/macos-key-attributes-compat.h'
-          OBJCXXFLAGS: '-include ${{ runner.temp }}/sealed-native/input/root-generic/macos-key-attributes-compat.h'
+          CXXFLAGS: '-include ${{ runner.temp }}/sealed-native/input/integration/macos-key-attributes-compat.h'
+          OBJCXXFLAGS: '-include ${{ runner.temp }}/sealed-native/input/integration/macos-key-attributes-compat.h'
           TARGET_ARCH: ${{ matrix.arch }}
         shell: bash
         run: |
           set +x
-          node "$RUNNER_TEMP/sealed-native/input/encrypted-ci/driver.mjs" "$TARGET_ARCH" "$RUNNER_TEMP/sealed-native/output" > "$RUNNER_TEMP/sealed-native/private.log" 2>&1
+          cat > "$RUNNER_TEMP/sealed-native/monitor.mjs" <<'GILL_PROGRESS_CONTROL_EOF'
+          // Generic outer monitor. Compiler and customer logs never go to public stdout.
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          import {spawn} from 'node:child_process';
+          import {fileURLToPath} from 'node:url';
+          const LIMIT=2*1024*1024;
+          function boundedJson(file){
+            try{const s=fs.lstatSync(file);if(!s.isFile()||s.isSymbolicLink()||s.size>LIMIT)return null;return JSON.parse(fs.readFileSync(file,'utf8'));}catch{return null;}
+          }
+          export function counters(base){
+            const active=path.resolve(base,'output/work/plugins'),retained=path.resolve(base,'output/evidence/plugins');
+            const folder=fs.existsSync(path.join(active,'commands.json'))?active:retained,commands=boundedJson(path.join(folder,'commands.json'));
+            const checkpoint=boundedJson(path.resolve(base,'output/evidence/checkpoint.json'));
+            const result={kind:'native-progress',managerComplete:checkpoint?.completed?.includes('manager')===true,operationsComplete:0,familiesComplete:0};
+            if(!Array.isArray(commands)||commands.length>10000)return result;
+            result.operationsComplete=commands.filter(c=>c?.status===0&&!c.signal&&!c.error).length;
+            let entries=[];try{entries=fs.readdirSync(folder,{withFileTypes:true});}catch{return result;}
+            const families=new Set();
+            for(const e of entries){
+              const m=e.name.match(/^(\d{3,5})-synthetic-authorized-([A-Za-z0-9_]+)\.log$/);
+              if(!m||!e.isFile()||e.isSymbolicLink())continue;
+              const c=commands[Number(m[1])];
+              if(c?.status===0&&!c.signal&&!c.error)families.add(m[2]);
+            }
+            result.familiesComplete=families.size;return result;
+          }
+          export async function monitor(base,arch,{driver,intervalMs=60000,emit=s=>process.stdout.write(JSON.stringify(s)+'\n')}={}){
+            assert(['arm64','x86_64'].includes(arch));assert(Number.isSafeInteger(intervalMs)&&intervalMs>=10);
+            base=fs.realpathSync(base);
+            const entry=driver??path.join(base,'input/encrypted-ci/driver.mjs');
+            const logFile=path.join(base,'private.log');
+            const fd=fs.openSync(logFile,'wx',0o600);
+            let previous='';
+            const report=()=>{const c=counters(base),s=JSON.stringify(c);if(s!==previous){previous=s;emit(c);}};
+            report();const timer=setInterval(report,intervalMs);
+            let child,code=1,signal=null;
+            const forward=()=>{if(child&&!child.killed)child.kill('SIGTERM');};
+            process.on('SIGTERM',forward);process.on('SIGINT',forward);
+            try{
+              const finish=await new Promise(resolve=>{
+                child=spawn(process.execPath,[entry,arch,path.join(base,'output')],{stdio:['ignore',fd,fd],env:process.env});
+                child.once('error',()=>resolve({code:1,signal:null}));
+                child.once('close',(code,signal)=>resolve({code:code??1,signal}));
+              });code=finish.code;signal=finish.signal;
+            }finally{
+              clearInterval(timer);process.off('SIGTERM',forward);process.off('SIGINT',forward);
+              fs.closeSync(fd);report();emit({kind:'native-driver-finished',exit:code,terminated:signal!==null});
+            }
+            return code;
+          }
+          if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
+            try{process.exitCode=await monitor(process.argv[2],process.argv[3]);}
+            catch{console.error('Native monitor failed; private diagnostics were not published');process.exitCode=1;}
+          }
+          GILL_PROGRESS_CONTROL_EOF
+          node "$RUNNER_TEMP/sealed-native/monitor.mjs" "$RUNNER_TEMP/sealed-native" "$TARGET_ARCH"
       - name: Encrypt evidence including failures
         if: always()
         env:
