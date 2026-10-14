@@ -78,3 +78,28 @@ jobs:
           try{run('security',['create-keychain','-p',password,keychain],true);created=true;run('security',['unlock-keychain','-p',password,keychain],true);run('security',['list-keychains','-d','user','-s',keychain],true);run('security',['default-keychain','-d','user','-s',keychain],true);run('clang++',['-std=c++17','key-attributes-probe.cpp','-framework','Security','-framework','CoreFoundation','-o',folder+'/probe']);run('codesign',['--force','--sign','-',folder+'/probe']);run(folder+'/probe',[]);}finally{run('security',['default-keychain','-d','user','-s',original],true);run('security',['list-keychains','-d','user','-s',...list],true);if(created)run('security',['delete-keychain',keychain],true);fs.rmSync(folder,{recursive:true,force:true});}
           GILL_ATTRIBUTES_RUN_EOF
           node key-attributes-run.mjs
+          cat > cache-acl-probe.cpp <<'GILL_CACHE_ACL_EOF'
+          // Disposable CI filesystem metadata only; no token contents or customer paths.
+          #include <sys/acl.h>
+          #include <sys/stat.h>
+          #include <fcntl.h>
+          #include <unistd.h>
+          #include <cerrno>
+          #include <cstdlib>
+          #include <iostream>
+          #include <string>
+          void inspect(const std::string& name,bool directory){
+           const int fd=open(name.c_str(),O_RDONLY|O_NOFOLLOW|(directory?O_DIRECTORY:0));
+           if(fd<0){std::cout<<"open failed errno="<<errno<<"\n";return;}
+           struct stat st{};fstat(fd,&st);errno=0;auto acl=acl_get_fd_np(fd,ACL_TYPE_EXTENDED);const int obtained=errno;errno=0;const int valid=acl?acl_valid(acl):-99,validError=errno;
+           std::cout<<"ACL_META name="<<name<<" owner="<<st.st_uid<<" mode="<<std::oct<<(st.st_mode&07777)<<std::dec<<" exists="<<(acl!=nullptr)<<" get_errno="<<obtained<<" valid="<<valid<<" valid_errno="<<validError;
+           if(acl){int selector=ACL_FIRST_ENTRY;for(int i=0;i<3;++i){acl_entry_t entry=nullptr;errno=0;const int got=acl_get_entry(acl,selector,&entry);const int why=errno;acl_tag_t tag{};const int tagStatus=got==0?acl_get_tag_type(entry,&tag):-99;std::cout<<" entry"<<i<<"="<<got<<":"<<why<<":"<<tagStatus<<":"<<tag;if(got!=0)break;selector=ACL_NEXT_ENTRY;}acl_free(acl);}
+           std::cout<<"\n";close(fd);
+          }
+          int main(){
+           inspect("/",true);inspect("/Users",true);const std::string home=getenv("HOME");inspect(home,true);
+           const auto root=home+"/gill-own-acl-probe-"+std::to_string(getpid());if(mkdir(root.c_str(),0700)!=0)return 1;const auto file=root+"/own-private";const int fd=open(file.c_str(),O_CREAT|O_EXCL|O_WRONLY,0600);if(fd<0)return 1;close(fd);inspect(root,true);inspect(file,false);unlink(file.c_str());rmdir(root.c_str());
+          }
+          GILL_CACHE_ACL_EOF
+          clang++ -std=c++17 cache-acl-probe.cpp -o cache-acl-probe
+          ./cache-acl-probe
