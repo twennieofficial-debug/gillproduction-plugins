@@ -58,11 +58,12 @@ jobs:
           cat > "$RUNNER_TEMP/sealed-native/bootstrap.mjs" <<'GILL_BOOTSTRAP_EOF'
           // Generic public bootstrap; bounded errors only. Never prints filenames, input content or keys.
           import fs from 'node:fs';import path from 'node:path';import {Readable,Transform} from 'node:stream';import {pipeline} from 'node:stream/promises';import assert from 'node:assert/strict';import {decrypt,extract,pack,encrypt,walk,hash,LIMITS} from './transport.mjs';
+          let failure='sealed_operation_failed';
           try{const [operation,base,expected,asset]=process.argv.slice(2);assert(base);const root=path.resolve(base);fs.mkdirSync(root,{recursive:true,mode:0o700});
            if(operation==='download'){
             assert(/^[1-9][0-9]*$/.test(asset));let url='https://api.github.com/repos/twennieofficial-debug/gillproduction-plugins/releases/assets/'+asset;let response;
-            for(let redirects=0;redirects<4;redirects++){const headers={'Accept':'application/octet-stream','X-GitHub-Api-Version':'2022-11-28','User-Agent':'sealed-native-ci'};if(new URL(url).hostname==='api.github.com')headers.Authorization='Bearer '+process.env.GH_TOKEN;response=await fetch(url,{headers,redirect:'manual',signal:AbortSignal.timeout(120000)});if(![301,302,303,307,308].includes(response.status))break;url=new URL(response.headers.get('location'),url).href;const u=new URL(url);assert(u.protocol==='https:'&&!u.username&&!u.password&&['release-assets.githubusercontent.com','objects.githubusercontent.com','github.com'].includes(u.hostname));}
-            assert(response.ok&&response.body);const length=Number(response.headers.get('content-length'));if(length)assert(length<=LIMITS.total+LIMITS.index+44);let bytes=0;await pipeline(Readable.fromWeb(response.body),new Transform({transform(b,e,cb){bytes+=b.length;cb(bytes>LIMITS.total+LIMITS.index+44?Error('bound'):null,b);}}),fs.createWriteStream(path.join(root,'input.gillenc'),{flags:'wx',mode:0o600}));
+            for(let redirects=0;redirects<4;redirects++){const headers={'Accept':'application/octet-stream','X-GitHub-Api-Version':'2022-11-28','User-Agent':'sealed-native-ci'};if(new URL(url).hostname==='api.github.com')headers.Authorization='Bearer '+process.env.GH_TOKEN;response=await fetch(url,{headers,redirect:'manual',signal:AbortSignal.timeout(120000)});if(![301,302,303,307,308].includes(response.status))break;url=new URL(response.headers.get('location'),url).href;const u=new URL(url);if(!['release-assets.githubusercontent.com','objects.githubusercontent.com','github.com'].includes(u.hostname))failure='unexpected_redirect_host';assert(u.protocol==='https:'&&!u.username&&!u.password&&['release-assets.githubusercontent.com','objects.githubusercontent.com','github.com'].includes(u.hostname));}
+            if(!response.ok)failure='download_http_'+response.status;assert(response.ok&&response.body);const length=Number(response.headers.get('content-length'));if(length)assert(length<=LIMITS.total+LIMITS.index+44);let bytes=0;await pipeline(Readable.fromWeb(response.body),new Transform({transform(b,e,cb){bytes+=b.length;cb(bytes>LIMITS.total+LIMITS.index+44?Error('bound'):null,b);}}),fs.createWriteStream(path.join(root,'input.gillenc'),{flags:'wx',mode:0o600}));
            }else if(operation==='open'){
             const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=path.join(root,'input.archive');try{await decrypt(path.join(root,'input.gillenc'),archive,key,expected);await extract(archive,path.join(root,'input'));}finally{key.fill(0);fs.rmSync(archive,{force:true});fs.rmSync(path.join(root,'input.gillenc'),{force:true});}
            }else if(operation==='seal'){
@@ -71,7 +72,7 @@ jobs:
             const checkpoint=path.join(evidence,'checkpoint.json');if(fs.existsSync(checkpoint)){const m=JSON.parse(fs.readFileSync(checkpoint));m.files=[];for(const r of walk(evidence).filter(r=>r.path!=='checkpoint.json'))m.files.push({path:r.path,sha256:await hash(r.file)});fs.writeFileSync(checkpoint,JSON.stringify(m,null,2));}
             try{await pack(walk(evidence),archive);await encrypt(archive,path.join(root,'result.gillenc'),key);}finally{key.fill(0);fs.rmSync(archive,{force:true});}
            }else throw Error('operation');
-          }catch{console.error('Sealed CI operation failed; inspect encrypted evidence privately.');process.exitCode=1;}
+          }catch{console.error('Sealed CI operation failed: '+failure+'. No secrets or signed URLs logged.');process.exitCode=1;}
           GILL_BOOTSTRAP_EOF
       - name: Download pinned encrypted input
         env:
