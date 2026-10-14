@@ -25,6 +25,8 @@ jobs:
           set -eu
           umask 077
           cd "$RUNNER_TEMP"
+          stat -f 'Directory owner=%u group=%g mode=%Lp path=%N' / /Users "$HOME"
+          ls -lde / /Users "$HOME"
           cat > key-attributes-probe.cpp <<'GILL_ATTRIBUTES_EOF'
           // Generic Apple API metadata probe, synthetic keys only. Never exports a key.
           #include <Security/Security.h>
