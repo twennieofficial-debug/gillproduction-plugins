@@ -8,3 +8,6 @@
 
 # Frozen regression controls retain original bytes across hosts.
 work/Mac22/regression/** -text
+
+# Separately versioned recovery tooling retains reviewed bytes on every host.
+recovery-tools/** -text
