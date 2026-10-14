@@ -1,0 +1,194 @@
+{
+  "GILLPRECISION": {
+    "size": 10446588,
+    "sha256": "e30805b51c9ec12c2fbb295fdf3f146248ab7438a274d09f9442a4c4b33ba8ca",
+    "trailer_magic": "koly",
+    "data_offset": 0,
+    "data_length": 10436915,
+    "xml_offset": 10436915,
+    "xml_length": 9161,
+    "exact_trailer_bounds": true,
+    "blocks": [
+      {
+        "name": "Protective Master Boot Record (MBR : 0)",
+        "sector_count": 1,
+        "crc32_stored": 821356450,
+        "crc32_calculated": 821356450,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "GPT Header (Primary GPT Header : 1)",
+        "sector_count": 1,
+        "crc32_stored": 3365048042,
+        "crc32_calculated": 3365048042,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "GPT Partition Data (Primary GPT Table : 2)",
+        "sector_count": 32,
+        "crc32_stored": 2415762229,
+        "crc32_calculated": 2415762229,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": " (Apple_Free : 3)",
+        "sector_count": 6,
+        "crc32_stored": 0,
+        "crc32_calculated": 0,
+        "chunk_types": [
+          "0x2",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "disk image (Apple_APFS : 4)",
+        "sector_count": 44792,
+        "crc32_stored": 2543151335,
+        "crc32_calculated": 2543151335,
+        "chunk_types": [
+          "0x1",
+          "0x2",
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": " (Apple_Free : 5)",
+        "sector_count": 4,
+        "crc32_stored": 0,
+        "crc32_calculated": 0,
+        "chunk_types": [
+          "0x2",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "GPT Partition Data (Backup GPT Table : 6)",
+        "sector_count": 32,
+        "crc32_stored": 2415762229,
+        "crc32_calculated": 2415762229,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "GPT Header (Backup GPT Header : 7)",
+        "sector_count": 1,
+        "crc32_stored": 137904860,
+        "crc32_calculated": 137904860,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      }
+    ],
+    "all_blkx_crc32_match": true,
+    "native_hdiutil_verified": false
+  },
+  "GILLRACK": {
+    "size": 10445343,
+    "sha256": "ccf5c41b5c06576ace6fcd3925f4a62eb15fafd906f2027c46948f7c8c1035d0",
+    "trailer_magic": "koly",
+    "data_offset": 0,
+    "data_length": 10435670,
+    "xml_offset": 10435670,
+    "xml_length": 9161,
+    "exact_trailer_bounds": true,
+    "blocks": [
+      {
+        "name": "Protective Master Boot Record (MBR : 0)",
+        "sector_count": 1,
+        "crc32_stored": 821356450,
+        "crc32_calculated": 821356450,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "GPT Header (Primary GPT Header : 1)",
+        "sector_count": 1,
+        "crc32_stored": 2799127589,
+        "crc32_calculated": 2799127589,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "GPT Partition Data (Primary GPT Table : 2)",
+        "sector_count": 32,
+        "crc32_stored": 592161579,
+        "crc32_calculated": 592161579,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": " (Apple_Free : 3)",
+        "sector_count": 6,
+        "crc32_stored": 0,
+        "crc32_calculated": 0,
+        "chunk_types": [
+          "0x2",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "disk image (Apple_APFS : 4)",
+        "sector_count": 44792,
+        "crc32_stored": 659526056,
+        "crc32_calculated": 659526056,
+        "chunk_types": [
+          "0x1",
+          "0x2",
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": " (Apple_Free : 5)",
+        "sector_count": 4,
+        "crc32_stored": 0,
+        "crc32_calculated": 0,
+        "chunk_types": [
+          "0x2",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "GPT Partition Data (Backup GPT Table : 6)",
+        "sector_count": 32,
+        "crc32_stored": 592161579,
+        "crc32_calculated": 592161579,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      },
+      {
+        "name": "GPT Header (Backup GPT Header : 7)",
+        "sector_count": 1,
+        "crc32_stored": 1719500819,
+        "crc32_calculated": 1719500819,
+        "chunk_types": [
+          "0x80000005",
+          "0xffffffff"
+        ]
+      }
+    ],
+    "all_blkx_crc32_match": true,
+    "native_hdiutil_verified": false
+  }
+}

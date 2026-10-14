@@ -1,0 +1,82 @@
+name: GILL Mac22 Packaging Recovery
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: mac22-packaging-recovery
+  cancel-in-progress: false
+
+jobs:
+  packaging-recovery:
+    runs-on: macos-15
+    timeout-minutes: 120
+    # GitHub permission scope is per job, not per step. Only the frozen
+    # publisher below uses contents write; checkout never persists credentials.
+    permissions:
+      contents: write
+      actions: read
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - name: Checkout immutable tested production source
+        uses: actions/checkout@v4
+        with:
+          ref: 74212023dee2cd5581a9db6fec428677c22f533f
+          path: frozen
+          submodules: recursive
+          persist-credentials: false
+      - name: Checkout separately versioned recovery tools
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          path: tools
+          persist-credentials: false
+          sparse-checkout: |
+            recovery-tools
+            .github/workflows
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Check recovery recipe rejection controls
+        run: python3 -B -m unittest discover -s tools/recovery-tools -p 'test_*.py' -v
+      - name: Package and actually install and mount all 75 deliveries
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 -B tools/recovery-tools/recover.py
+          --source "$GITHUB_WORKSPACE/frozen/work"
+          --output "$RUNNER_TEMP/mac22-recovery"
+          --workflow "$GITHUB_WORKSPACE/tools/.github/workflows/build-macos.yml"
+      - name: Publish only verified downloads with original frozen source identity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          env GITHUB_SHA=74212023dee2cd5581a9db6fec428677c22f533f
+          python3 -B frozen/work/packaging/macos/publish22.py
+          --delivery "$RUNNER_TEMP/mac22-recovery/delivery"
+          --source "$GITHUB_WORKSPACE/frozen/work"
+          --source-archive "$RUNNER_TEMP/mac22-recovery/GILL-QUELLCODE-22.zip"
+          --universal "$RUNNER_TEMP/mac22-recovery/universal"
+          --validations "$RUNNER_TEMP/mac22-recovery/validation"
+      - name: Retain recovery provenance and native diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: MAC22-RECOVERY-EVIDENCE
+          path: ${{ runner.temp }}/mac22-recovery/recovery-evidence
+          if-no-files-found: error
+          retention-days: 14
+      - name: Retain delivery bytes and actual installer evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: GILL-MAC-INSTALLER-UNSIGNIERT-TESTVERSION
+          path: ${{ runner.temp }}/mac22-recovery/delivery
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
