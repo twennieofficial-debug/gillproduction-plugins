@@ -1,6 +1,7 @@
 """Mac22 controls, all synthetic. No native build or publication in this suite."""
 import copy
 import json
+import re
 from pathlib import Path
 import tempfile
 import unittest
@@ -12,6 +13,17 @@ from test_publish22 import FakeGitHub, COMMIT, SOURCE
 
 
 class Mac22Controls(unittest.TestCase):
+    def test_quality_host_version_table_matches_all_current_factory_versions(self):
+        host = core.HERE.parents[1] / 'GILLCommon/Tests/QualityHost.cpp'
+        pairs = re.findall(r'\{"([^"]+)",\s*"([0-9]+\.[0-9]+\.[0-9]+)"\}', host.read_text(encoding='utf-8'))
+        expected = {p['name']: p['version'] for p in core.PRODUCTS}
+        self.assertEqual(len(pairs), len(expected), 'Missing or duplicate native-host version entries')
+        self.assertEqual(dict(pairs), expected, 'Native QualityHost expects obsolete product versions')
+        # The exact failed Mac20 table must be rejected before a long native build.
+        old = {name: '0.20.0' for name in expected}
+        self.assertNotEqual(old, expected)
+        self.assertEqual(sum(old[name] != version for name, version in expected.items()), 13)
+
     def test_full_catalog_source_fingerprint_binds_nested_spectral_and_regression_inputs(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
