@@ -1,5 +1,14 @@
 # Mac22 packaging recovery review
 
+## V2 acceptance gates recorded before implementation
+
+Bounded create retries must fail closed on generic failures, timeouts, missing
+output and exhaustion. Each fresh candidate and log must be SHA-bound; failed
+candidates must remain intact and existing canonical output must never be
+overwritten. All previous frozen install/verify/mount/byte predicates remain.
+Local check: run test_recovery.py; expect exit zero and all tests OK. Native
+v2 acceptance remains pending and is independently owned by the parent.
+
 ## Diagnosis and boundaries
 
 The retained attempt1 GILLRACK DMG is 10,445,343 bytes, SHA256
@@ -26,7 +35,9 @@ the real macOS runner passes all75 original install/verify/mount/byte checks.
 
 The adapter imports pipeline.py and individuals.py from an untouched checkout
 of frozen74212023dee2cd5581a9db6fec428677c22f533f. It intercepts only hdiutil
-create and verify. Create adds `-fs HFS+` to the existing UDZO recipe. Verify
+create and verify. Create adds `-fs HFS+` to the existing UDZO recipe. V2 retries create
+only on exit1 with exact terminal `hdiutil: create failed - Resource busy`,
+up to five attempts with 3/6/12/24 second backoff. Verify
 records every actual process exit/output; up to three attempts are allowed
 only for exit1 and the exact terminal EAGAIN diagnostic. All other errors and
 timeouts abort. No image is regenerated over a partial destination. Native
@@ -84,3 +95,33 @@ Run output is `$RUNNER_TEMP/mac22-recovery/`. Native evidence is
 `recovery-evidence/recovery-report.json`, `frozen-source.json`, both Universal
 bundle manifests and `native-tools/`. Delivery is `delivery/`; its source ZIP
 is also retained at the output root. No public asset list is expanded.
+
+## V2 native failure and four-pass review
+
+Recovery run38528220528 passed the first44 explicit HFS+ images through the
+original installation and mount checks, then stopped at GILLDELIVER create
+exit1, terminal `hdiutil: create failed - Resource busy` (07:34:49 UTC).
+That run remains failed. V2 does not reinterpret any failed attempt as success.
+
+Pass1 implements direct subprocess capture, five maximum attempts and bounded
+3/6/12/24s delays, restricted to that exact exit/terminal diagnostic. The
+unobserved create EAGAIN variant is deliberately not classified as retryable.
+Pass2 reserves a fresh directory for each candidate, records actual exit/log
+SHA256 and candidate SHA256/size, and preserves every failed partial image.
+Pass3 rejects canonical/candidate collisions, generic errors, timeouts, exit0
+without output and imageinfo failure. An exclusive canonical copy prevents
+overwrite races, then SHA256 equality proves byte-preserving promotion. The
+successful duplicate is removed; failed candidates stay in diagnostics.
+Pass4 confirms source, upstream inputs, report schema, publisher workflow,
+verify retry limits and all75 installation/readonly mount/byte predicates are
+unchanged. adapter-operations created entries now include full attempt records
+and canonical output SHA256/size. Per-image create-attempts.json also survives
+failures, with actual timeout diagnostics when applicable.
+
+Local validation: 27 tests pass, including all18 previous tests adapted where
+create now uses direct subprocess capture. Added controls exercise busy then
+real-zero success, exhausted busy, exact classification, missing output,
+timeout preservation, existing/concurrent canonical output, candidate collision
+and imageinfo failure. This is local recipe evidence only; native v2 remains
+pending parent acceptance. Only recover.py, test_recovery.py and REVIEW.md
+were changed; the seven-file deployment inventory is unchanged.

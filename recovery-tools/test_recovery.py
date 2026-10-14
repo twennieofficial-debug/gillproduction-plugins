@@ -25,20 +25,138 @@ class RecoveryTests(unittest.TestCase):
         execute = Mock(side_effect=[subprocess.CompletedProcess([], code, '', text) for code, text in responses])
         return r.DmgAdapter(original, self.root / 'diagnostics', execute=execute, sleep=Mock())
 
-    def test_explicit_hfs_preserves_payload_volume_and_format(self):
+    def create_adapter(self, responses):
         adapter = self.adapter([])
-        command = ['hdiutil', 'create', '-volname', 'GILLRACK', '-srcfolder', '/tmp/disk', '-format', 'UDZO', '/tmp/output.dmg']
-        adapter(command)
-        actual = adapter.original.call_args_list[0].args[0]
-        self.assertEqual(actual, command[:-1] + ['-fs', 'HFS+'] + command[-1:])
-        self.assertEqual(command[-1], '/tmp/output.dmg')
-        self.assertEqual(len(adapter.creates), 1)
+        responses = iter(responses)
+        def execute(command, **kwargs):
+            code, text, payload = next(responses)
+            if payload is not None:
+                with Path(command[-1]).open('xb') as stream:
+                    stream.write(payload)
+            return subprocess.CompletedProcess(command, code, '', text)
+        adapter.execute.side_effect = execute
+        return adapter
+
+    def create_command(self):
+        return ['hdiutil', 'create', '-volname', 'GILLRACK', '-srcfolder', '/tmp/disk',
+                '-format', 'UDZO', str(self.root / 'output.dmg')]
+
+    def test_explicit_hfs_preserves_payload_volume_and_format(self):
+        adapter = self.create_adapter([(0, 'created', b'actual success')])
+        command = self.create_command()
+        self.assertEqual(adapter(command), 'created')
+        actual = adapter.execute.call_args.args[0]
+        self.assertEqual(actual[:-1], command[:-1] + ['-fs', 'HFS+'])
+        self.assertNotEqual(actual[-1], command[-1])
+        self.assertEqual(Path(command[-1]).read_bytes(), b'actual success')
+        self.assertEqual(adapter.creates[0]['output_sha256'], r.sha(command[-1]))
+        self.assertEqual(adapter.original.call_args.args[0], ['hdiutil', 'imageinfo', '-plist', command[-1]])
 
     def test_create_failure_propagates(self):
-        adapter = self.adapter([])
-        adapter.original.side_effect = RuntimeError('create failed')
+        adapter = self.create_adapter([(1, 'create failed', b'partial')])
         with self.assertRaisesRegex(RuntimeError, 'create failed'):
-            adapter(['hdiutil', 'create', '-format', 'UDZO', 'a.dmg'])
+            adapter(self.create_command())
+        self.assertFalse(adapter.creates)
+        self.assertEqual(adapter.execute.call_count, 1)
+        self.assertFalse(Path(self.create_command()[-1]).exists())
+
+    def test_create_busy_then_real_zero_preserves_partial_candidate_and_hashes(self):
+        adapter = self.create_adapter([(1, 'hdiutil: create failed - Resource busy', b'partial'),
+                                      (0, 'created', b'complete')])
+        adapter(self.create_command())
+        entry = adapter.creates[0]
+        self.assertEqual([a['exit'] for a in entry['attempts']], [1, 0])
+        self.assertEqual(Path(self.create_command()[-1]).read_bytes(), b'complete')
+        first, second = entry['attempts']
+        self.assertNotEqual(first['candidate'], second['candidate'])
+        partial = adapter.diagnostics / first['candidate']
+        self.assertEqual(partial.read_bytes(), b'partial')
+        self.assertEqual(first['candidate_sha256'], r.sha(partial))
+        for record in entry['attempts']:
+            self.assertEqual(record['log_sha256'], r.sha(adapter.diagnostics / record['log']))
+        self.assertEqual(second['candidate_sha256'], entry['output_sha256'])
+        adapter.sleep.assert_called_once_with(3)
+
+    def test_create_exhausted_busy_stays_failure(self):
+        adapter = self.create_adapter([(1, 'hdiutil: create failed - Resource busy', b'partial')] * 5)
+        with self.assertRaises(RuntimeError):
+            adapter(self.create_command())
+        self.assertEqual(adapter.execute.call_count, 5)
+        self.assertEqual([c.args[0] for c in adapter.sleep.call_args_list], [3, 6, 12, 24])
+        self.assertFalse(adapter.creates)
+        self.assertFalse(Path(self.create_command()[-1]).exists())
+        entry = json.loads((adapter.diagnostics / 'output/create-attempts.json').read_text())
+        self.assertFalse(entry['passed'])
+        for record in entry['attempts']:
+            self.assertEqual((adapter.diagnostics / record['candidate']).read_bytes(), b'partial')
+
+    def test_create_generic_or_wrong_exit_never_retries(self):
+        for code, text in [(2, 'hdiutil: create failed - Resource busy'),
+                           (1, 'Resource busy'), (1, 'hdiutil: create failed - Resource busy\nother error'),
+                           (1, 'hdiutil: create failed - Resource temporarily unavailable')]:
+            adapter = self.create_adapter([(code, text, None)])
+            with self.assertRaises(RuntimeError):
+                adapter(self.create_command())
+            self.assertEqual(adapter.execute.call_count, 1)
+            adapter.sleep.assert_not_called()
+
+    def test_create_exit_zero_without_output_is_failure(self):
+        adapter = self.create_adapter([(0, 'created', None)])
+        with self.assertRaisesRegex(RuntimeError, 'no regular candidate'):
+            adapter(self.create_command())
+        self.assertFalse(adapter.creates)
+        adapter.original.assert_not_called()
+
+    def test_create_timeout_preserves_partial_output_without_retry(self):
+        adapter = self.adapter([])
+        def timeout(command, **kwargs):
+            Path(command[-1]).write_bytes(b'partial timeout')
+            raise subprocess.TimeoutExpired(command, 1, output=b'partial stdout', stderr=b'timeout stderr')
+        adapter.execute.side_effect = timeout
+        with self.assertRaises(subprocess.TimeoutExpired):
+            adapter(self.create_command())
+        self.assertEqual(adapter.execute.call_count, 1)
+        record = json.loads((adapter.diagnostics / 'output/create-attempts.json').read_text())['attempts'][0]
+        self.assertTrue(record['timed_out'])
+        self.assertEqual(record['candidate_sha256'], r.sha(adapter.diagnostics / record['candidate']))
+        adapter.sleep.assert_not_called()
+
+    def test_create_existing_output_never_overwritten(self):
+        output = Path(self.create_command()[-1]); output.write_bytes(b'existing')
+        adapter = self.create_adapter([(0, 'created', b'new')])
+        with self.assertRaisesRegex(RuntimeError, 'already exists'):
+            adapter(self.create_command())
+        adapter.execute.assert_not_called()
+        self.assertEqual(output.read_bytes(), b'existing')
+
+    def test_create_candidate_collision_never_overwritten(self):
+        existing = self.root / 'occupied'; existing.mkdir()
+        candidate = existing / 'output.dmg'; candidate.write_bytes(b'preserve candidate')
+        adapter = self.create_adapter([(0, 'created', b'new')])
+        with patch.object(r.tempfile, 'mkdtemp', return_value=str(existing)):
+            with self.assertRaisesRegex(RuntimeError, 'Candidate DMG already exists'):
+                adapter(self.create_command())
+        adapter.execute.assert_not_called()
+        self.assertEqual(candidate.read_bytes(), b'preserve candidate')
+
+    def test_create_concurrent_output_never_overwritten(self):
+        adapter = self.adapter([])
+        output = Path(self.create_command()[-1])
+        def execute(command, **kwargs):
+            output.write_bytes(b'concurrent existing')
+            Path(command[-1]).write_bytes(b'new')
+            return subprocess.CompletedProcess(command, 0, '', '')
+        adapter.execute.side_effect = execute
+        with self.assertRaises(FileExistsError):
+            adapter(self.create_command())
+        self.assertEqual(output.read_bytes(), b'concurrent existing')
+        self.assertFalse(adapter.creates)
+
+    def test_create_imageinfo_failure_not_counted_as_success(self):
+        adapter = self.create_adapter([(0, 'created', b'new')])
+        adapter.original.side_effect = RuntimeError('imageinfo failed')
+        with self.assertRaisesRegex(RuntimeError, 'imageinfo failed'):
+            adapter(self.create_command())
         self.assertFalse(adapter.creates)
 
     def test_verify_success_is_real_exit_zero(self):

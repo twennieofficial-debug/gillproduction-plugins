@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 import zipfile
 
@@ -101,7 +102,7 @@ def checked_source(core, source):
     return report
 
 class DmgAdapter:
-    """Change only create filesystem and retry an actual transient verify error."""
+    """Explicit HFS+ with narrowly classified, bounded native retries."""
     def __init__(self, original, diagnostics, execute=subprocess.run, sleep=time.sleep):
         self.original, self.diagnostics = original, Path(diagnostics)
         self.execute, self.sleep = execute, sleep
@@ -110,16 +111,8 @@ class DmgAdapter:
     def __call__(self, command, *, log=None, timeout=3600):
         command = [str(x) for x in command]
         if command[:2] == ['hdiutil', 'create']:
-            require('-fs' not in command and command[-3:-1] == ['-format', 'UDZO'], 'Unexpected original DMG recipe')
-            updated = command[:-1] + ['-fs', 'HFS+'] + command[-1:]
-            # Do not override an existing output, suppress checks, rename a bad
-            # image as good, or retry create against a possibly partial file.
-            create_log = self.diagnostics / Path(command[-1]).stem / 'create.txt'
-            result = self.original(updated, log=create_log, timeout=timeout)
-            self.original(['hdiutil', 'imageinfo', '-plist', command[-1]],
-                          log=create_log.with_name('imageinfo.plist'), timeout=timeout)
-            self.creates.append({'image': Path(command[-1]).name, 'filesystem': 'HFS+', 'format': 'UDZO'})
-            return result
+            require('-fs' not in command and '-ov' not in command and command[-3:-1] == ['-format', 'UDZO'], 'Unexpected original DMG recipe')
+            return self.create(command, log=log, timeout=timeout)
         if command[:2] != ['hdiutil', 'verify']:
             return self.original(command, log=log, timeout=timeout)
         image = Path(command[-1])
@@ -146,6 +139,69 @@ class DmgAdapter:
                 'hdiutil: verify failed - Resource temporarily unavailable']
             require(transient and attempt < 3, f'hdiutil verify failed ({process.returncode}): {output}')
             self.sleep(attempt * 2)
+        raise AssertionError('unreachable')
+
+    def create(self, command, *, log, timeout):
+        image = Path(command[-1])
+        require(not os.path.lexists(image), 'Canonical DMG output already exists')
+        folder = self.diagnostics / image.stem
+        candidates = folder / 'candidates'
+        candidates.mkdir(parents=True, exist_ok=True)
+        attempts = []
+        entry = {'image': image.name, 'filesystem': 'HFS+', 'format': 'UDZO',
+                 'attempts': attempts, 'passed': False}
+        for attempt in range(1, 6):
+            candidate = Path(tempfile.mkdtemp(prefix=f'create-{attempt}-', dir=candidates)) / image.name
+            require(not os.path.lexists(candidate), 'Candidate DMG already exists')
+            require(not os.path.lexists(image), 'Canonical DMG output already exists')
+            updated = command[:-1] + ['-fs', 'HFS+', str(candidate)]
+            attempt_log = candidate.parent / 'create.txt'
+            record = {'attempt': attempt, 'command': updated,
+                      'candidate': candidate.relative_to(self.diagnostics).as_posix(),
+                      'log': attempt_log.relative_to(self.diagnostics).as_posix()}
+            attempts.append(record)
+            output = ''
+            try:
+                process = self.execute(updated, capture_output=True, text=True, timeout=timeout)
+                output = process.stdout + process.stderr
+                record['exit'] = process.returncode
+            except subprocess.TimeoutExpired as error:
+                def decoded(value):
+                    return value.decode('utf-8', errors='replace') if isinstance(value, bytes) else (value or '')
+                output = decoded(error.stdout) + decoded(error.stderr)
+                record.update(exit=None, timed_out=True)
+                raise
+            finally:
+                with attempt_log.open('x', encoding='utf-8') as stream:
+                    stream.write(output)
+                record['log_sha256'] = sha(attempt_log)
+                if log:
+                    Path(log).parent.mkdir(parents=True, exist_ok=True)
+                    Path(log).write_text(output, encoding='utf-8')
+                if candidate.is_file() and not candidate.is_symlink():
+                    record.update(candidate_sha256=sha(candidate), candidate_bytes=candidate.stat().st_size)
+                write(folder / 'create-attempts.json', entry)
+            if process.returncode == 0:
+                require(candidate.is_file() and not candidate.is_symlink(), 'Successful create has no regular candidate output')
+                # Exclusive creation closes the overwrite race. Failed files
+                # remain untouched; only proven successful bytes are promoted.
+                with candidate.open('rb') as source, image.open('xb') as destination:
+                    shutil.copyfileobj(source, destination)
+                require(sha(image) == record['candidate_sha256'], 'Canonical DMG bytes changed during promotion')
+                entry.update(output_sha256=sha(image), output_bytes=image.stat().st_size)
+                candidate.unlink()
+                record['promoted_to_canonical'] = True
+                write(folder / 'create-attempts.json', entry)
+                self.original(['hdiutil', 'imageinfo', '-plist', str(image)],
+                              log=folder / 'imageinfo.plist', timeout=timeout)
+                entry['passed'] = True
+                write(folder / 'create-attempts.json', entry)
+                self.creates.append(entry)
+                return output
+            transient = process.returncode == 1 and output.strip().splitlines()[-1:] == [
+                'hdiutil: create failed - Resource busy']
+            require(transient and attempt < 5, f'hdiutil create failed ({process.returncode}): {output}')
+            self.sleep(3 * 2 ** (attempt - 1))
         raise AssertionError('unreachable')
 
 def tooling_manifest(tools_root):
