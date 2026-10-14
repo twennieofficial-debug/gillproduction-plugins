@@ -19,8 +19,6 @@ jobs:
         include:
           - arch: arm64
             runner: macos-15
-          - arch: x86_64
-            runner: macos-15-intel
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
@@ -61,7 +59,8 @@ jobs:
           let failure='sealed_operation_failed';
           try{const [operation,base,expected,asset]=process.argv.slice(2);assert(base);const root=path.resolve(base);fs.mkdirSync(root,{recursive:true,mode:0o700});
            if(operation==='download'){
-            assert(/^[1-9][0-9]*$/.test(asset));let url='https://api.github.com/repos/twennieofficial-debug/gillproduction-plugins/releases/assets/'+asset;let response;
+            assert(/^[1-9][0-9]*$/.test(asset));let url=process.env.GILL_INPUT_URL||'https://api.github.com/repos/twennieofficial-debug/gillproduction-plugins/releases/assets/'+asset;let response;
+            if(process.env.GILL_INPUT_URL){const signed=new URL(url);assert(signed.protocol==='https:'&&!signed.username&&!signed.password&&['release-assets.githubusercontent.com','objects.githubusercontent.com'].includes(signed.hostname));}
             for(let redirects=0;redirects<4;redirects++){const headers={'Accept':'application/octet-stream','X-GitHub-Api-Version':'2022-11-28','User-Agent':'sealed-native-ci'};if(new URL(url).hostname==='api.github.com')headers.Authorization='Bearer '+process.env.GH_TOKEN;response=await fetch(url,{headers,redirect:'manual',signal:AbortSignal.timeout(120000)});if(![301,302,303,307,308].includes(response.status))break;url=new URL(response.headers.get('location'),url).href;const u=new URL(url);if(!['release-assets.githubusercontent.com','objects.githubusercontent.com','github.com'].includes(u.hostname))failure='unexpected_redirect_host';assert(u.protocol==='https:'&&!u.username&&!u.password&&['release-assets.githubusercontent.com','objects.githubusercontent.com','github.com'].includes(u.hostname));}
             if(!response.ok)failure='download_http_'+response.status;assert(response.ok&&response.body);const length=Number(response.headers.get('content-length'));if(length)assert(length<=LIMITS.total+LIMITS.index+44);let bytes=0;await pipeline(Readable.fromWeb(response.body),new Transform({transform(b,e,cb){bytes+=b.length;cb(bytes>LIMITS.total+LIMITS.index+44?Error('bound'):null,b);}}),fs.createWriteStream(path.join(root,'input.gillenc'),{flags:'wx',mode:0o600}));
            }else if(operation==='open'){
@@ -77,6 +76,7 @@ jobs:
       - name: Download pinned encrypted input
         env:
           GH_TOKEN: ${{ github.token }}
+          GILL_INPUT_URL: ${{ secrets.GILL_MAC14_INPUT_URL }}
         shell: bash
         run: node "$RUNNER_TEMP/sealed-native/bootstrap.mjs" download "$RUNNER_TEMP/sealed-native" 67025a9f7569bc8dbc0a3b9f77a75a54480b33eb5615ae4139c4f7ac34b927b7 640295598
       - name: Authenticate and open input
