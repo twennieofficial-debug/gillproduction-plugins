@@ -1,0 +1,78 @@
+name: Apple synthetic key attributes
+on:
+  push:
+    branches: ['prepare/gill-protected-mac22-20261014']
+    paths: ['.github/workflows/gill-attributes.yml']
+permissions:
+  contents: read
+concurrency:
+  group: sealed-native-acceptance
+  cancel-in-progress: false
+jobs:
+  attributes:
+    if: github.repository == 'twennieofficial-debug/gillproduction-plugins' && github.ref == 'refs/heads/prepare/gill-protected-mac22-20261014'
+    runs-on: macos-15
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - name: Probe synthetic scalar attributes only
+        shell: bash
+        env:
+          CI: 'true'
+        run: |
+          set -eu
+          umask 077
+          cd "$RUNNER_TEMP"
+          cat > key-attributes-probe.cpp <<'GILL_ATTRIBUTES_EOF'
+          // Generic Apple API metadata probe, synthetic keys only. Never exports a key.
+          #include <Security/Security.h>
+          #include <CoreFoundation/CoreFoundation.h>
+          #include <iostream>
+          #include <string>
+          
+          std::string scalar(CFTypeRef value){
+           if(!value)return "null";
+           if(CFGetTypeID(value)==CFBooleanGetTypeID())return CFBooleanGetValue((CFBooleanRef)value)?"true":"false";
+           if(CFGetTypeID(value)==CFNumberGetTypeID()){long number=0;CFNumberGetValue((CFNumberRef)value,kCFNumberLongType,&number);return std::to_string(number);}
+           if(CFGetTypeID(value)==CFStringGetTypeID()){char out[256]{};if(CFStringGetCString((CFStringRef)value,out,sizeof(out),kCFStringEncodingUTF8))return std::string("\"")+out+"\"";}
+           return "\"unsupported-scalar\"";
+          }
+          int main(){
+           const char* names[]={"modern_nested","modern_flat","legacy_nested","legacy_flat"};
+           for(int index=0;index<4;++index){
+            auto uuid=CFUUIDCreate(kCFAllocatorDefault);auto id=CFUUIDCreateString(kCFAllocatorDefault,uuid);char text[256]{};CFStringGetCString(id,text,sizeof(text),kCFStringEncodingUTF8);CFRelease(id);CFRelease(uuid);
+            std::string tagText="GILLPRODUCTION.CI.AttributeProbe."+std::string(text);
+            auto tag=CFDataCreate(kCFAllocatorDefault,(const UInt8*)tagText.data(),tagText.size());
+            int bits=256;auto number=CFNumberCreate(kCFAllocatorDefault,kCFNumberIntType,&bits);
+            auto options=CFDictionaryCreateMutable(kCFAllocatorDefault,0,&kCFTypeDictionaryKeyCallBacks,&kCFTypeDictionaryValueCallBacks);
+            CFDictionarySetValue(options,kSecAttrKeyType,kSecAttrKeyTypeECSECPrimeRandom);CFDictionarySetValue(options,kSecAttrKeySizeInBits,number);
+            auto privateOptions=CFDictionaryCreateMutable(kCFAllocatorDefault,0,&kCFTypeDictionaryKeyCallBacks,&kCFTypeDictionaryValueCallBacks);
+            auto target=(index%2==0)?privateOptions:options;
+            CFDictionarySetValue(target,kSecAttrIsPermanent,kCFBooleanTrue);CFDictionarySetValue(target,kSecAttrIsExtractable,kCFBooleanFalse);CFDictionarySetValue(target,kSecAttrApplicationTag,tag);
+            if(index%2==0)CFDictionarySetValue(options,kSecPrivateKeyAttrs,privateOptions);
+            SecKeyRef key=nullptr,pub=nullptr;CFErrorRef error=nullptr;OSStatus status=0;
+            if(index<2){key=SecKeyCreateRandomKey(options,&error);if(error)status=(OSStatus)CFErrorGetCode(error);}else status=SecKeyGeneratePair(options,&pub,&key);
+            auto attributes=key?SecKeyCopyAttributes(key):nullptr;
+            std::cout<<"{\"case\":\""<<names[index]<<"\",\"status\":"<<status;
+            for(auto field:{kSecAttrKeyType,kSecAttrKeyClass,kSecAttrKeySizeInBits,kSecAttrIsExtractable}){
+             char name[128]{};CFStringGetCString(field,name,sizeof(name),kCFStringEncodingUTF8);std::cout<<",\""<<name<<"\":"<<scalar(attributes?CFDictionaryGetValue(attributes,field):nullptr);
+            }
+            std::cout<<"}\n";
+            // The UUID tag refers only to this probe's synthetic keys.
+            auto query=CFDictionaryCreateMutable(kCFAllocatorDefault,0,&kCFTypeDictionaryKeyCallBacks,&kCFTypeDictionaryValueCallBacks);CFDictionarySetValue(query,kSecClass,kSecClassKey);CFDictionarySetValue(query,kSecAttrApplicationTag,tag);SecItemDelete(query);
+            if(attributes)CFRelease(attributes);if(key)CFRelease(key);if(pub)CFRelease(pub);if(error)CFRelease(error);CFRelease(query);CFRelease(privateOptions);CFRelease(options);CFRelease(number);CFRelease(tag);
+           }
+          }
+          GILL_ATTRIBUTES_EOF
+          cat > key-attributes-run.mjs <<'GILL_ATTRIBUTES_RUN_EOF'
+          // Only a fresh CI machine; restores default and search list before deleting its keychain.
+          import {spawnSync} from 'node:child_process';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';import crypto from 'node:crypto';import assert from 'node:assert/strict';
+          assert.equal(process.platform,'darwin');assert.equal(process.env.CI,'true');
+          function run(exe,args,quiet=false){const r=spawnSync(exe,args,{encoding:'utf8',timeout:60000});if(!quiet){process.stdout.write(r.stdout||'');process.stderr.write(r.stderr||'');}assert.equal(r.status,0,quiet?'Private synthetic operation failed':r.stderr);return r.stdout.trim();}
+          const original=run('security',['default-keychain','-d','user'],true).replace(/^"|"$/g,'');const list=[...run('security',['list-keychains','-d','user'],true).matchAll(/"([^"]+)"/g)].map(m=>m[1]);assert(original&&list.length);
+          const folder=fs.mkdtempSync(path.join(os.tmpdir(),'gill-attributes-')),keychain=folder+'/synthetic.keychain-db',password=crypto.randomBytes(32).toString('hex');let created=false;
+          try{run('security',['create-keychain','-p',password,keychain],true);created=true;run('security',['unlock-keychain','-p',password,keychain],true);run('security',['list-keychains','-d','user','-s',keychain],true);run('security',['default-keychain','-d','user','-s',keychain],true);run('clang++',['-std=c++17','key-attributes-probe.cpp','-framework','Security','-framework','CoreFoundation','-o',folder+'/probe']);run('codesign',['--force','--sign','-',folder+'/probe']);run(folder+'/probe',[]);}finally{run('security',['default-keychain','-d','user','-s',original],true);run('security',['list-keychains','-d','user','-s',...list],true);if(created)run('security',['delete-keychain',keychain],true);fs.rmSync(folder,{recursive:true,force:true});}
+          GILL_ATTRIBUTES_RUN_EOF
+          node key-attributes-run.mjs
