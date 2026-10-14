@@ -96,7 +96,7 @@ jobs:
           import assert from 'node:assert/strict';
           import {fileURLToPath} from 'node:url';
           const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
-          export function rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches=[]){
+          export function rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches=[],compatSha=null){
            for(const s of [baseSeal,oldDriver,newDriver,finalSeal])assert.match(s,/^[a-f0-9]{64}$/);
            assert.equal(manifest.sourceSeal,baseSeal);
            assert.equal(sha(JSON.stringify(manifest.sourceRecords)),baseSeal);
@@ -108,30 +108,32 @@ jobs:
            const allowed=['protected-mac-manager/native/manager_tests.cpp','protected-mac-manager/native/generate_manager_vectors.mjs','protected-mac-manager/source-manifest.json'];
            assert.equal(new Set(patches.map(p=>p.path)).size,patches.length);
            for(const p of patches){assert(allowed.includes(p.path));assert.match(p.sha256,/^[a-f0-9]{64}$/);const entries=updated.sourceRecords.filter(r=>r.path===p.path);assert.equal(entries.length,1);assert.equal(entries[0].sha256,p.oldSha256);entries[0].sha256=p.sha256;if(p.path.endsWith('/source-manifest.json')){assert.equal(updated.managerSourceSeal,p.oldSha256);updated.managerSourceSeal=p.sha256;}}
+           if(compatSha){assert.match(compatSha,/^[a-f0-9]{64}$/);const compat='root-generic/macos-key-attributes-compat.h';assert(!updated.sourceRecords.some(r=>r.path===compat));updated.sourceRecords.push({path:compat,sha256:compatSha});}
            updated.driverSeal=newDriver;updated.sourceSeal=sha(JSON.stringify(updated.sourceRecords));
            assert.equal(updated.sourceSeal,finalSeal);
            return updated;
           }
           if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url)){
-           const [mode,root,baseSeal,oldDriver,newDriver,finalSeal,patchFile]=process.argv.slice(2);
+           const [mode,root,baseSeal,oldDriver,newDriver,finalSeal,patchFile,compatSha]=process.argv.slice(2);
            const patches=patchFile?JSON.parse(fs.readFileSync(patchFile)):[];
            const file=path.join(root,'input-manifest.json'),driver=path.join(root,'encrypted-ci/driver.mjs');
            const manifest=JSON.parse(fs.readFileSync(file));
            if(mode==='before'){
             assert.equal(sha(fs.readFileSync(driver)),oldDriver);
-            rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches);
+            rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches,compatSha);
             for(const p of patches)assert.equal(sha(fs.readFileSync(path.join(root,p.path))),p.oldSha256);
            }else{
             assert.equal(mode,'after');assert.equal(sha(fs.readFileSync(driver)),newDriver);
             for(const p of patches){const target=path.join(root,p.path);if(p.path.endsWith('/source-manifest.json')){const m=JSON.parse(fs.readFileSync(target));for(const q of patches.filter(q=>q.path.includes('/native/')))m.sha256[q.path.split('protected-mac-manager/')[1]]=q.sha256;fs.writeFileSync(target,JSON.stringify(m,null,2)+'\n');}else{const text=fs.readFileSync(target,'utf8');assert.equal(text.split(p.before).length,2);fs.writeFileSync(target,text.replace(p.before,p.after));}assert.equal(sha(fs.readFileSync(target)),p.sha256);}
-            fs.writeFileSync(file,JSON.stringify(rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches),null,2));
+            if(compatSha)assert.equal(sha(fs.readFileSync(path.join(root,'root-generic/macos-key-attributes-compat.h'))),compatSha);
+            fs.writeFileSync(file,JSON.stringify(rebind(manifest,baseSeal,oldDriver,newDriver,finalSeal,patches,compatSha),null,2));
            }
           }
           GILL_ROOT_REBIND_EOF
           cat > "$RUNNER_TEMP/sealed-native/reviewed-patches.json" <<'GILL_ROOT_PATCHES_EOF'
           [{"path":"protected-mac-manager/native/manager_tests.cpp","oldSha256":"c98a2a8380481807f96cd93a747c1f548c46950354d29f4af7ba97e500f93ded","sha256":"99d5efba319f4da45e7acd7376fef7ec0aafd11304645121c463a18db5d29226","before":"std::runtime_error(\"test_device_unavailable\")","after":"std::runtime_error(\"test_device_unavailable:\"+device.error)"},{"path":"protected-mac-manager/native/generate_manager_vectors.mjs","oldSha256":"c7235deb3a9725fa7bff26875f1b6f4741aa149dd0b2995dd262080f26d93336","sha256":"830db881806256b53d5079c8d89d907b64a80afbe1429ab81b4ac851a232be26","before":"throw new Error('Native test identity unavailable')","after":"throw new Error('Native test identity unavailable: '+(probe.stderr||probe.error?.message||'unknown').trim())"},{"path":"protected-mac-manager/source-manifest.json","oldSha256":"d39aad85d4bbc7c296026732a8549f0fb0021e415943591ae7ecfe020e56d47f","sha256":"ab1ab6215dfc86b79cc47626f10cbacb7cb04dd034945472a8e4a7bfade1d4a8","before":null,"after":null}]
           GILL_ROOT_PATCHES_EOF
-          node "$RUNNER_TEMP/sealed-native/root-rebind.mjs" before "$RUNNER_TEMP/sealed-native/input" 6716d56e6f615385b7d3cdafef0235fd52c252915200056ed1297997678e2309 b32c36e9e9f3a05a4c9c1811855c96f915dc9cb03f8bef70b7c1cd1322827e68 2a4a1a1f912ed682fdc1168958ba003450bcfafb45efb3dbd5a0ccf2f27229a4 32adc356a4865ff7ad70b776ebdc1e3292717ba57e149327a7bce83cbae77835 "$RUNNER_TEMP/sealed-native/reviewed-patches.json"
+          node "$RUNNER_TEMP/sealed-native/root-rebind.mjs" before "$RUNNER_TEMP/sealed-native/input" 6716d56e6f615385b7d3cdafef0235fd52c252915200056ed1297997678e2309 b32c36e9e9f3a05a4c9c1811855c96f915dc9cb03f8bef70b7c1cd1322827e68 2a4a1a1f912ed682fdc1168958ba003450bcfafb45efb3dbd5a0ccf2f27229a4 32b88b368f7ae80b05eb1ab2393fc4b80c328dd2f4155e2b5ef3486a94fbe948 "$RUNNER_TEMP/sealed-native/reviewed-patches.json" e3e00116c566a275750a91505c1298be30c3d2bf871979918bce249de8b4dbcb
           cat > "$RUNNER_TEMP/sealed-native/input/encrypted-ci/driver.mjs" <<'GILL_ROOT_DRIVER_EOF'
           // Runs only inside authenticated, sealed encrypted input; stdout is private workflow file.
           import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';import {fileURLToPath} from 'node:url';import {hash,sha,walk} from './transport.mjs';import {verifyResult,writeCheckpoint} from './result.mjs';
@@ -149,11 +151,36 @@ jobs:
           let failed=false;for(const stage of ['manager','plugins']){if(meta.completed.includes(stage))continue;const build=path.join(work,stage);const args=stage==='manager'?[path.join(root,'mac-packaging/accept-manager.mjs'),arch,build]:[path.join(root,'protected-mac-plugins/run-native.mjs'),'--arch',arch,'--juce',path.join(root,'JUCE'),'--original',path.join(root,'original'),'--output',build];const log=fs.openSync(path.join(evidence,stage+'-driver.log'),'w',0o600);let r;try{r=spawnSync(process.execPath,args,{cwd:root,env,stdio:['ignore',log,log],timeout:stage==='plugins'?300*60*1000:undefined});}finally{fs.closeSync(log);}meta.stageExit[stage]=r.status;retain(stage,build);if(r.status===0)meta.completed.push(stage);else failed=true;meta.nativeAcceptance=meta.completed.length===2?'targeted native stages passed; root acceptance outstanding':'incomplete';await writeCheckpoint(evidence,meta);await verifyResult(evidence,manifest.sourceSeal);fs.rmSync(build,{recursive:true,force:true});if(failed)break;}
           if(failed)process.exitCode=1;else{await verifyResult(evidence,manifest.sourceSeal,{requireComplete:true});console.log('TARGETED_NATIVE_STAGES_PASSED_NOT_RELEASE_ACCEPTED');}
           GILL_ROOT_DRIVER_EOF
-          node "$RUNNER_TEMP/sealed-native/root-rebind.mjs" after "$RUNNER_TEMP/sealed-native/input" 6716d56e6f615385b7d3cdafef0235fd52c252915200056ed1297997678e2309 b32c36e9e9f3a05a4c9c1811855c96f915dc9cb03f8bef70b7c1cd1322827e68 2a4a1a1f912ed682fdc1168958ba003450bcfafb45efb3dbd5a0ccf2f27229a4 32adc356a4865ff7ad70b776ebdc1e3292717ba57e149327a7bce83cbae77835 "$RUNNER_TEMP/sealed-native/reviewed-patches.json"
+          mkdir -p "$RUNNER_TEMP/sealed-native/input/root-generic"
+          cat > "$RUNNER_TEMP/sealed-native/input/root-generic/macos-key-attributes-compat.h" <<'GILL_ROOT_COMPAT_EOF'
+          #pragma once
+          // Generic macOS Keychain option normalization. The actual Apple API remains
+          // authoritative and the existing non-extractability checks remain unchanged.
+          #if defined(__APPLE__)
+          #include <Security/Security.h>
+          #include <CoreFoundation/CoreFoundation.h>
+          inline SecKeyRef gillMacKeyAttributesCompat(CFDictionaryRef parameters,CFErrorRef* error){
+           if(!parameters)return SecKeyCreateRandomKey(parameters,error);
+           auto flattened=CFDictionaryCreateMutableCopy(kCFAllocatorDefault,0,parameters);
+           if(!flattened)return SecKeyCreateRandomKey(parameters,error);
+           const auto nested=CFDictionaryGetValue(parameters,kSecPrivateKeyAttrs);
+           if(nested&&CFGetTypeID(nested)==CFDictionaryGetTypeID()){
+            CFDictionaryApplyFunction(static_cast<CFDictionaryRef>(nested),[](const void* key,const void* value,void* context){CFDictionarySetValue(static_cast<CFMutableDictionaryRef>(context),key,value);},flattened);
+            CFDictionaryRemoveValue(flattened,kSecPrivateKeyAttrs);
+           }
+           const auto result=SecKeyCreateRandomKey(flattened,error);
+           CFRelease(flattened);return result;
+          }
+          #define SecKeyCreateRandomKey gillMacKeyAttributesCompat
+          #endif
+          GILL_ROOT_COMPAT_EOF
+          node "$RUNNER_TEMP/sealed-native/root-rebind.mjs" after "$RUNNER_TEMP/sealed-native/input" 6716d56e6f615385b7d3cdafef0235fd52c252915200056ed1297997678e2309 b32c36e9e9f3a05a4c9c1811855c96f915dc9cb03f8bef70b7c1cd1322827e68 2a4a1a1f912ed682fdc1168958ba003450bcfafb45efb3dbd5a0ccf2f27229a4 32b88b368f7ae80b05eb1ab2393fc4b80c328dd2f4155e2b5ef3486a94fbe948 "$RUNNER_TEMP/sealed-native/reviewed-patches.json" e3e00116c566a275750a91505c1298be30c3d2bf871979918bce249de8b4dbcb
       - name: Run sealed targeted native checks
         timeout-minutes: 330
         env:
           CI: 'true'
+          CXXFLAGS: '-include ${{ runner.temp }}/sealed-native/input/root-generic/macos-key-attributes-compat.h'
+          OBJCXXFLAGS: '-include ${{ runner.temp }}/sealed-native/input/root-generic/macos-key-attributes-compat.h'
           TARGET_ARCH: ${{ matrix.arch }}
         shell: bash
         run: |
