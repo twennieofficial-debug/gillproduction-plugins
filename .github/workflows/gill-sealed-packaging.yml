@@ -1,0 +1,123 @@
+name: Sealed native package acceptance
+on:
+  push:
+    branches: ['prepare/gill-protected-mac22-20261014']
+    paths: ['.github/workflows/gill-sealed-packaging.yml']
+permissions:
+  contents: read
+concurrency:
+  group: sealed-native-acceptance
+  cancel-in-progress: false
+jobs:
+  package:
+    if: github.repository == 'twennieofficial-debug/gillproduction-plugins' && github.event_name == 'push' && github.ref == 'refs/heads/prepare/gill-protected-mac22-20261014'
+    runs-on: macos-15
+    timeout-minutes: 180
+    strategy:
+      max-parallel: 1
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - name: Install generic authenticated transport
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          mkdir -p "$RUNNER_TEMP/package-ci/output"
+          cat > "$RUNNER_TEMP/package-ci/transport.mjs" <<'GENERIC_0'
+          // Generic bounded transport. No project source, credentials, shell evaluation or dependencies.
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import crypto from 'node:crypto';
+          import {pipeline} from 'node:stream/promises';
+          import {Transform} from 'node:stream';
+          import assert from 'node:assert/strict';
+          export const LIMITS={files:200000,index:32*1024*1024,file:2*1024**3,total:16*1024**3};
+          const MAGIC=Buffer.from('GILLENC1');
+          function writeAll(fd,bytes){let offset=0;while(offset<bytes.length){const n=fs.writeSync(fd,bytes,offset,bytes.length-offset);assert(n>0);offset+=n;}}
+          export const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+          export async function hash(file){const h=crypto.createHash('sha256');for await(const b of fs.createReadStream(file))h.update(b);return h.digest('hex');}
+          export function safeName(name){assert.equal(typeof name,'string');assert(name.length>0&&name.length<=1024);assert(!/[\\\x00-\x1f:]/.test(name));assert(!name.startsWith('/'));for(const p of name.split('/'))assert(p&&p!=='.'&&p!=='..'&&!/[. ]$/.test(p)&&! /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p));return name;}
+          export function validateIndex(index,limits=LIMITS){assert(Array.isArray(index)&&index.length<=limits.files);let total=0;const seen=new Set();for(const r of index){safeName(r.path);assert(!seen.has(r.path.toLowerCase()),'duplicate/case alias');seen.add(r.path.toLowerCase());assert(Number.isSafeInteger(r.size)&&r.size>=0&&r.size<=limits.file,'file bound');assert(/^[a-f0-9]{64}$/.test(r.sha256));assert([0o600,0o700].includes(r.mode));total+=r.size;assert(total<=limits.total,'archive bound');}for(const r of index){const p=r.path.split('/');while(p.length>1){p.pop();assert(!seen.has(p.join('/').toLowerCase()),'file/directory collision');}}return total;}
+          export function walk(root,prefix=''){const out=[];for(const e of fs.readdirSync(root,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))){const full=path.join(root,e.name),name=prefix+e.name;assert(!e.isSymbolicLink(),'symlink forbidden');if(e.isDirectory())out.push(...walk(full,name+'/'));else{assert(e.isFile(),'special file forbidden');out.push({path:safeName(name),file:full});}}return out;}
+          export async function pack(records,destination){assert(!fs.existsSync(destination));assert(records.length<=LIMITS.files);const index=[];for(const r of records){const s=fs.lstatSync(r.file);assert(s.isFile()&&!s.isSymbolicLink());index.push({path:safeName(r.path),size:s.size,sha256:await hash(r.file),mode:s.mode&0o111?0o700:0o600});}validateIndex(index);const bytes=Buffer.from(JSON.stringify(index));assert(bytes.length<=LIMITS.index);const fd=fs.openSync(destination,'wx',0o600);try{const header=Buffer.alloc(8);header.writeBigUInt64BE(BigInt(bytes.length));writeAll(fd,header);writeAll(fd,bytes);for(let i=0;i<records.length;i++){let n=0;const h=crypto.createHash('sha256');for await(const b of fs.createReadStream(records[i].file)){n+=b.length;assert(n<=index[i].size);h.update(b);writeAll(fd,b);}assert.equal(n,index[i].size);assert.equal(h.digest('hex'),index[i].sha256,'input changed while packing');}}catch(e){fs.closeSync(fd);fs.rmSync(destination,{force:true});throw e;}fs.closeSync(fd);return index;}
+          function bounded(max){let size=0;return new Transform({transform(b,e,cb){size+=b.length;cb(size>max?Error('stream size bound'):null,b);}});}
+          function keyCheck(key){assert(Buffer.isBuffer(key)&&key.length===32,'AES256 key required');}
+          export async function encrypt(input,output,key){keyCheck(key);assert(fs.statSync(input).size<=LIMITS.total+LIMITS.index+8);assert(!fs.existsSync(output));const nonce=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',key,nonce);cipher.setAAD(MAGIC);fs.writeFileSync(output,Buffer.concat([MAGIC,nonce]),{flag:'wx',mode:0o600});try{await pipeline(fs.createReadStream(input),cipher,fs.createWriteStream(output,{flags:'a'}));fs.appendFileSync(output,cipher.getAuthTag());}catch(e){fs.rmSync(output,{force:true});throw e;}return hash(output);}
+          export async function decrypt(input,output,key,expected){keyCheck(key);assert(/^[a-f0-9]{64}$/.test(expected));const n=fs.statSync(input).size;assert(n>=36&&n<=LIMITS.total+LIMITS.index+44,'ciphertext size');assert.equal(await hash(input),expected,'ciphertext pin');assert(!fs.existsSync(output));const fd=fs.openSync(input,'r'),head=Buffer.alloc(20),tag=Buffer.alloc(16);fs.readSync(fd,head,0,20,0);fs.readSync(fd,tag,0,16,n-16);fs.closeSync(fd);assert(head.subarray(0,8).equals(MAGIC));const cipher=crypto.createDecipheriv('aes-256-gcm',key,head.subarray(8));cipher.setAAD(MAGIC);cipher.setAuthTag(tag);try{await pipeline(fs.createReadStream(input,{start:20,end:n-17}),cipher,bounded(LIMITS.total+LIMITS.index+8),fs.createWriteStream(output,{flags:'wx',mode:0o600}));}catch(e){fs.rmSync(output,{force:true});throw e;}}
+          export async function extract(input,destination){assert(!fs.existsSync(destination),'fresh extraction directory required');const size=fs.statSync(input).size;assert(size>=8&&size<=LIMITS.total+LIMITS.index+8);const fd=fs.openSync(input,'r');let index,start;try{const h=Buffer.alloc(8);assert.equal(fs.readSync(fd,h,0,8,0),8);const n=Number(h.readBigUInt64BE());assert(Number.isSafeInteger(n)&&n<=LIMITS.index&&n<=size-8);const b=Buffer.alloc(n);assert.equal(fs.readSync(fd,b,0,n,8),n);index=JSON.parse(b);assert.equal(8+n+validateIndex(index),size,'truncation/trailing bytes');start=8+n;}finally{fs.closeSync(fd);}fs.mkdirSync(destination,{mode:0o700});try{for(const r of index){const target=path.join(destination,r.path);fs.mkdirSync(path.dirname(target),{recursive:true,mode:0o700});if(r.size)await pipeline(fs.createReadStream(input,{start,end:start+r.size-1}),fs.createWriteStream(target,{flags:'wx',mode:r.mode}));else fs.writeFileSync(target,'',{flag:'wx',mode:r.mode});assert.equal(await hash(target),r.sha256,'content digest');start+=r.size;}return index;}catch(e){fs.rmSync(destination,{recursive:true,force:true});throw e;}}
+          GENERIC_0
+          cat > "$RUNNER_TEMP/package-ci/bootstrap.mjs" <<'GENERIC_1'
+          // Public generic multiple-input transport. Capabilities and plaintext never enter public logs.
+          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {Readable,Transform} from 'node:stream';import {pipeline} from 'node:stream/promises';
+          import {hash,sha,walk,safeName,decrypt,extract,LIMITS} from './transport.mjs';
+          import {createGunzip} from 'node:zlib';
+          export function capabilities(value,pins){const a=JSON.parse(value);assert(Array.isArray(a)&&a.length===4);assert.deepEqual(a.map(r=>r.name).sort(),['input','nativeARM','nativeIntel','overlay']);for(const r of a){const u=new URL(r.url);assert(u.protocol==='https:'&&!u.username&&!u.password&&['release-assets.githubusercontent.com','objects.githubusercontent.com'].includes(u.hostname));assert.equal(r.sha256,pins[r.name].sha256);assert.equal(r.size,pins[r.name].size);assert(Number.isSafeInteger(r.size)&&r.size>=36&&r.size<2*1024**3);}assert(a.reduce((n,r)=>n+r.size,0)<=LIMITS.total);return a;}
+          export async function applyOverlay(base,contractPin){
+           const extra=path.join(base,'overlay'),root=path.join(base,'input'),file=path.join(extra,'packaging-ci/contract.json');assert.equal(await hash(file),contractPin);const c=JSON.parse(fs.readFileSync(file));
+           const seal=v=>sha(Buffer.from(JSON.stringify(v)));const m=JSON.parse(fs.readFileSync(path.join(root,'input-manifest.json')));assert.equal(m.sourceSeal,c.baseSourceSeal);assert.equal(seal(m.sourceRecords),c.baseSourceSeal);
+           for(const r of m.sourceRecords){safeName(r.path);assert.equal(await hash(path.join(root,r.path)),r.sha256);}
+           assert.deepEqual(walk(extra).map(r=>r.path).sort(),[...c.overlay.map(r=>r.path),'packaging-ci/contract.json'].sort());
+           for(const r of c.overlay){safeName(r.path);assert.equal(await hash(path.join(extra,r.path)),r.sha256);const dst=path.join(root,r.path);if(fs.existsSync(dst)){const old=m.sourceRecords.find(x=>x.path===r.path);assert(old,'overwrite not bound to base');assert.equal(await hash(dst),old.sha256);}fs.mkdirSync(path.dirname(dst),{recursive:true,mode:0o700});fs.copyFileSync(path.join(extra,r.path),dst);}
+           const expected=new Map(c.effective.sourceRecords.map(r=>[r.path,r]));for(const r of c.files)expected.set(r.path,r);const runtimeRecords=[...expected.values()];assert.equal(c.effective.sourceSeal,seal(c.effective.sourceRecords));assert.equal(c.runtimeSourceSeal,seal(runtimeRecords));for(const r of [...runtimeRecords,...c.files]){safeName(r.path);assert.equal(await hash(path.join(root,r.path)),r.sha256);}
+           fs.writeFileSync(path.join(root,'input-manifest.json'),JSON.stringify({...c.effective,sourceRecords:runtimeRecords,sourceSeal:c.runtimeSourceSeal,nativeSourceSeal:c.effective.sourceSeal},null,2));fs.mkdirSync(path.join(root,'packaging-ci'),{recursive:true,mode:0o700});fs.copyFileSync(file,path.join(root,'packaging-ci/contract.json'));
+           return c;
+          }
+          export async function main(){const [mode,base,pinsFile,overlayPin,contractPin]=process.argv.slice(2),pins=JSON.parse(fs.readFileSync(pinsFile));
+           if(mode==='download'){const caps=capabilities(process.env.GILL_INPUT_URL,pins);for(const r of caps){const response=await fetch(r.url,{redirect:'error',signal:AbortSignal.timeout(120000)});assert(response.ok&&response.body);const length=response.headers.get('content-length');if(length!==null)assert.equal(Number(length),r.size);let bytes=0;await pipeline(Readable.fromWeb(response.body),new Transform({transform(b,e,cb){bytes+=b.length;cb(bytes>r.size?Error('bound'):null,b);}}),fs.createWriteStream(path.join(base,r.name+'.gillenc'),{flags:'wx',mode:0o600}));assert.equal(bytes,r.size);assert.equal(await hash(path.join(base,r.name+'.gillenc')),r.sha256);}}
+           else{assert.equal(mode,'open');assert.equal(overlayPin,pins.overlay.sha256,'overlay pin mismatch');const key=Buffer.from(process.env.GILL_KEY||'','base64');let total=0;try{for(const name of ['input','nativeARM','nativeIntel','overlay']){const archive=path.join(base,name+'.archive');try{await decrypt(path.join(base,name+'.gillenc'),name==='overlay'?archive+'.gz':archive,key,name==='overlay'?overlayPin:pins[name].sha256);if(name==='overlay'){let bytes=0;await pipeline(fs.createReadStream(archive+'.gz'),createGunzip(),new Transform({transform(b,e,cb){bytes+=b.length;cb(bytes>64*1024*1024?Error('overlay expansion bound'):null,b);}}),fs.createWriteStream(archive,{flags:'wx',mode:0o600}));}const index=await extract(archive,path.join(base,name));total+=index.reduce((n,r)=>n+r.size,0);assert(total<=LIMITS.total,'aggregate plaintext bound');fs.rmSync(path.join(base,name+'.gillenc'));}finally{fs.rmSync(archive,{force:true});fs.rmSync(archive+'.gz',{force:true});}}await applyOverlay(base,contractPin);}finally{key.fill(0);}}
+          }
+          if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve(import.meta.dirname,'bootstrap.mjs'))try{await main();}catch{console.error('Authenticated packaging input failed; no secrets or source logged');process.exitCode=1;}
+          GENERIC_1
+          cat > "$RUNNER_TEMP/package-ci/finish.mjs" <<'GENERIC_2'
+          import fs from 'node:fs';import path from 'node:path';import {pack,encrypt,walk,hash} from './transport.mjs';import {outputBound} from './output-bound.mjs';
+          try{const base=process.argv[2],root=path.join(base,'output/evidence');fs.mkdirSync(root,{recursive:true,mode:0o700});if(fs.existsSync(base+'/driver-private.log'))fs.copyFileSync(base+'/driver-private.log',root+'/workflow-private.log');
+           const cp=root+'/package-checkpoint.json';if(fs.existsSync(cp)){const m=JSON.parse(fs.readFileSync(cp));m.files=[];for(const r of walk(root).filter(r=>r.path!=='package-checkpoint.json'))m.files.push({path:r.path,sha256:await hash(r.file)});fs.writeFileSync(cp,JSON.stringify(m,null,2));}
+           const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=base+'/result.archive';try{await pack(walk(root),archive);const bound=outputBound(fs.statSync(archive).size);if(!bound.artifactEligible)throw Error('Actual result exceeds existing encrypted transport bound');const ciphertextSha256=await encrypt(archive,base+'/result.gillenc',key);if(fs.statSync(base+'/result.gillenc').size!==bound.ciphertextBytes)throw Error('Encrypted output size mismatch');const report={...bound,ciphertextSha256,transport:'whole Actions artifact downloaded directly to root; not a release asset',scope:'actual packed result after composition or failure',releaseReady:false};fs.writeFileSync(base+'/result-size.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));}finally{key.fill(0);fs.rmSync(archive,{force:true});}
+          }catch{console.error('Packaging evidence encryption failed; no acceptance inferred');process.exitCode=1;}
+          GENERIC_2
+          cat > "$RUNNER_TEMP/package-ci/output-bound.mjs" <<'GENERIC_3'
+          // Release INPUT assets and Actions RESULT artifacts have distinct limits.
+          // These bounds exactly match the existing archive/encrypt/decrypt implementation.
+          import {LIMITS} from './transport.mjs';
+          export const SINGLE_ASSET_MAX_BYTES=2*1024**3;
+          export const ARTIFACT_ARCHIVE_MAX_BYTES=LIMITS.total+LIMITS.index+8;
+          export const ARTIFACT_CIPHERTEXT_MAX_BYTES=ARTIFACT_ARCHIVE_MAX_BYTES+36;
+          export function outputBound(archiveBytes){if(!Number.isSafeInteger(archiveBytes)||archiveBytes<8)throw Error('Invalid measured archive size');const ciphertextBytes=archiveBytes+36;return {archiveBytes,ciphertextBytes,singleReleaseAssetMaxBytes:SINGLE_ASSET_MAX_BYTES,singleReleaseAssetEligible:ciphertextBytes<SINGLE_ASSET_MAX_BYTES,archiveMaxBytes:ARTIFACT_ARCHIVE_MAX_BYTES,artifactCiphertextMaxBytes:ARTIFACT_CIPHERTEXT_MAX_BYTES,artifactEligible:archiveBytes<=ARTIFACT_ARCHIVE_MAX_BYTES};}
+          GENERIC_3
+          cat > "$RUNNER_TEMP/package-ci/pins.json" <<'PUBLIC_PINS'
+          {"input":{"sha256":"9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534","size":1927307348},"nativeARM":{"sha256":"ecc5154b46999454f110d82881f2940cad86a2a03e340ec047c8e05fb1705ab7","size":1846383833},"nativeIntel":{"sha256":"97a1b162d13dc90ba4f48f54c574e8f711a49347daa8ed36a57d11093cd68ebe","size":1789411251},"overlay":{"sha256":"84011dcdf1e00a2b8fd2304b2a1b00868312e17d2abc4c54f96607de39fcf464","size":779260}}
+          PUBLIC_PINS
+      - name: Fetch only bounded single-asset capabilities
+        env:
+          GILL_INPUT_URL: ${{ secrets.GILL_MAC14_INPUT_URL }}
+        shell: bash
+        run: node "$RUNNER_TEMP/package-ci/bootstrap.mjs" download "$RUNNER_TEMP/package-ci" "$RUNNER_TEMP/package-ci/pins.json"
+      - name: Authenticate original, native slices and encrypted overlay
+        env:
+          GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
+        shell: bash
+        run: node "$RUNNER_TEMP/package-ci/bootstrap.mjs" open "$RUNNER_TEMP/package-ci" "$RUNNER_TEMP/package-ci/pins.json" 84011dcdf1e00a2b8fd2304b2a1b00868312e17d2abc4c54f96607de39fcf464 f15aef1f9bc5e3f839305c9012ff7a402fa65ab32ec9e67e1e4c6c55853320f6
+      - name: Compose and install on this disposable hosted machine
+        env:
+          CI: 'true'
+        shell: bash
+        run: |
+          set +x
+          node "$RUNNER_TEMP/package-ci/input/packaging-ci/driver.mjs" "$RUNNER_TEMP/package-ci" --allow-disposable-system-install > "$RUNNER_TEMP/package-ci/driver-private.log" 2>&1
+      - name: Encrypt packages and evidence including failure
+        if: always()
+        env:
+          GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
+        shell: bash
+        run: node "$RUNNER_TEMP/package-ci/finish.mjs" "$RUNNER_TEMP/package-ci"
+      - name: Upload ciphertext only
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: sealed-packages-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/package-ci/result.gillenc
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
