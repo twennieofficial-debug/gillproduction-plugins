@@ -140,7 +140,7 @@ jobs:
           export function outputBound(archiveBytes){if(!Number.isSafeInteger(archiveBytes)||archiveBytes<8)throw Error('Invalid measured archive size');const ciphertextBytes=archiveBytes+36;return {archiveBytes,ciphertextBytes,singleReleaseAssetMaxBytes:SINGLE_ASSET_MAX_BYTES,singleReleaseAssetEligible:ciphertextBytes<SINGLE_ASSET_MAX_BYTES,archiveMaxBytes:ARTIFACT_ARCHIVE_MAX_BYTES,artifactCiphertextMaxBytes:ARTIFACT_CIPHERTEXT_MAX_BYTES,artifactEligible:archiveBytes<=ARTIFACT_ARCHIVE_MAX_BYTES};}
           GENERIC_3
           cat > "$RUNNER_TEMP/package-ci/pins.json" <<'PUBLIC_PINS'
-          {"input":{"sha256":"9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534","size":1927307348},"nativeARM":{"sha256":"ecc5154b46999454f110d82881f2940cad86a2a03e340ec047c8e05fb1705ab7","size":1846383833},"nativeIntel":{"sha256":"97a1b162d13dc90ba4f48f54c574e8f711a49347daa8ed36a57d11093cd68ebe","size":1789411251},"overlay":{"sha256":"5b9cbf7222e8bd1d853b6f7c1d9463221c82ed692910da28506fa54c6a284d37","size":780879}}
+          {"input":{"sha256":"9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534","size":1927307348},"nativeARM":{"sha256":"ecc5154b46999454f110d82881f2940cad86a2a03e340ec047c8e05fb1705ab7","size":1846383833},"nativeIntel":{"sha256":"97a1b162d13dc90ba4f48f54c574e8f711a49347daa8ed36a57d11093cd68ebe","size":1789411251},"overlay":{"sha256":"be7721d061ea5a452e2ded42c9756e22ac7830a6b9a9b5301ad9259519cc1080","size":781064}}
           PUBLIC_PINS
       - name: Fetch only bounded single-asset capabilities
         env:
@@ -151,7 +151,7 @@ jobs:
         env:
           GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
         shell: bash
-        run: node "$RUNNER_TEMP/package-ci/bootstrap.mjs" open "$RUNNER_TEMP/package-ci" "$RUNNER_TEMP/package-ci/pins.json" 5b9cbf7222e8bd1d853b6f7c1d9463221c82ed692910da28506fa54c6a284d37 2cc5e57b0429e4da27299908827af4baeef75f99dd5cfc3493aeeb39197e7d8a
+        run: node "$RUNNER_TEMP/package-ci/bootstrap.mjs" open "$RUNNER_TEMP/package-ci" "$RUNNER_TEMP/package-ci/pins.json" be7721d061ea5a452e2ded42c9756e22ac7830a6b9a9b5301ad9259519cc1080 74b0a6bca09e580d935e72c4b377930d06b93c357e8c45965eb6a1e35677a6d3
       - name: Compose and install on this disposable hosted machine
         env:
           CI: 'true'
