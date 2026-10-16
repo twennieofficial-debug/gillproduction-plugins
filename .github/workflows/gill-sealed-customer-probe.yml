@@ -1,3 +1,4 @@
+# Root-reviewed retry after failed run 38875104460; no job or permission changes.
 name: Sealed actual production customer licensing probe
 on:
   push:
