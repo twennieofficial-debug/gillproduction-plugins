@@ -64,11 +64,33 @@ jobs:
            fs.writeFileSync(path.join(root,'input-manifest.json'),JSON.stringify({...c.effective,sourceRecords:runtimeRecords,sourceSeal:c.runtimeSourceSeal,nativeSourceSeal:c.effective.sourceSeal},null,2));fs.mkdirSync(path.join(root,'packaging-ci'),{recursive:true,mode:0o700});fs.copyFileSync(file,path.join(root,'packaging-ci/contract.json'));
            return c;
           }
+          // Production budgets are fixed; injection is only an explicit portable-test API.
+          export const DOWNLOAD_BUDGETS=Object.freeze({file:600000,bundle:1800000,idle:60000});
+          const failures=new WeakMap();
+          export function safeDiagnostic(error){return failures.get(error)||{role:'unknown',phase:'validation',status:null,bytes:0,expected:0,error:'ValidationError'};}
+          export async function downloadBundle(value,pins,base,{fetchImpl=globalThis.fetch,budgets=DOWNLOAD_BUDGETS}={}){
+           const caps=capabilities(value,pins);for(const k of ['file','bundle','idle'])assert(Number.isSafeInteger(budgets[k])&&budgets[k]>0&&budgets[k]<=DOWNLOAD_BUDGETS[k]);
+           const controller=new AbortController();let reason,role='unknown',phase='fetch',status=null,bytes=0,expected=0,idle,file;
+           const stop=kind=>{reason ||= kind;controller.abort();};const bundle=setTimeout(()=>stop('BundleTimeout'),budgets.bundle);
+           const reset=()=>{clearTimeout(idle);idle=setTimeout(()=>stop('InactivityTimeout'),budgets.idle);};
+           const guarded=async promise=>{let listener;const aborted=new Promise((_,reject)=>{listener=()=>reject(new Error('aborted'));controller.signal.addEventListener('abort',listener,{once:true});if(controller.signal.aborted)listener();});try{return await Promise.race([promise,aborted]);}finally{controller.signal.removeEventListener('abort',listener);}};
+           const fail=kind=>{reason=kind;throw new Error('bounded transfer failed');};
+           try{for(const r of caps){role=r.name;phase='fetch';status=null;bytes=0;expected=r.size;file=setTimeout(()=>stop('FileTimeout'),budgets.file);reset();
+            const response=await guarded(fetchImpl(r.url,{redirect:'error',signal:controller.signal}));
+            status=Number.isInteger(response.status)&&response.status>=100&&response.status<=599?response.status:null;
+            if(response.redirected||status>=300&&status<400)fail('RedirectError');if(!response.ok||!response.body)fail('HttpError');
+            phase='length';const length=response.headers.get('content-length');if(length!==null&&(!/^\d+$/.test(length)||Number(length)!==r.size))fail('LengthError');
+            phase='stream';const dest=path.join(base,r.name+'.gillenc');
+            await pipeline(Readable.fromWeb(response.body),new Transform({transform(b,e,cb){bytes+=b.length;reset();if(bytes>r.size){reason='SizeError';cb(new Error('bound'));}else cb(null,b);}}),fs.createWriteStream(dest,{flags:'wx',mode:0o600}),{signal:controller.signal});
+            clearTimeout(idle);if(bytes!==r.size)fail('TruncationError');phase='hash';if(await guarded(hash(dest))!==r.sha256)fail('HashError');clearTimeout(file);
+           }}catch(error){const out=new Error('Bounded package input failed');failures.set(out,{role,phase,status,bytes,expected,error:reason||(error?.code==='EEXIST'?'ExclusiveFileError':'TransferError')});controller.abort();throw out;
+           }finally{clearTimeout(bundle);clearTimeout(file);clearTimeout(idle);}
+          }
           export async function main(){const [mode,base,pinsFile,overlayPin,contractPin]=process.argv.slice(2),pins=JSON.parse(fs.readFileSync(pinsFile));
-           if(mode==='download'){const caps=capabilities(process.env.GILL_INPUT_URL,pins);for(const r of caps){const response=await fetch(r.url,{redirect:'error',signal:AbortSignal.timeout(120000)});assert(response.ok&&response.body);const length=response.headers.get('content-length');if(length!==null)assert.equal(Number(length),r.size);let bytes=0;await pipeline(Readable.fromWeb(response.body),new Transform({transform(b,e,cb){bytes+=b.length;cb(bytes>r.size?Error('bound'):null,b);}}),fs.createWriteStream(path.join(base,r.name+'.gillenc'),{flags:'wx',mode:0o600}));assert.equal(bytes,r.size);assert.equal(await hash(path.join(base,r.name+'.gillenc')),r.sha256);}}
+           if(mode==='download'){await downloadBundle(process.env.GILL_INPUT_URL,pins,base);}
            else{assert.equal(mode,'open');assert.equal(overlayPin,pins.overlay.sha256,'overlay pin mismatch');const key=Buffer.from(process.env.GILL_KEY||'','base64');let total=0;try{for(const name of ['input','nativeARM','nativeIntel','overlay']){const archive=path.join(base,name+'.archive');try{await decrypt(path.join(base,name+'.gillenc'),name==='overlay'?archive+'.gz':archive,key,name==='overlay'?overlayPin:pins[name].sha256);if(name==='overlay'){let bytes=0;await pipeline(fs.createReadStream(archive+'.gz'),createGunzip(),new Transform({transform(b,e,cb){bytes+=b.length;cb(bytes>64*1024*1024?Error('overlay expansion bound'):null,b);}}),fs.createWriteStream(archive,{flags:'wx',mode:0o600}));}const index=await extract(archive,path.join(base,name));total+=index.reduce((n,r)=>n+r.size,0);assert(total<=LIMITS.total,'aggregate plaintext bound');fs.rmSync(path.join(base,name+'.gillenc'));}finally{fs.rmSync(archive,{force:true});fs.rmSync(archive+'.gz',{force:true});}}await applyOverlay(base,contractPin);}finally{key.fill(0);}}
           }
-          if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve(import.meta.dirname,'bootstrap.mjs'))try{await main();}catch{console.error('Authenticated packaging input failed; no secrets or source logged');process.exitCode=1;}
+          if(process.argv[1]&&path.resolve(process.argv[1])===path.resolve(import.meta.dirname,'bootstrap.mjs'))try{await main();}catch(error){console.error('Authenticated packaging input failed',JSON.stringify(safeDiagnostic(error)));process.exitCode=1;}
           GENERIC_1
           cat > "$RUNNER_TEMP/package-ci/finish.mjs" <<'GENERIC_2'
           import fs from 'node:fs';import path from 'node:path';import {pack,encrypt,walk,hash} from './transport.mjs';import {outputBound} from './output-bound.mjs';
