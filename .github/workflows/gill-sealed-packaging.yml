@@ -94,6 +94,37 @@ jobs:
           GENERIC_1
           cat > "$RUNNER_TEMP/package-ci/finish.mjs" <<'GENERIC_2'
           import fs from 'node:fs';import path from 'node:path';import {pack,encrypt,walk,hash} from './transport.mjs';import {outputBound} from './output-bound.mjs';
+          // Optional diagnostics are separate from, and never substitute for, the full result.
+          async function diagnostics(base){
+           const key=Buffer.from(process.env.GILL_KEY||'','base64');let temp;
+           try{
+            if(key.length!==32)throw Error();
+            if(!fs.lstatSync(base).isDirectory()||fs.lstatSync(base).isSymbolicLink())throw Error();
+            temp=fs.mkdtempSync(path.join(base,'diagnostic-'));fs.chmodSync(temp,0o700);
+            const records=[],logs=[];
+            for(const [name,parts] of [['native-private.log',['output','evidence','native-private.log']],['workflow-private.log',['driver-private.log']]]){
+             let fd,bytes;let status='unavailable';
+             try{
+              let p=base;for(const part of parts){p=path.join(p,part);const s=fs.lstatSync(p);if(s.isSymbolicLink()||(part!==parts.at(-1)&&!s.isDirectory()))throw Error();}
+              const before=fs.lstatSync(p);if(!before.isFile())throw Error();
+              fd=fs.openSync(p,fs.constants.O_RDONLY|(fs.constants.O_NOFOLLOW||0));const s=fs.fstatSync(fd);
+              if(!s.isFile()||s.dev!==before.dev||s.ino!==before.ino||!Number.isSafeInteger(s.size))throw Error();
+              const count=Math.min(s.size,131072);bytes=Buffer.alloc(count);let n=0;
+              while(n<count){const got=fs.readSync(fd,bytes,n,count-n,s.size-count+n);if(!got)throw Error();n+=got;}
+              const file=path.join(temp,name);fs.writeFileSync(file,bytes,{flag:'wx',mode:0o600});records.push({path:name,file});status=s.size>count?'tail':'complete';
+             }catch{}finally{if(fd!==undefined)fs.closeSync(fd);if(bytes)bytes.fill(0);}
+             logs.push({name,status});
+            }
+            const file=path.join(temp,'diagnostics.json');fs.writeFileSync(file,JSON.stringify({role:'package-diagnostics',schema:1,nativeAcceptance:'UNOBSERVED',releaseReady:false,logs}),{flag:'wx',mode:0o600});records.push({path:'diagnostics.json',file});
+            const archive=path.join(temp,'diagnostics.archive');await pack(records,archive);
+            const archiveBytes=fs.statSync(archive).size;if(archiveBytes>266240)throw Error();
+            const output=path.join(base,'diagnostics.gillenc'),ciphertextSha256=await encrypt(archive,output,key),ciphertextBytes=fs.statSync(output).size;
+            if(ciphertextBytes!==archiveBytes+36||ciphertextBytes>266276)throw Error();
+            console.log(JSON.stringify({tag:'sealed-package-diagnostics-v1',ciphertextBytes,ciphertextSha256,nativeAcceptance:'UNOBSERVED',releaseReady:false}));
+           }catch{console.error('Package diagnostics unavailable; no acceptance inferred');process.exitCode=1;}
+           finally{key.fill(0);if(temp)fs.rmSync(temp,{recursive:true,force:true});}
+          }
+          if(process.argv[3]==='--diagnostics')await diagnostics(process.argv[2]);else
           try{const base=process.argv[2],root=path.join(base,'output/evidence');fs.mkdirSync(root,{recursive:true,mode:0o700});if(fs.existsSync(base+'/driver-private.log'))fs.copyFileSync(base+'/driver-private.log',root+'/workflow-private.log');
            const cp=root+'/package-checkpoint.json';if(fs.existsSync(cp)){const m=JSON.parse(fs.readFileSync(cp));m.files=[];for(const r of walk(root).filter(r=>r.path!=='package-checkpoint.json'))m.files.push({path:r.path,sha256:await hash(r.file)});fs.writeFileSync(cp,JSON.stringify(m,null,2));}
            const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=base+'/result.archive';try{await pack(walk(root),archive);const bound=outputBound(fs.statSync(archive).size);if(!bound.artifactEligible)throw Error('Actual result exceeds existing encrypted transport bound');const ciphertextSha256=await encrypt(archive,base+'/result.gillenc',key);if(fs.statSync(base+'/result.gillenc').size!==bound.ciphertextBytes)throw Error('Encrypted output size mismatch');const report={...bound,ciphertextSha256,transport:'whole Actions artifact downloaded directly to root; not a release asset',scope:'actual packed result after composition or failure',releaseReady:false};fs.writeFileSync(base+'/result-size.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report));}finally{key.fill(0);fs.rmSync(archive,{force:true});}
@@ -109,7 +140,7 @@ jobs:
           export function outputBound(archiveBytes){if(!Number.isSafeInteger(archiveBytes)||archiveBytes<8)throw Error('Invalid measured archive size');const ciphertextBytes=archiveBytes+36;return {archiveBytes,ciphertextBytes,singleReleaseAssetMaxBytes:SINGLE_ASSET_MAX_BYTES,singleReleaseAssetEligible:ciphertextBytes<SINGLE_ASSET_MAX_BYTES,archiveMaxBytes:ARTIFACT_ARCHIVE_MAX_BYTES,artifactCiphertextMaxBytes:ARTIFACT_CIPHERTEXT_MAX_BYTES,artifactEligible:archiveBytes<=ARTIFACT_ARCHIVE_MAX_BYTES};}
           GENERIC_3
           cat > "$RUNNER_TEMP/package-ci/pins.json" <<'PUBLIC_PINS'
-          {"input":{"sha256":"9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534","size":1927307348},"nativeARM":{"sha256":"ecc5154b46999454f110d82881f2940cad86a2a03e340ec047c8e05fb1705ab7","size":1846383833},"nativeIntel":{"sha256":"97a1b162d13dc90ba4f48f54c574e8f711a49347daa8ed36a57d11093cd68ebe","size":1789411251},"overlay":{"sha256":"70774b963a077fbd5a5bf533694c847e9ae811837fd6025339e312fd21effccc","size":780878}}
+          {"input":{"sha256":"9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534","size":1927307348},"nativeARM":{"sha256":"ecc5154b46999454f110d82881f2940cad86a2a03e340ec047c8e05fb1705ab7","size":1846383833},"nativeIntel":{"sha256":"97a1b162d13dc90ba4f48f54c574e8f711a49347daa8ed36a57d11093cd68ebe","size":1789411251},"overlay":{"sha256":"5b9cbf7222e8bd1d853b6f7c1d9463221c82ed692910da28506fa54c6a284d37","size":780879}}
           PUBLIC_PINS
       - name: Fetch only bounded single-asset capabilities
         env:
@@ -120,7 +151,7 @@ jobs:
         env:
           GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
         shell: bash
-        run: node "$RUNNER_TEMP/package-ci/bootstrap.mjs" open "$RUNNER_TEMP/package-ci" "$RUNNER_TEMP/package-ci/pins.json" 70774b963a077fbd5a5bf533694c847e9ae811837fd6025339e312fd21effccc cfb13bca44e999c91ddc0c3de326ea3c1d26b79515b4646a2bee1e31f33b9945
+        run: node "$RUNNER_TEMP/package-ci/bootstrap.mjs" open "$RUNNER_TEMP/package-ci" "$RUNNER_TEMP/package-ci/pins.json" 5b9cbf7222e8bd1d853b6f7c1d9463221c82ed692910da28506fa54c6a284d37 2cc5e57b0429e4da27299908827af4baeef75f99dd5cfc3493aeeb39197e7d8a
       - name: Compose and install on this disposable hosted machine
         env:
           CI: 'true'
@@ -128,6 +159,21 @@ jobs:
         run: |
           set +x
           node "$RUNNER_TEMP/package-ci/input/packaging-ci/driver.mjs" "$RUNNER_TEMP/package-ci" --allow-disposable-system-install > "$RUNNER_TEMP/package-ci/driver-private.log" 2>&1
+      - name: Encrypt bounded private diagnostics including failure
+        if: always()
+        env:
+          GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
+        shell: bash
+        run: node "$RUNNER_TEMP/package-ci/finish.mjs" "$RUNNER_TEMP/package-ci" --diagnostics
+      - name: Upload diagnostics ciphertext only (never acceptance)
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: sealed-package-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/package-ci/diagnostics.gillenc
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
       - name: Encrypt packages and evidence including failure
         if: always()
         env:
