@@ -1,0 +1,224 @@
+name: Sealed actual production customer licensing probe
+on:
+  push:
+    branches: ['prepare/gill-protected-mac22-20261014']
+    paths: ['.github/workflows/gill-sealed-customer-probe.yml']
+permissions:
+  contents: read
+concurrency:
+  group: sealed-native-acceptance
+  cancel-in-progress: false
+jobs:
+  customer:
+    if: github.repository == 'twennieofficial-debug/gillproduction-plugins' && github.event_name == 'push' && github.ref == 'refs/heads/prepare/gill-protected-mac22-20261014'
+    runs-on: macos-15
+    timeout-minutes: 35
+    steps:
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '24'
+      - name: Install generic transport.mjs
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          mkdir -p "$RUNNER_TEMP/customer-probe"
+          cat > "$RUNNER_TEMP/customer-probe/transport.mjs" <<'GILL_GENERIC_0'
+          // Generic bounded transport. No project source, credentials, shell evaluation or dependencies.
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import crypto from 'node:crypto';
+          import {pipeline} from 'node:stream/promises';
+          import {Transform} from 'node:stream';
+          import assert from 'node:assert/strict';
+          export const LIMITS={files:200000,index:32*1024*1024,file:2*1024**3,total:16*1024**3};
+          const MAGIC=Buffer.from('GILLENC1');
+          function writeAll(fd,bytes){let offset=0;while(offset<bytes.length){const n=fs.writeSync(fd,bytes,offset,bytes.length-offset);assert(n>0);offset+=n;}}
+          export const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
+          export async function hash(file){const h=crypto.createHash('sha256');for await(const b of fs.createReadStream(file))h.update(b);return h.digest('hex');}
+          export function safeName(name){assert.equal(typeof name,'string');assert(name.length>0&&name.length<=1024);assert(!/[\\\x00-\x1f:]/.test(name));assert(!name.startsWith('/'));for(const p of name.split('/'))assert(p&&p!=='.'&&p!=='..'&&!/[. ]$/.test(p)&&! /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i.test(p));return name;}
+          export function validateIndex(index,limits=LIMITS){assert(Array.isArray(index)&&index.length<=limits.files);let total=0;const seen=new Set();for(const r of index){safeName(r.path);assert(!seen.has(r.path.toLowerCase()),'duplicate/case alias');seen.add(r.path.toLowerCase());assert(Number.isSafeInteger(r.size)&&r.size>=0&&r.size<=limits.file,'file bound');assert(/^[a-f0-9]{64}$/.test(r.sha256));assert([0o600,0o700].includes(r.mode));total+=r.size;assert(total<=limits.total,'archive bound');}for(const r of index){const p=r.path.split('/');while(p.length>1){p.pop();assert(!seen.has(p.join('/').toLowerCase()),'file/directory collision');}}return total;}
+          export function walk(root,prefix=''){const out=[];for(const e of fs.readdirSync(root,{withFileTypes:true}).sort((a,b)=>a.name.localeCompare(b.name))){const full=path.join(root,e.name),name=prefix+e.name;assert(!e.isSymbolicLink(),'symlink forbidden');if(e.isDirectory())out.push(...walk(full,name+'/'));else{assert(e.isFile(),'special file forbidden');out.push({path:safeName(name),file:full});}}return out;}
+          export async function pack(records,destination){assert(!fs.existsSync(destination));assert(records.length<=LIMITS.files);const index=[];for(const r of records){const s=fs.lstatSync(r.file);assert(s.isFile()&&!s.isSymbolicLink());index.push({path:safeName(r.path),size:s.size,sha256:await hash(r.file),mode:s.mode&0o111?0o700:0o600});}validateIndex(index);const bytes=Buffer.from(JSON.stringify(index));assert(bytes.length<=LIMITS.index);const fd=fs.openSync(destination,'wx',0o600);try{const header=Buffer.alloc(8);header.writeBigUInt64BE(BigInt(bytes.length));writeAll(fd,header);writeAll(fd,bytes);for(let i=0;i<records.length;i++){let n=0;const h=crypto.createHash('sha256');for await(const b of fs.createReadStream(records[i].file)){n+=b.length;assert(n<=index[i].size);h.update(b);writeAll(fd,b);}assert.equal(n,index[i].size);assert.equal(h.digest('hex'),index[i].sha256,'input changed while packing');}}catch(e){fs.closeSync(fd);fs.rmSync(destination,{force:true});throw e;}fs.closeSync(fd);return index;}
+          function bounded(max){let size=0;return new Transform({transform(b,e,cb){size+=b.length;cb(size>max?Error('stream size bound'):null,b);}});}
+          function keyCheck(key){assert(Buffer.isBuffer(key)&&key.length===32,'AES256 key required');}
+          export async function encrypt(input,output,key){keyCheck(key);assert(fs.statSync(input).size<=LIMITS.total+LIMITS.index+8);assert(!fs.existsSync(output));const nonce=crypto.randomBytes(12),cipher=crypto.createCipheriv('aes-256-gcm',key,nonce);cipher.setAAD(MAGIC);fs.writeFileSync(output,Buffer.concat([MAGIC,nonce]),{flag:'wx',mode:0o600});try{await pipeline(fs.createReadStream(input),cipher,fs.createWriteStream(output,{flags:'a'}));fs.appendFileSync(output,cipher.getAuthTag());}catch(e){fs.rmSync(output,{force:true});throw e;}return hash(output);}
+          export async function decrypt(input,output,key,expected){keyCheck(key);assert(/^[a-f0-9]{64}$/.test(expected));const n=fs.statSync(input).size;assert(n>=36&&n<=LIMITS.total+LIMITS.index+44,'ciphertext size');assert.equal(await hash(input),expected,'ciphertext pin');assert(!fs.existsSync(output));const fd=fs.openSync(input,'r'),head=Buffer.alloc(20),tag=Buffer.alloc(16);fs.readSync(fd,head,0,20,0);fs.readSync(fd,tag,0,16,n-16);fs.closeSync(fd);assert(head.subarray(0,8).equals(MAGIC));const cipher=crypto.createDecipheriv('aes-256-gcm',key,head.subarray(8));cipher.setAAD(MAGIC);cipher.setAuthTag(tag);try{await pipeline(fs.createReadStream(input,{start:20,end:n-17}),cipher,bounded(LIMITS.total+LIMITS.index+8),fs.createWriteStream(output,{flags:'wx',mode:0o600}));}catch(e){fs.rmSync(output,{force:true});throw e;}}
+          export async function extract(input,destination){assert(!fs.existsSync(destination),'fresh extraction directory required');const size=fs.statSync(input).size;assert(size>=8&&size<=LIMITS.total+LIMITS.index+8);const fd=fs.openSync(input,'r');let index,start;try{const h=Buffer.alloc(8);assert.equal(fs.readSync(fd,h,0,8,0),8);const n=Number(h.readBigUInt64BE());assert(Number.isSafeInteger(n)&&n<=LIMITS.index&&n<=size-8);const b=Buffer.alloc(n);assert.equal(fs.readSync(fd,b,0,n,8),n);index=JSON.parse(b);assert.equal(8+n+validateIndex(index),size,'truncation/trailing bytes');start=8+n;}finally{fs.closeSync(fd);}fs.mkdirSync(destination,{mode:0o700});try{for(const r of index){const target=path.join(destination,r.path);fs.mkdirSync(path.dirname(target),{recursive:true,mode:0o700});if(r.size)await pipeline(fs.createReadStream(input,{start,end:start+r.size-1}),fs.createWriteStream(target,{flags:'wx',mode:r.mode}));else fs.writeFileSync(target,'',{flag:'wx',mode:r.mode});assert.equal(await hash(target),r.sha256,'content digest');start+=r.size;}return index;}catch(e){fs.rmSync(destination,{recursive:true,force:true});throw e;}}
+          GILL_GENERIC_0
+      - name: Install generic base-open.mjs
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          mkdir -p "$RUNNER_TEMP/customer-probe"
+          cat > "$RUNNER_TEMP/customer-probe/base-open.mjs" <<'GILL_GENERIC_1'
+          // Generic public bootstrap; bounded errors only. Never prints filenames, input content or keys.
+          import fs from 'node:fs';import path from 'node:path';import {Readable,Transform} from 'node:stream';import {pipeline} from 'node:stream/promises';import assert from 'node:assert/strict';import {decrypt,extract,pack,encrypt,walk,hash,LIMITS} from './transport.mjs';
+          let failure='sealed_operation_failed';
+          try{const [operation,base,expected,asset]=process.argv.slice(2);assert(base);const root=path.resolve(base);fs.mkdirSync(root,{recursive:true,mode:0o700});
+           if(operation==='download'){
+            assert(/^[1-9][0-9]*$/.test(asset));let url=process.env.GILL_INPUT_URL||'https://api.github.com/repos/twennieofficial-debug/gillproduction-plugins/releases/assets/'+asset;let response;
+            if(process.env.GILL_INPUT_URL){const signed=new URL(url);assert(signed.protocol==='https:'&&!signed.username&&!signed.password&&['release-assets.githubusercontent.com','objects.githubusercontent.com'].includes(signed.hostname));}
+            for(let redirects=0;redirects<4;redirects++){const headers={'Accept':'application/octet-stream','X-GitHub-Api-Version':'2022-11-28','User-Agent':'sealed-native-ci'};if(new URL(url).hostname==='api.github.com')headers.Authorization='Bearer '+process.env.GH_TOKEN;response=await fetch(url,{headers,redirect:'manual',signal:AbortSignal.timeout(120000)});if(![301,302,303,307,308].includes(response.status))break;url=new URL(response.headers.get('location'),url).href;const u=new URL(url);if(!['release-assets.githubusercontent.com','objects.githubusercontent.com','github.com'].includes(u.hostname))failure='unexpected_redirect_host';assert(u.protocol==='https:'&&!u.username&&!u.password&&['release-assets.githubusercontent.com','objects.githubusercontent.com','github.com'].includes(u.hostname));}
+            if(!response.ok)failure='download_http_'+response.status;assert(response.ok&&response.body);const length=Number(response.headers.get('content-length'));if(length)assert(length<=LIMITS.total+LIMITS.index+44);let bytes=0;await pipeline(Readable.fromWeb(response.body),new Transform({transform(b,e,cb){bytes+=b.length;cb(bytes>LIMITS.total+LIMITS.index+44?Error('bound'):null,b);}}),fs.createWriteStream(path.join(root,'input.gillenc'),{flags:'wx',mode:0o600}));
+           }else if(operation==='open'){
+            const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=path.join(root,'input.archive');try{await decrypt(path.join(root,'input.gillenc'),archive,key,expected);await extract(archive,path.join(root,'input'));}finally{key.fill(0);fs.rmSync(archive,{force:true});fs.rmSync(path.join(root,'input.gillenc'),{force:true});}
+           }else if(operation==='seal'){
+            const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=path.join(root,'result.archive'),evidence=path.join(root,'output/evidence');fs.mkdirSync(evidence,{recursive:true});if(fs.existsSync(path.join(root,'private.log')))fs.copyFileSync(path.join(root,'private.log'),path.join(evidence,'workflow-private.log'));if(fs.existsSync(path.join(root,'overlay-open.log')))fs.copyFileSync(path.join(root,'overlay-open.log'),path.join(evidence,'overlay-open.log'));
+            // Refresh only the file inventory: never promote an interrupted stage to accepted.
+            const checkpoint=path.join(evidence,'checkpoint.json');if(fs.existsSync(checkpoint)){const m=JSON.parse(fs.readFileSync(checkpoint));m.files=[];for(const r of walk(evidence).filter(r=>r.path!=='checkpoint.json'))m.files.push({path:r.path,sha256:await hash(r.file)});fs.writeFileSync(checkpoint,JSON.stringify(m,null,2));}
+            try{await pack(walk(evidence),archive);await encrypt(archive,path.join(root,'result.gillenc'),key);}finally{key.fill(0);fs.rmSync(archive,{force:true});}
+           }else throw Error('operation');
+          }catch{console.error('Sealed CI operation failed: '+failure+'. No secrets or signed URLs logged.');process.exitCode=1;}
+          GILL_GENERIC_1
+      - name: Install generic bootstrap.mjs
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          mkdir -p "$RUNNER_TEMP/customer-probe"
+          cat > "$RUNNER_TEMP/customer-probe/bootstrap.mjs" <<'GILL_GENERIC_2'
+          // Public generic authenticated overlay transport: no runtime source or credentials.
+          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {createGunzip} from 'node:zlib';import {pipeline} from 'node:stream/promises';import {Transform} from 'node:stream';import {decrypt,extract,walk,hash,sha,safeName} from './transport.mjs';
+          export async function apply(base,contractPin){const extra=path.join(base,'overlay'),root=path.join(base,'input'),cf=path.join(extra,'customer-probe-ci/contract.json');assert.equal(await hash(cf),contractPin);const c=JSON.parse(fs.readFileSync(cf)),m=JSON.parse(fs.readFileSync(path.join(root,'input-manifest.json'))),seal=v=>sha(Buffer.from(JSON.stringify(v)));assert.equal(c.baseSourceSeal,m.sourceSeal);assert.equal(seal(m.sourceRecords),m.sourceSeal);for(const r of m.sourceRecords){safeName(r.path);assert.equal(await hash(path.join(root,r.path)),r.sha256);}assert.deepEqual(walk(extra).map(r=>r.path).sort(),[...c.files.map(r=>r.path),'customer-probe-ci/contract.json'].sort());for(const r of c.files){safeName(r.path);assert.equal(await hash(path.join(extra,r.path)),r.sha256);const dst=path.join(root,r.path);if(fs.existsSync(dst)){const old=m.sourceRecords.find(x=>x.path===r.path);assert(old,'unbound overwrite');assert.equal(await hash(dst),old.sha256);}fs.mkdirSync(path.dirname(dst),{recursive:true,mode:0o700});fs.copyFileSync(path.join(extra,r.path),dst);}assert.equal(seal(c.effective.sourceRecords),c.effective.sourceSeal);const all=new Map(c.effective.sourceRecords.map(r=>[r.path,r]));for(const r of c.files)all.set(r.path,r);for(const r of all.values()){safeName(r.path);assert.equal(await hash(path.join(root,r.path)),r.sha256);}fs.mkdirSync(path.join(root,'customer-probe-ci'),{recursive:true,mode:0o700});fs.copyFileSync(cf,path.join(root,'customer-probe-ci/contract.json'));}
+          export async function main(){const [base,pin,contractPin]=process.argv.slice(2),key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=path.join(base,'overlay.archive');try{await decrypt(path.join(base,'overlay.gillenc'),archive+'.gz',key,pin);let size=0;await pipeline(fs.createReadStream(archive+'.gz'),createGunzip(),new Transform({transform(b,e,cb){size+=b.length;cb(size>64*1024*1024?Error('overlay bound'):null,b);}}),fs.createWriteStream(archive,{flags:'wx',mode:0o600}));await extract(archive,path.join(base,'overlay'));await apply(base,contractPin);}finally{key.fill(0);fs.rmSync(archive,{force:true});fs.rmSync(archive+'.gz',{force:true});}}
+          if(process.argv[1]&&path.resolve(process.argv[1])===path.join(import.meta.dirname,'bootstrap.mjs'))try{await main();}catch{console.error('Customer probe authenticated input failed');process.exitCode=1;}
+          GILL_GENERIC_2
+      - name: Install generic control.mjs
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          mkdir -p "$RUNNER_TEMP/customer-probe"
+          cat > "$RUNNER_TEMP/customer-probe/control.mjs" <<'GILL_GENERIC_3'
+          // Generic public lifecycle wrapper. Never emits private output.
+          import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {spawnSync} from 'node:child_process';
+          const [mode,baseArg]=process.argv.slice(2),base=path.resolve(baseArg);assert.equal(path.dirname(base),path.resolve(process.env.RUNNER_TEMP));assert.equal(path.basename(base),'customer-probe');
+          const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+          function pid(){const p=Number(fs.readFileSync(path.join(base,'driver.pid'),'utf8').trim());assert(Number.isSafeInteger(p)&&p>1);return p;}
+          function alive(p){try{process.kill(p,0);return true;}catch{return false;}}
+          function parse(s){return s.trim().split(/\r?\n/).filter(Boolean).map(x=>JSON.parse(x.trim()));}
+          function security(...a){const r=spawnSync('/usr/bin/security',a,{encoding:'utf8',timeout:15000});assert.equal(r.status,0);return r.stdout;}
+          try{
+           if(mode==='challenge'||mode==='wait'){const limit=Date.now()+(mode==='challenge'?480000:900000);const f=path.join(base,mode==='challenge'?'challenge.ready':'finished');while(!fs.existsSync(f)&&Date.now()<limit){if(fs.existsSync(path.join(base,'finished')))throw Error('native failed before challenge');await sleep(1000);}assert(fs.existsSync(f),'bounded wait expired');if(mode==='wait')assert.equal(fs.readFileSync(f,'utf8'),'0');}
+           else{assert.equal(mode,'recover');if(fs.existsSync(path.join(base,'driver.pid'))){const p=pid();if(alive(p)){process.kill(p,'SIGTERM');const until=Date.now()+45000;while(alive(p)&&Date.now()<until)await sleep(500);if(alive(p)){process.kill(p,'SIGKILL');await sleep(1000);}}}
+            const file=path.join(base,'recovery-state.json');if(fs.existsSync(file)){assert.equal(process.platform,'darwin');assert.equal(process.env.GITHUB_ACTIONS,'true');const s=JSON.parse(fs.readFileSync(file)),home=process.env.HOME;assert(s.scratch.startsWith(home+'/.gill-customer-probe-'));assert.equal(s.ownKeychain,path.join(s.scratch,'disposable.keychain-db'));assert.equal(s.owned,path.join(home,'Library/GILLPRODUCTION'));assert(Array.isArray(s.snapshot.list)&&s.snapshot.list.length&&s.snapshot.list.every(p=>typeof p==='string'&&p.startsWith('/')&&!/[\0\r\n]/.test(p)));assert.equal(s.snapshot.default.length,1);assert(s.snapshot.default[0].startsWith('/'));
+             assert.equal(s.installState,path.join(base,'output/evidence/helper-installation.json'));if(fs.existsSync(s.installState)){const r=spawnSync('/usr/bin/sudo',['-n',process.execPath,path.join(base,'input/customer-probe-ci/install-helper.mjs'),'cleanup',path.join(base,'input'),s.installState],{encoding:'utf8',timeout:30000});assert.equal(r.status,0);}
+             security('list-keychains','-d','user','-s',...s.snapshot.list);security('default-keychain','-d','user','-s',s.snapshot.default[0]);assert.deepEqual(parse(security('list-keychains','-d','user')),s.snapshot.list);assert.deepEqual(parse(security('default-keychain','-d','user')),s.snapshot.default);if(fs.existsSync(s.ownKeychain))security('delete-keychain',s.ownKeychain);
+             // Interrupted execution stays failed; recovery never manufactures a pass checkpoint.
+             for(const p of [s.owned,s.scratch])if(fs.existsSync(p)){assert.equal(fs.realpathSync(p),p);fs.rmSync(p,{recursive:true,force:true});}
+            }
+           }
+          }catch{console.error('Bounded customer probe lifecycle failed; inspect encrypted diagnostics');process.exitCode=1;}
+          GILL_GENERIC_3
+      - name: Install generic finish.mjs
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          mkdir -p "$RUNNER_TEMP/customer-probe"
+          cat > "$RUNNER_TEMP/customer-probe/finish.mjs" <<'GILL_GENERIC_4'
+          import assert from 'node:assert/strict';
+          // Generic public wrapper. Captures private failure logs without accepting them as success.
+          import fs from 'node:fs';import path from 'node:path';import {pack,encrypt,walk,hash} from './transport.mjs';
+          try{const base=process.argv[2],out=path.join(base,'output/evidence');fs.mkdirSync(out,{recursive:true,mode:0o700});for(const n of ['driver-private.log','recovery-state.json'])if(fs.existsSync(path.join(base,n)))fs.copyFileSync(path.join(base,n),path.join(out,n));const cf=path.join(out,'customer-checkpoint.json');if(fs.existsSync(cf)){const c=JSON.parse(fs.readFileSync(cf));c.files=[];for(const r of walk(out).filter(r=>r.path!=='customer-checkpoint.json'))c.files.push({path:r.path,sha256:await hash(r.file)});fs.writeFileSync(cf,JSON.stringify(c,null,2));}const key=Buffer.from(process.env.GILL_KEY||'','base64'),archive=path.join(base,'result.archive');try{await pack(walk(out),archive);await encrypt(archive,path.join(base,'result.gillenc'),key);if(fs.statSync(path.join(base,'result.gillenc')).size>500000){fs.rmSync(path.join(base,'result.gillenc'));throw Error('private proof size bound');}}finally{key.fill(0);fs.rmSync(archive,{force:true});}}catch{console.error('Customer proof encryption failed');process.exitCode=1;}
+          GILL_GENERIC_4
+      - name: Install generic overlay-fetch.mjs
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          mkdir -p "$RUNNER_TEMP/customer-probe"
+          cat > "$RUNNER_TEMP/customer-probe/overlay-fetch.mjs" <<'GILL_GENERIC_5'
+          // Public, credential-free transport for one exact ciphertext in the dispatched commit.
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import assert from 'node:assert/strict';
+          import {createHash} from 'node:crypto';
+          export const CIPHER_PATH='.gill-sealed/customer-probe/overlay.gillenc';
+          export const REPO='twennieofficial-debug/gillproduction-plugins';
+          export const BRANCH='refs/heads/prepare/gill-protected-mac22-20261014';
+          export const digest=b=>createHash('sha256').update(b).digest('hex');
+          export function inputCheck(env,pin,size){
+           assert.equal(env.GITHUB_REPOSITORY,REPO);assert.equal(env.GITHUB_REF,BRANCH);assert.equal(env.GITHUB_EVENT_NAME,'push');
+           assert.equal(env.GITHUB_ACTIONS,'true');assert.equal(env.RUNNER_ENVIRONMENT,'github-hosted');assert.match(env.GITHUB_SHA,/^[a-f0-9]{40}$/);
+           assert.match(pin,/^[a-f0-9]{64}$/);assert(Number.isSafeInteger(size)&&size>=36&&size<=500000);
+           return `https://raw.githubusercontent.com/${REPO}/${env.GITHUB_SHA}/${CIPHER_PATH}`;
+          }
+          export async function download(base,pin,size,{env=process.env,fetcher=fetch}={}){
+           const url=inputCheck(env,pin,size),out=path.join(base,'overlay.gillenc');
+           const stat=fs.lstatSync(base);assert(stat.isDirectory()&&!stat.isSymbolicLink());assert(!fs.existsSync(out),'fresh encrypted input required');
+           const response=await fetcher(url,{redirect:'error',signal:AbortSignal.timeout(30000)});
+           assert.equal(response.status,200,'encrypted commit input missing');assert(response.url===undefined||response.url===url,'unexpected response origin');
+           const declared=response.headers.get('content-length');if(declared!==null){assert.match(declared,/^[0-9]+$/);assert.equal(Number(declared),size,'encrypted input length');}
+           assert(response.body,'encrypted input missing body');const chunks=[];let received=0;
+           for await(const chunk of response.body){received+=chunk.length;assert(received<=size,'encrypted input exceeds bound');chunks.push(Buffer.from(chunk));}
+           assert.equal(received,size,'truncated encrypted input');const bytes=Buffer.concat(chunks);assert.equal(digest(bytes),pin,'encrypted input digest');
+           assert(bytes.subarray(0,8).equals(Buffer.from('GILLENC1')),'encrypted envelope required');
+           fs.writeFileSync(out,bytes,{flag:'wx',mode:0o600});return {bytes:received,sha256:pin};
+          }
+          if(process.argv[1]&&path.resolve(process.argv[1])===import.meta.filename){try{const [base,pin,size,...extra]=process.argv.slice(2);assert.equal(extra.length,0);await download(base,pin,Number(size));}catch{console.error('Commit-bound encrypted overlay refused');process.exitCode=1;}}
+          GILL_GENERIC_5
+      - name: Fetch exact encrypted overlay from dispatched commit
+        shell: bash
+        run: |
+          set -eu
+          umask 077
+          node "$RUNNER_TEMP/customer-probe/overlay-fetch.mjs" "$RUNNER_TEMP/customer-probe" fdef5e264015d44e498b5ff645878f3978b39ccb79b459e6ec5a71489fcbcdc5 381299
+      - name: Download existing sealed source
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GILL_INPUT_URL: ${{ secrets.GILL_MAC14_INPUT_URL }}
+        shell: bash
+        run: node "$RUNNER_TEMP/customer-probe/base-open.mjs" download "$RUNNER_TEMP/customer-probe" 9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534 641754142
+      - name: Authenticate encrypted inputs
+        env:
+          GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
+        shell: bash
+        run: |
+          set -eu
+          node "$RUNNER_TEMP/customer-probe/base-open.mjs" open "$RUNNER_TEMP/customer-probe" 9bb021c9813609257fa68e0e0ca16c84d58c35deb081081efa3ea2dfd29b4534
+          node "$RUNNER_TEMP/customer-probe/bootstrap.mjs" "$RUNNER_TEMP/customer-probe" fdef5e264015d44e498b5ff645878f3978b39ccb79b459e6ec5a71489fcbcdc5 919a71fbcda97b87363be4afd1bd1c6c005d02996bbe96a8776ca007718a6985
+      - name: Explicit disposable production pairing
+        env:
+          CI: 'true'
+          GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
+        shell: bash
+        run: |
+          set -eu
+          set +x
+          umask 077
+          nohup node "$RUNNER_TEMP/customer-probe/input/customer-probe-ci/driver.mjs" --consent-disposable-production-pairing "$RUNNER_TEMP/customer-probe" > "$RUNNER_TEMP/customer-probe/driver-private.log" 2>&1 < /dev/null &
+          echo $! > "$RUNNER_TEMP/customer-probe/driver.pid"
+          node "$RUNNER_TEMP/customer-probe/control.mjs" challenge "$RUNNER_TEMP/customer-probe"
+      - name: Upload encrypted challenge for root browser approval
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: sealed-customer-challenge-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/customer-probe/challenge.gillenc
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0
+      - name: Await real customer approval and production cache verification
+        shell: bash
+        run: node "$RUNNER_TEMP/customer-probe/control.mjs" wait "$RUNNER_TEMP/customer-probe"
+      - name: Restore original Keychain state
+        if: always()
+        shell: bash
+        run: node "$RUNNER_TEMP/customer-probe/control.mjs" recover "$RUNNER_TEMP/customer-probe"
+      - name: Encrypt proof and diagnostics
+        if: always()
+        env:
+          GILL_KEY: ${{ secrets.GILL_MAC14_CI_KEY }}
+        shell: bash
+        run: node "$RUNNER_TEMP/customer-probe/finish.mjs" "$RUNNER_TEMP/customer-probe"
+      - name: Upload ciphertext only
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: sealed-customer-proof-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/customer-probe/result.gillenc
+          if-no-files-found: error
+          retention-days: 3
+          compression-level: 0
